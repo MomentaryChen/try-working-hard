@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual.
+- **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual. Maximize is **re-applied** after the first layout tick and after the first-run **intro** dialog so CustomTkinter / modals do not leave the window at the default size.
 
 - **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
 

@@ -38,7 +38,11 @@ def _try_takefocus(widget: Any, value: int | bool) -> None:
 
 
 def _apply_start_maximized(root: tk.Misc) -> None:
-    """Maximize the main window on launch (restored size still comes from minsize/geometry on un-maximize)."""
+    """Maximize the main window (restored size still comes from minsize/geometry on un-maximize).
+
+    May need to be called again after CustomTkinter layout or after a modal dialog: both can clear
+    ``zoomed`` on Windows by applying an explicit ``geometry`` or reparenting focus.
+    """
     try:
         if sys.platform == "win32":
             root.state("zoomed")
@@ -144,7 +148,6 @@ class MouseJigglerApp:
         self.root.title(self._t("window_title"))
         self.root.geometry("920x640")
         self.root.minsize(860, 580)
-        _apply_start_maximized(self.root)
         self.root.configure(fg_color=self._MAIN_BG)
         self._window_icon_photo: tk.PhotoImage | None = None
         self._apply_window_icon()
@@ -187,6 +190,14 @@ class MouseJigglerApp:
         self._log(self._t("log_ready"))
         self._setup_a11y()
         self.root.after(250, self._maybe_show_first_intro)
+        # CTk can re-apply geometry after the first layout pass; schedule re-maximize after it.
+        self.root.after(0, self._reapply_start_maximized)
+        self.root.after(150, self._reapply_start_maximized)
+
+    def _reapply_start_maximized(self) -> None:
+        if self._shutting_down:
+            return
+        _apply_start_maximized(self.root)
 
     def _pkg_version(self) -> str:
         try:
@@ -421,6 +432,7 @@ class MouseJigglerApp:
             self._t("intro_body", version=self._pkg_version()),
             parent=self.root,
         )
+        self._reapply_start_maximized()
         self._intro_acknowledged = True
         self._save_config_now()
 
