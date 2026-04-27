@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import time
 import tkinter as tk
@@ -33,6 +34,17 @@ def _try_takefocus(widget: Any, value: int | bool) -> None:
     try:
         widget.configure(takefocus=value)  # type: ignore[union-attr]
     except (tk.TclError, AttributeError, TypeError, ValueError):
+        pass
+
+
+def _apply_start_maximized(root: tk.Misc) -> None:
+    """Maximize the main window on launch (restored size still comes from minsize/geometry on un-maximize)."""
+    try:
+        if sys.platform == "win32":
+            root.state("zoomed")
+        else:
+            root.attributes("-zoomed", True)
+    except tk.TclError:
         pass
 
 
@@ -132,6 +144,7 @@ class MouseJigglerApp:
         self.root.title(self._t("window_title"))
         self.root.geometry("920x640")
         self.root.minsize(860, 580)
+        _apply_start_maximized(self.root)
         self.root.configure(fg_color=self._MAIN_BG)
         self._window_icon_photo: tk.PhotoImage | None = None
         self._apply_window_icon()

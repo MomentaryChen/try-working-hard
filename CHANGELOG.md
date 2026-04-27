@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual.
+
 - **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
 
 - **Home status**: the schedule state is shown in a **bordered strip** with a **colored indicator** and tint (muted when stopped, green while counting down to the next nudge, amber during active motion).
