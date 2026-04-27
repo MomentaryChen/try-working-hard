@@ -285,8 +285,12 @@ try {
     $utf8NoBom = New-Object System.Text.UTF8Encoding $false
     [System.IO.File]::WriteAllText($tmp, $body, $utf8NoBom)
 
+    $expectedUpstream = "origin/$branch"
     $hasUpstream = git rev-parse --abbrev-ref "@{u}" 2>$null
-    if (-not $hasUpstream) {
+    if (-not $hasUpstream -or ($hasUpstream -ne $expectedUpstream)) {
+        if ($hasUpstream -and $hasUpstream -ne $expectedUpstream) {
+            Write-Warning "Upstream is '$hasUpstream' but this branch is '$branch'. Pushing to $expectedUpstream and setting upstream."
+        }
         git push -u origin HEAD
     } else {
         git push
