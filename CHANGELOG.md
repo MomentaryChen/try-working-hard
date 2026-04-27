@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Home → Control**: control card is scrollable so short windows still show Start, Stop, and status; field order is interval → nudge size → active motion (seconds) → motion path (placed under the seconds field).
+
 ### Added
 
 - **Motion path** on Home → Control: choose **line** (horizontal nudge and restore), **circle** (full path; nudge size is the radius in pixels), or **square** (clockwise along the perimeter; nudge size is the edge length). Persisted in local config as `motion_pattern`.

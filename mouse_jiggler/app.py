@@ -753,8 +753,16 @@ class MouseJigglerApp:
         self.content_host.grid_columnconfigure(0, weight=1)
         self.content_host.grid_rowconfigure(0, weight=1)
 
-        self.frame_control = ctk.CTkFrame(self.content_host, fg_color=self._CARD_BG, corner_radius=10)
+        self.frame_control = ctk.CTkScrollableFrame(
+            self.content_host,
+            fg_color=self._CARD_BG,
+            corner_radius=10,
+            border_width=0,
+            scrollbar_button_color=self._BTN_SECONDARY,
+            scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
+        )
         self.frame_control.grid(row=0, column=0, sticky="nsew")
+        self.frame_control.grid_columnconfigure(0, weight=1)
         self._fill_control_panel(self.frame_control)
 
         self.frame_log = ctk.CTkFrame(self.content_host, fg_color=self._CARD_BG, corner_radius=10)
@@ -983,7 +991,7 @@ class MouseJigglerApp:
         self.analytics_log.configure(state="disabled")
         self.analytics_log.see("end")
 
-    def _fill_control_panel(self, card: ctk.CTkFrame) -> None:
+    def _fill_control_panel(self, card: ctk.CTkFrame | ctk.CTkScrollableFrame) -> None:
         card.grid_columnconfigure(0, weight=1)
         p = self._UI_PAD
 
@@ -1036,48 +1044,15 @@ class MouseJigglerApp:
         self._set_interval_hint()
         self._a11y_label_focus_entry(self._lbl_interval, self.entry_minutes)
 
-        self._lbl_motion_pattern = ctk.CTkLabel(
-            card,
-            text=self._t("motion_pattern_label"),
-            font=self._font_body_bold,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
-        )
-        self._lbl_motion_pattern.grid(row=2, column=0, sticky="w", padx=p, pady=(p, p))
-        row_pattern = ctk.CTkFrame(card, fg_color="transparent")
-        row_pattern.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
-        self.seg_motion_pattern = ctk.CTkSegmentedButton(
-            row_pattern,
-            values=[
-                self._t("motion_pattern_line"),
-                self._t("motion_pattern_circle"),
-                self._t("motion_pattern_square"),
-            ],
-            command=self._on_motion_pattern_seg,
-            corner_radius=10,
-            font=self._font_body,
-            height=36,
-            fg_color=self._CARD_BG,
-            selected_color=self._ACCENT,
-            selected_hover_color=self._ACCENT_HOVER,
-            unselected_color=self._BTN_SECONDARY,
-            unselected_hover_color=self._BTN_SECONDARY_HOVER,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
-            text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
-        )
-        _try_takefocus(self.seg_motion_pattern, 1)
-        self.seg_motion_pattern.pack(side="left")
-        self._sync_motion_pattern_seg()
-        self._a11y_label_focus_entry(self._lbl_motion_pattern, self.seg_motion_pattern)
-
         self._lbl_pixels = ctk.CTkLabel(
             card,
             text=self._t("pixels_label"),
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_pixels.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_pixels.grid(row=2, column=0, sticky="w", padx=p, pady=(p, p))
         row3 = ctk.CTkFrame(card, fg_color="transparent")
-        row3.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        row3.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_pixels = tk.StringVar(value=str(self.DEFAULT_PIXELS))
         self.entry_pixels = ctk.CTkEntry(
             row3,
@@ -1108,9 +1083,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_motion_burst.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_motion_burst.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
         row_motion = ctk.CTkFrame(card, fg_color="transparent")
-        row_motion.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_motion.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_motion_burst = tk.StringVar(value=str(int(self.DEFAULT_MOTION_BURST)))
         self.entry_motion_burst = ctk.CTkEntry(
             row_motion,
@@ -1134,6 +1109,39 @@ class MouseJigglerApp:
         )
         self._lbl_motion_burst_hint.pack(side="left", padx=(12, 0))
         self._a11y_label_focus_entry(self._lbl_motion_burst, self.entry_motion_burst)
+
+        self._lbl_motion_pattern = ctk.CTkLabel(
+            card,
+            text=self._t("motion_pattern_label"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+        )
+        self._lbl_motion_pattern.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
+        row_pattern = ctk.CTkFrame(card, fg_color="transparent")
+        row_pattern.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.seg_motion_pattern = ctk.CTkSegmentedButton(
+            row_pattern,
+            values=[
+                self._t("motion_pattern_line"),
+                self._t("motion_pattern_circle"),
+                self._t("motion_pattern_square"),
+            ],
+            command=self._on_motion_pattern_seg,
+            corner_radius=10,
+            font=self._font_body,
+            height=36,
+            fg_color=self._CARD_BG,
+            selected_color=self._ACCENT,
+            selected_hover_color=self._ACCENT_HOVER,
+            unselected_color=self._BTN_SECONDARY,
+            unselected_hover_color=self._BTN_SECONDARY_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
+        )
+        _try_takefocus(self.seg_motion_pattern, 1)
+        self.seg_motion_pattern.pack(side="left")
+        self._sync_motion_pattern_seg()
+        self._a11y_label_focus_entry(self._lbl_motion_pattern, self.seg_motion_pattern)
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
         btn_row.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
