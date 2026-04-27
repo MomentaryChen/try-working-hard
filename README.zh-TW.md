@@ -25,6 +25,18 @@ uv run try-working-hard
 uv run python -m mouse_jiggler
 ```
 
+### Windows 單檔執行檔（不需安裝 Python）
+
+在 **GitHub Releases** 可下載 **單一** `try-working-hard.exe`（PyInstaller 打包、無主控台視窗）。請到對應版本（例如 `v1.0.0`）的 **Assets** 下載後直接執行。
+
+- 自行或 CI 如何建置：見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)（含 SmartScreen／防毒說明，以及 Briefcase 等替代方案簡介）。
+- **發佈方式：** 推送 `v*` 標籤（例如 `v1.0.0`），[`.github/workflows/release.yml`](.github/workflows/release.yml) 會跑測試、建置並上傳至該 GitHub Release。
+
+### 鍵盤與無障礙
+
+- **F1** 開啟說明；**F2 / F3 / F4** 切換主要頁面；在**首頁 → 控制面板**時 **F5** 開始、**Shift+F5** 停止（條件允許時）；**F6** 切換控制／紀錄。可**點擊「間隔」「位移」標籤**將焦點移到欄位。**Tab / Shift+Tab** 切換焦點。
+- CustomTkinter 多數元件以**畫布**繪製，**螢幕閱讀器**支援度與完整原生 Win32 不同。詳見 [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md)。
+
 ## 使用方式
 
 1. 在左側欄使用 **繁中 / English** 分段切換介面語言。

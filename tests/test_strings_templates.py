@@ -25,3 +25,16 @@ def test_error_templates(lang: str) -> None:
 def test_log_started_template(lang: str) -> None:
     line = STRINGS[lang]["log_started"].format(m=2, sec=120, px=50)
     assert "50" in line
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_a11y_help_body_includes_version(lang: str) -> None:
+    body = STRINGS[lang]["a11y_help_body"].format(version="1.0.0")
+    assert "1.0.0" in body
+    assert "F1" in body
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_intro_body_includes_version(lang: str) -> None:
+    body = STRINGS[lang]["intro_body"].format(version="2.0.0")
+    assert "2.0.0" in body

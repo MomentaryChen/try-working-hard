@@ -25,6 +25,18 @@ Or as a module:
 uv run python -m mouse_jiggler
 ```
 
+### Windows executable (no Python)
+
+Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.exe` (PyInstaller, one-file, no console). Download it from the **Releases** page for the version you want (for example `v1.0.0`) and run the file.
+
+- How the `.exe` is built locally or in CI: [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md) (also covers SmartScreen, alternatives such as Briefcase at a high level).
+- **Tag a release:** push a `v*` tag (for example `v1.0.0`); [`.github/workflows/release.yml`](.github/workflows/release.yml) runs tests, builds the executable, and uploads it to that release.
+
+### Keyboard and accessibility
+
+- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **F6** toggles Control / Log. You can **click the interval and nudge labels** to focus the matching field. **Tab / Shift+Tab** moves between controls.
+- CustomTkinter draws many controls on a **canvas**, so **screen reader** coverage is not the same as for fully native Win32 UIs. Details: [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
+
 ## Usage
 
 1. Use the sidebar **繁中 / English** segmented control to switch the UI language.

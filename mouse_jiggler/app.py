@@ -6,6 +6,7 @@ import threading
 import time
 import tkinter as tk
 from datetime import datetime
+from importlib.metadata import version as pkg_version
 from importlib.resources import files
 from pathlib import Path
 from tkinter import messagebox
@@ -13,13 +14,24 @@ from typing import Any, Literal
 
 import customtkinter as ctk
 
-from . import nudge_logic
+from . import local_config, nudge_logic
 from .strings import Lang, STRINGS
 from .tray import HAS_TRAY, TrayController
 from .win32_mouse import jiggle_mouse
 
 # Primary UI font (Inter). If missing, Tk picks a substitute.
 _FONT_INTER = "Inter"
+
+
+def _try_takefocus(widget: Any, value: int | bool) -> None:
+    """Set takefocus on CTk/Tk widgets; ignore if unsupported (keyboard / screen-reader support)."""
+    # CTkButton: takefocus is not a valid **kwargs to CTkBaseClass / configure (CustomTkinter 5.x).
+    if isinstance(widget, ctk.CTkButton):
+        return
+    try:
+        widget.configure(takefocus=value)  # type: ignore[union-attr]
+    except (tk.TclError, AttributeError, TypeError, ValueError):
+        pass
 
 
 def _tint_rgba_image(im: Any, hex_color: str) -> Any:
@@ -88,7 +100,7 @@ class MouseJigglerApp:
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
 
-        self._lang: Lang = "zh"
+        self._lang: Lang = "en"
         self._segment_mode: Literal["control", "log"] = "control"
         self._active_nav: Literal["home", "settings", "analytics"] = "home"
 
@@ -116,6 +128,9 @@ class MouseJigglerApp:
 
         self._tray = TrayController()
         self._shutting_down = False
+        self._config_save_after_id: str | None = None
+        self._config_loading = False
+        self._intro_acknowledged = True
 
         self.root.grid_columnconfigure(1, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
@@ -124,7 +139,114 @@ class MouseJigglerApp:
         self._build_main()
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+        self._config_loading = True
+        try:
+            self._apply_loaded_config(local_config.load_config())
+        finally:
+            self._config_loading = False
+        self._register_config_persistence()
+
         self._log(self._t("log_ready"))
+        self._setup_a11y()
+        self.root.after(250, self._maybe_show_first_intro)
+
+    def _pkg_version(self) -> str:
+        try:
+            return pkg_version("try-working-hard")
+        except Exception:
+            return "1.0.0"
+
+    def _a11y_label_focus_entry(self, label: ctk.CTkLabel, entry: ctk.CTkEntry) -> None:
+        try:
+            label.configure(cursor="hand2")
+        except (tk.TclError, AttributeError):
+            pass
+
+        def _on_click(_: object) -> None:
+            if self._shutting_down:
+                return
+            try:
+                entry.focus_set()
+            except (tk.TclError, AttributeError):
+                pass
+
+        label.bind("<Button-1>", _on_click)
+
+    def _setup_a11y(self) -> None:
+        self.root.bind_all("<F1>", self._a11y_help)
+        self.root.bind_all("<F2>", self._a11y_f2)
+        self.root.bind_all("<F3>", self._a11y_f3)
+        self.root.bind_all("<F4>", self._a11y_f4)
+        self.root.bind_all("<KeyPress-F5>", self._a11y_f5)
+        self.root.bind_all("<F6>", self._a11y_f6)
+        self.root.after(120, self._a11y_initial_focus)
+
+    def _a11y_initial_focus(self) -> None:
+        if self._shutting_down:
+            return
+        try:
+            self.entry_minutes.focus_set()
+        except (tk.TclError, AttributeError):
+            pass
+
+    def _a11y_help(self, _e: object | None = None) -> str | None:
+        messagebox.showinfo(
+            self._t("a11y_help_title"),
+            self._t("a11y_help_body", version=self._pkg_version()),
+            parent=self.root,
+        )
+        return "break"
+
+    def _a11y_f2(self, _e: object | None = None) -> str | None:
+        self._on_nav("home")
+        return "break"
+
+    def _a11y_f3(self, _e: object | None = None) -> str | None:
+        self._on_nav("settings")
+        return "break"
+
+    def _a11y_f4(self, _e: object | None = None) -> str | None:
+        self._on_nav("analytics")
+        return "break"
+
+    def _a11y_f5(self, e: tk.Event) -> str | None:
+        if self._shutting_down:
+            return
+        is_shift = bool((e.state or 0) & 0x1)
+        if is_shift:
+            self._a11y_try_stop()
+        else:
+            self._a11y_try_start()
+        return "break"
+
+    def _a11y_f6(self, _e: object | None = None) -> str | None:
+        if self._active_nav != "home":
+            self._on_nav("home")
+        self._nav_to_mode("log" if self._segment_mode == "control" else "control")
+        return "break"
+
+    def _a11y_try_start(self) -> None:
+        if self._active_nav != "home" or self._segment_mode != "control":
+            return
+        try:
+            st = str(self.btn_start.cget("state")).lower()
+        except (tk.TclError, AttributeError):
+            return
+        if st == "disabled" or (st.isdigit() and st == "0"):
+            return
+        self._on_start()
+
+    def _a11y_try_stop(self) -> None:
+        if self._active_nav != "home" or self._segment_mode != "control":
+            return
+        try:
+            st = str(self.btn_stop.cget("state")).lower()
+        except (tk.TclError, AttributeError):
+            return
+        if st == "disabled" or (st.isdigit() and st == "0"):
+            return
+        self._on_stop()
 
     def _t(self, key: str, **kwargs: Any) -> str:
         s = STRINGS[self._lang][key]
@@ -141,6 +263,83 @@ class MouseJigglerApp:
     def _on_lang_switch(self, label: str) -> None:
         self._lang = "zh" if label == "繁中" else "en"
         self._apply_language()
+        self._schedule_save_config()
+
+    def _apply_loaded_config(self, cfg: dict[str, Any]) -> None:
+        lang = cfg.get("lang")
+        if lang in ("zh", "en"):
+            self._lang = lang  # type: ignore[assignment]
+        self.var_minutes.set(str(cfg.get("interval_text", str(int(self.DEFAULT_MINUTES)))))
+        self.var_pixels.set(str(cfg.get("pixels_text", str(self.DEFAULT_PIXELS))))
+        self.var_tray_close.set(bool(cfg.get("close_to_tray", False)))
+        self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
+        self._lang_seg.set("繁中" if self._lang == "zh" else "English")
+        self._apply_language()
+
+    def _config_snapshot(self) -> dict[str, Any]:
+        return {
+            "lang": self._lang,
+            "interval_text": self.var_minutes.get(),
+            "pixels_text": self.var_pixels.get(),
+            "close_to_tray": bool(self.var_tray_close.get()),
+            "intro_acknowledged": self._intro_acknowledged,
+        }
+
+    def _maybe_show_first_intro(self) -> None:
+        if self._shutting_down:
+            return
+        if self._intro_acknowledged:
+            return
+        try:
+            if not self.root.winfo_exists():
+                return
+        except tk.TclError:
+            return
+        messagebox.showinfo(
+            self._t("intro_title"),
+            self._t("intro_body", version=self._pkg_version()),
+            parent=self.root,
+        )
+        self._intro_acknowledged = True
+        self._save_config_now()
+
+    def _register_config_persistence(self) -> None:
+        def _on_write(*_a: object) -> None:
+            self._schedule_save_config()
+
+        try:
+            self.var_tray_close.trace_add("write", _on_write)
+            self.var_minutes.trace_add("write", _on_write)
+            self.var_pixels.trace_add("write", _on_write)
+        except (tk.TclError, AttributeError):
+            pass
+
+    def _schedule_save_config(self) -> None:
+        if self._config_loading or self._shutting_down:
+            return
+        if self._config_save_after_id is not None:
+            try:
+                self.root.after_cancel(self._config_save_after_id)
+            except tk.TclError:
+                pass
+        self._config_save_after_id = self.root.after(400, self._flush_save_config)
+
+    def _flush_save_config(self) -> None:
+        self._config_save_after_id = None
+        if self._config_loading or self._shutting_down:
+            return
+        local_config.save_config(self._config_snapshot())
+
+    def _save_config_now(self) -> None:
+        if self._config_save_after_id is not None:
+            try:
+                self.root.after_cancel(self._config_save_after_id)
+            except tk.TclError:
+                pass
+            self._config_save_after_id = None
+        if self._config_loading:
+            return
+        local_config.save_config(self._config_snapshot())
 
     def _apply_language(self) -> None:
         self.root.title(self._t("window_title"))
@@ -195,7 +394,9 @@ class MouseJigglerApp:
         """Rounded buttons (radius 10) with hover_color (solid hover approximates a gradient)."""
         kw = dict(corner_radius=10, font=self._font_body, height=36)
         kw.update(kwargs)
-        return ctk.CTkButton(master, **kw)
+        kw.pop("takefocus", None)  # CTkButton rejects this in **kwargs
+        w = ctk.CTkButton(master, **kw)
+        return w
 
     def _build_nav_icons(self) -> dict[str, ctk.CTkImage]:
         """PNG icons in ``assets/icons`` (Lucide-style line art); Pillow tints to theme."""
@@ -355,6 +556,7 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
         )
+        _try_takefocus(self.view_segmented, 1)
         self.view_segmented.grid(row=0, column=0, sticky="w")
         self.view_segmented.set(self._t("nav_home"))
 
@@ -395,6 +597,7 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
         )
+        _try_takefocus(self.segmented, 1)
         self.segmented.grid(row=0, column=1, sticky="e")
         self.segmented.set(self._segment_text(self._segment_mode))
 
@@ -408,6 +611,7 @@ class MouseJigglerApp:
             indeterminate_speed=1.2,
         )
         self.progress.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
+        _try_takefocus(self.progress, 0)
 
         self.content_host = ctk.CTkFrame(self.page_home, fg_color="transparent")
         self.content_host.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
@@ -527,7 +731,8 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
         self._lang_seg.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
-        self._lang_seg.set("繁中")
+        self._lang_seg.set("English")
+        _try_takefocus(self._lang_seg, 1)
 
         self._hint_settings = ctk.CTkLabel(
             card,
@@ -566,6 +771,7 @@ class MouseJigglerApp:
             font=self._font_body,
         )
         self.swt_tray.grid(row=0, column=1, sticky="e", padx=(16, 0))
+        _try_takefocus(self.swt_tray, 1)
 
         tray_hint = self._t("tray_switch_hint")
         if not HAS_TRAY:
@@ -616,6 +822,7 @@ class MouseJigglerApp:
         )
         self.analytics_log.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
         self.analytics_log.configure(state="disabled")
+        _try_takefocus(self.analytics_log, 1)
 
     def _sync_analytics_log_from_main(self) -> None:
         try:
@@ -656,10 +863,12 @@ class MouseJigglerApp:
             border_color=self._BORDER,
         )
         self.entry_minutes.pack(side="left")
+        _try_takefocus(self.entry_minutes, 1)
         self._lbl_interval_hint = ctk.CTkLabel(
             row1, text=self._t("interval_hint"), font=self._font_body, text_color=self._TEXT_MUTED
         )
         self._lbl_interval_hint.pack(side="left", padx=(12, 0))
+        self._a11y_label_focus_entry(self._lbl_interval, self.entry_minutes)
 
         self._lbl_pixels = ctk.CTkLabel(
             card,
@@ -684,6 +893,7 @@ class MouseJigglerApp:
             border_color=self._BORDER,
         )
         self.entry_pixels.pack(side="left")
+        _try_takefocus(self.entry_pixels, 1)
         self._lbl_pixels_hint = ctk.CTkLabel(
             row3,
             text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS),
@@ -691,6 +901,7 @@ class MouseJigglerApp:
             text_color=self._TEXT_MUTED,
         )
         self._lbl_pixels_hint.pack(side="left", padx=(12, 0))
+        self._a11y_label_focus_entry(self._lbl_pixels, self.entry_pixels)
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
         btn_row.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
@@ -750,6 +961,7 @@ class MouseJigglerApp:
         )
         self.log_text.grid(row=1, column=0, sticky="nsew", padx=p, pady=(0, p))
         self.log_text.configure(state="disabled")
+        _try_takefocus(self.log_text, 1)
 
     def _on_segment(self, value: str) -> None:
         self._segment_mode = self._mode_from_segment_value(value)
@@ -927,6 +1139,7 @@ class MouseJigglerApp:
     def _full_shutdown(self) -> None:
         if self._shutting_down:
             return
+        self._save_config_now()
         self._shutting_down = True
 
         self._stop.set()

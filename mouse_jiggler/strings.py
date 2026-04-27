@@ -49,6 +49,22 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "settings_title": "設定",
         "analytics_title": "分析",
         "analytics_subtitle": "與首頁「紀錄」同步的活動紀錄。",
+        "intro_title": "歡迎使用",
+        "intro_body": "try-working-hard {version}\n\n"
+        "本程式會依您設定的間隔，微量水平移動游標再還原，可用於簡報或閱讀時避免螢幕休眠。\n\n"
+        "請僅在合法、符合公司／學校規定與服務條款的前提下使用；勿用於規避安全或監控機制。\n\n"
+        "按 F1 可開啟鍵盤與無障礙說明。您的偏好設定會儲存在本機，下次開啟時自動載入。\n\n"
+        "點選「確定」後不會再顯示本視窗（除非刪除設定檔）。",
+        "a11y_help_title": "鍵盤與無障礙說明",
+        "a11y_help_body": "try-working-hard {version}\n\n"
+        "鍵盤：\n"
+        "· F1 本說明\n"
+        "· F2 / F3 / F4 首頁、設定、分析\n"
+        "· F5 開始（首頁「控制面板」且可開始時）\n"
+        "· Shift+F5 停止\n"
+        "· F6 首頁切換「控制面板」/「紀錄」\n\n"
+        "可點擊「間隔」或「位移」標籤，將焦點移到該欄位。\n\n"
+        "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
     },
     "en": {
         "window_title": "Mouse nudge",
@@ -92,5 +108,22 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "settings_title": "Settings",
         "analytics_title": "Analytics",
         "analytics_subtitle": "Activity log (synced with Home → Log).",
+        "intro_title": "Welcome",
+        "intro_body": "try-working-hard {version}\n\n"
+        "This app nudges the cursor horizontally on a timer and restores it—useful to keep the screen awake while presenting or reading.\n\n"
+        "Use it only in lawful ways that comply with employer, school, and service rules; do not use it to bypass security or monitoring.\n\n"
+        "Press F1 for keyboard and accessibility help. Your preferences are saved locally and loaded next time.\n\n"
+        "You will not see this dialog again after you click OK (unless you delete the config file).",
+        "a11y_help_title": "Keyboard and accessibility",
+        "a11y_help_body": "try-working-hard {version}\n\n"
+        "Keyboard:\n"
+        "· F1  this help\n"
+        "· F2 / F3 / F4  Home, Settings, Analytics\n"
+        "· F5  Start (Home → Control, when available)\n"
+        "· Shift+F5  Stop\n"
+        "· F6  Home: toggle Control / Log\n\n"
+        "Click the Interval or Nudge (pixels) label to move focus to that field.\n\n"
+        "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
+        "Tab / Shift+Tab move focus; tooltips are not used for the canvas controls.",
     },
 }
