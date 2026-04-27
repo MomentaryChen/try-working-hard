@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Home**: runtime status and countdown moved to the **top** of the page (above the dashboard title) so they stay visible while adjusting controls or reading the log; the **indeterminate progress bar** was removed in favor of the status text alone.
+
 - **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
 
 ### Added
