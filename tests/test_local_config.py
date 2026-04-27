@@ -14,6 +14,7 @@ def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
     assert cfg["lang"] == "en"
     assert cfg["interval_text"] == "5"
     assert cfg["pixels_text"] == "100"
+    assert cfg["motion_burst_text"] == "0"
     assert cfg["close_to_tray"] is False
     assert cfg["intro_acknowledged"] is False
 
@@ -25,6 +26,7 @@ def test_round_trip(tmp_path: Path) -> None:
             "lang": "en",
             "interval_text": "0.5",
             "pixels_text": "50",
+            "motion_burst_text": "12",
             "close_to_tray": True,
         },
         path=p,
@@ -33,6 +35,7 @@ def test_round_trip(tmp_path: Path) -> None:
     assert cfg["lang"] == "en"
     assert cfg["interval_text"] == "0.5"
     assert cfg["pixels_text"] == "50"
+    assert cfg["motion_burst_text"] == "12"
     assert cfg["close_to_tray"] is True
     assert cfg["intro_acknowledged"] is False
 
@@ -52,6 +55,7 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
                 "lang": "xx",
                 "interval_text": "0.01",
                 "pixels_text": "9999",
+                "motion_burst_text": "9999",
                 "close_to_tray": "yes",
             }
         ),
@@ -61,5 +65,6 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
     assert cfg["lang"] == "en"
     assert cfg["interval_text"] == "5"
     assert cfg["pixels_text"] == "100"
+    assert cfg["motion_burst_text"] == "0"
     assert cfg["close_to_tray"] is False
     assert cfg["intro_acknowledged"] is True

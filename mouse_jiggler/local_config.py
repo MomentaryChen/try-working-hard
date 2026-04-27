@@ -27,7 +27,9 @@ def _defaults() -> dict[str, Any]:
         "version": CONFIG_VERSION,
         "lang": "en",
         "interval_text": str(int(nudge_logic.DEFAULT_MINUTES)),
+        "interval_unit": "min",
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
+        "motion_burst_text": str(int(nudge_logic.DEFAULT_MOTION_BURST_SEC)),
         "close_to_tray": False,
         "intro_acknowledged": False,
     }
@@ -39,11 +41,20 @@ def _sanitize_lang(raw: object) -> Lang | None:
     return None
 
 
-def _sanitize_interval_text(raw: object, *, fallback: str) -> str:
+def _sanitize_interval_unit(raw: object) -> str | None:
+    if raw in ("min", "sec"):
+        return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_interval_text(
+    raw: object, unit: str, *, fallback: str
+) -> str:
     if not isinstance(raw, str):
         return fallback
     s = raw.strip()[:64]
-    if nudge_logic.parse_minutes_string(s, min_minutes=nudge_logic.MIN_MINUTES) is None:
+    u: nudge_logic.IntervalUnit = "min" if unit == "min" else "sec"
+    if nudge_logic.parse_interval_to_seconds(s, u) is None:
         return fallback
     return s
 
@@ -55,6 +66,15 @@ def _sanitize_pixels_text(raw: object, *, fallback: str) -> str:
     if nudge_logic.parse_pixels_string(
         s, min_px=nudge_logic.MIN_PIXELS, max_px=nudge_logic.MAX_PIXELS
     ) is None:
+        return fallback
+    return s
+
+
+def _sanitize_motion_burst_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:32]
+    if nudge_logic.parse_motion_burst_seconds_string(s) is None:
         return fallback
     return s
 
@@ -88,11 +108,22 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     if lang is not None:
         out["lang"] = lang
 
+    u = _sanitize_interval_unit(raw.get("interval_unit"))
+    if u is not None:
+        out["interval_unit"] = u
+
     fb_interval = out["interval_text"]
-    out["interval_text"] = _sanitize_interval_text(raw.get("interval_text"), fallback=fb_interval)
+    out["interval_text"] = _sanitize_interval_text(
+        raw.get("interval_text"), out["interval_unit"], fallback=fb_interval
+    )
 
     fb_pixels = out["pixels_text"]
     out["pixels_text"] = _sanitize_pixels_text(raw.get("pixels_text"), fallback=fb_pixels)
+
+    fb_motion = out["motion_burst_text"]
+    out["motion_burst_text"] = _sanitize_motion_burst_text(
+        raw.get("motion_burst_text"), fallback=fb_motion
+    )
 
     ctt = _sanitize_close_to_tray(raw.get("close_to_tray"))
     if ctt is not None:
@@ -116,14 +147,19 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     base = _defaults()
     ctt = _sanitize_close_to_tray(data.get("close_to_tray"))
     ia = _sanitize_intro_acknowledged(data.get("intro_acknowledged"))
+    unit = _sanitize_interval_unit(data.get("interval_unit")) or base["interval_unit"]
     payload = {
         "version": CONFIG_VERSION,
         "lang": _sanitize_lang(data.get("lang")) or base["lang"],
         "interval_text": _sanitize_interval_text(
-            data.get("interval_text"), fallback=base["interval_text"]
+            data.get("interval_text"), unit, fallback=base["interval_text"]
         ),
+        "interval_unit": unit,
         "pixels_text": _sanitize_pixels_text(
             data.get("pixels_text"), fallback=base["pixels_text"]
+        ),
+        "motion_burst_text": _sanitize_motion_burst_text(
+            data.get("motion_burst_text"), fallback=base["motion_burst_text"]
         ),
         "close_to_tray": ctt if ctt is not None else base["close_to_tray"],
         "intro_acknowledged": ia if ia is not None else base["intro_acknowledged"],

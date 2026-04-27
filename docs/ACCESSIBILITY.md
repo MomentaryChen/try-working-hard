@@ -9,7 +9,7 @@ This app is **Windows-only** and uses **CustomTkinter** for most of the window. 
 - **F2 / F3 / F4** go to **Home, Settings, Analytics**.
 - On **Home → Control** only: **F5** = **Start**, **Shift+F5** = **Stop** (if the action is available).
 - **F6** toggles **Control / Log** on Home; if you are on another page, it switches to Home first.
-- **Click the “Interval” or “Nudge (pixels)” labels** to move focus to the corresponding field (the label cursor becomes a hand where supported).
+- **Click the “Interval”, “Nudge (pixels)”, or “Active motion (sec)” labels** to move focus to the corresponding field (the label cursor becomes a hand where supported).
 
 ## Limitations of CustomTkinter with screen readers
 

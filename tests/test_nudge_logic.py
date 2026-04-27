@@ -36,6 +36,34 @@ def test_parse_minutes_custom_floor() -> None:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
+        ("6", 6.0),
+        ("60", 60.0),
+        ("6,5", 6.5),
+        ("  300  ", 300.0),
+    ],
+)
+def test_parse_seconds_valid(raw: str, expected: float) -> None:
+    assert nudge_logic.parse_seconds_string(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["", "  ", "abc", "5.9", "-1", "nan", "inf"],
+)
+def test_parse_seconds_invalid(raw: str) -> None:
+    assert nudge_logic.parse_seconds_string(raw) is None
+
+
+def test_parse_interval_to_seconds() -> None:
+    assert nudge_logic.parse_interval_to_seconds("2", "min") == 120.0
+    assert nudge_logic.parse_interval_to_seconds("30", "sec") == 30.0
+    assert nudge_logic.parse_interval_to_seconds("0.05", "min") is None
+    assert nudge_logic.parse_interval_to_seconds("3", "sec") is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
         ("0", 0),
         ("100", 100),
         ("500", 500),
@@ -58,6 +86,29 @@ def test_parse_pixels_invalid(raw: str) -> None:
 def test_parse_pixels_custom_bounds() -> None:
     assert nudge_logic.parse_pixels_string("5", min_px=5, max_px=5) == 5
     assert nudge_logic.parse_pixels_string("4", min_px=5, max_px=10) is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("0", 0.0),
+        ("0.5", 0.5),
+        ("30", 30.0),
+        ("600", 600.0),
+        (" 10 ", 10.0),
+        ("1,5", 1.5),
+    ],
+)
+def test_parse_motion_burst_valid(raw: str, expected: float) -> None:
+    assert nudge_logic.parse_motion_burst_seconds_string(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["", "abc", "-0.1", "600.1", "601", "nan", "inf"],
+)
+def test_parse_motion_burst_invalid(raw: str) -> None:
+    assert nudge_logic.parse_motion_burst_seconds_string(raw) is None
 
 
 @pytest.mark.parametrize(
