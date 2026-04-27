@@ -45,10 +45,11 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 4. Set **nudge size in pixels** (integer, **0–500**). Meaning depends on the path: line = horizontal distance; circle = radius; square = edge length. **0** skips movement for that tick. Default is **100**.
 5. Set **path speed** (integer, **1–10**): how quickly the app traces the line, circle, or square (higher = faster). Default is **5**. Stored in `config.json` as `path_speed_text`.
 6. Choose **motion path**: **Line**, **Circle**, or **Square**—this matches how the nudge size is applied. Saved in `config.json` as `motion_pattern`. The home control area **scrolls** if the window is short.
-7. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
-8. While running, the **status strip** at the top of Home shows the **countdown** to the next nudge (`mm:ss`, or `h:mm:ss` after one hour) and a color cue; when stopped, the strip is neutral.
-9. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
-10. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
+7. Optional: enable **Work hours (09:00–18:00)** so the schedule runs only on **Mon–Fri** between those times in **local time**; outside that window and on **weekends** the app stays paused and shows a **schedule paused** countdown until the next allowed period (stored as `schedule_window` in `config.json`).
+8. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
+9. While running, the **status strip** at the top of Home shows the **countdown** to the next nudge (`mm:ss`, or `h:mm:ss` after one hour) and a color cue, or a pause countdown when the work-hours limit applies; when stopped, the strip is neutral.
+10. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
+11. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
 
 ## Technical notes
 

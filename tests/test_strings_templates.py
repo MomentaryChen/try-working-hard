@@ -49,6 +49,13 @@ def test_log_started_sec_template(lang: str) -> None:
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
+def test_status_schedule_wait_template(lang: str) -> None:
+    out = STRINGS[lang]["status_schedule_wait"].format(cd="2:00:00")
+    assert "2:00:00" in out
+    assert len(out) > 10
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
 def test_path_speed_templates(lang: str) -> None:
     assert STRINGS[lang]["err_path_speed"].format(lo=1, hi=10)
     assert STRINGS[lang]["path_speed_hint"].format(lo=1, hi=10)

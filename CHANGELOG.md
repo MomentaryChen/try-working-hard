@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - **Dark / light UI**: **Settings → Appearance** toggles **Dark** or **Light**; the choice is stored in `config.json` as **`ui_theme`** (`"dark"` or `"light"`, default **`"dark"`**). Dark mode uses a GitHub-style dark surface; light mode matches the previous **#F9FAFB** / card layout.
+- **Home → Control → Work hours (09:00–18:00)**: optional **schedule window** so nudges run only on **Mon–Fri** between **09:00 and 18:00** (local time); **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long-running background schedules. Persisted in `config.json` as `schedule_window`.
 - **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
 
 ### Changed

@@ -16,7 +16,7 @@ from typing import Any, Literal
 
 import customtkinter as ctk
 
-from . import local_config, nudge_logic
+from . import local_config, nudge_logic, schedule_window
 from .app_icon import load_app_icon_rgba
 from .cursor_nudge import MotionPattern
 from .strings import Lang, STRINGS
@@ -67,6 +67,10 @@ _UI_PALETTES: dict[UiTheme, dict[str, str]] = {
         "STATUS_STRIP_BORDER_BURST": "#D29922",
         "STATUS_LED_BURST": "#E3B341",
         "STATUS_TEXT_BURST": "#D4A72C",
+        "STATUS_STRIP_BG_SCHEDULE": "#0C1C2E",
+        "STATUS_STRIP_BORDER_SCHEDULE": "#1F6FEB",
+        "STATUS_LED_SCHEDULE": "#58A6FF",
+        "STATUS_TEXT_SCHEDULE": "#79C0FF",
     },
     "light": {
         "MAIN_BG": "#F9FAFB",
@@ -103,6 +107,10 @@ _UI_PALETTES: dict[UiTheme, dict[str, str]] = {
         "STATUS_STRIP_BORDER_BURST": "#FCD34D",
         "STATUS_LED_BURST": "#D97706",
         "STATUS_TEXT_BURST": "#92400E",
+        "STATUS_STRIP_BG_SCHEDULE": "#F0F9FF",
+        "STATUS_STRIP_BORDER_SCHEDULE": "#7DD3FC",
+        "STATUS_LED_SCHEDULE": "#0284C7",
+        "STATUS_TEXT_SCHEDULE": "#0369A1",
     },
 }
 
@@ -351,6 +359,21 @@ class MouseJigglerApp:
                     button_color="#FFFFFF",
                     button_hover_color="#F3F4F6",
                 )
+        if hasattr(self, "swt_schedule"):
+            if self._ui_theme == "dark":
+                self.swt_schedule.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#C9D1D9",
+                    button_hover_color="#8B949E",
+                )
+            else:
+                self.swt_schedule.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#FFFFFF",
+                    button_hover_color="#F3F4F6",
+                )
 
         for name in (
             "_lbl_settings_title",
@@ -363,6 +386,7 @@ class MouseJigglerApp:
             "_lbl_appearance",
             "_lbl_log_title",
             "_lbl_tray_sw",
+            "_lbl_schedule_sw",
         ):
             if hasattr(self, name):
                 w = getattr(self, name)
@@ -371,7 +395,12 @@ class MouseJigglerApp:
                 else:
                     w.configure(text_color=(self._TEXT_BODY, self._TEXT_BODY))
 
-        for name in ("_lbl_pixels_hint", "_lbl_path_speed_hint", "_hint_tray"):
+        for name in (
+            "_lbl_pixels_hint",
+            "_lbl_path_speed_hint",
+            "_hint_tray",
+            "_hint_schedule",
+        ):
             if hasattr(self, name):
                 getattr(self, name).configure(text_color=self._TEXT_MUTED)
         if hasattr(self, "_lbl_interval_hint"):
@@ -434,8 +463,10 @@ class MouseJigglerApp:
         self._running_interval_unit: nudge_logic.IntervalUnit = "min"
         self._current_interval_sec = 0.0
         self._countdown_after_id: str | None = None
-        self._countdown_phase: Literal["interval", "burst"] = "interval"
+        self._countdown_phase: Literal["interval", "burst", "schedule"] = "interval"
         self.status = tk.StringVar(value=self._t("status_stopped"))
+        self._schedule_resume_at: datetime | None = None
+        self._run_schedule_window = False
 
         self._tray = TrayController()
         self._shutting_down = False
@@ -718,6 +749,8 @@ class MouseJigglerApp:
         mp = cfg.get("motion_pattern", "horizontal")
         self._motion_pattern = mp if mp in ("horizontal", "circle", "square") else "horizontal"
         self.var_tray_close.set(bool(cfg.get("close_to_tray", False)))
+        self.var_schedule_window.set(bool(cfg.get("schedule_window", False)))
+        self._run_schedule_window = bool(self.var_schedule_window.get())
         self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
         self._lang_seg.set("繁中" if self._lang == "zh" else "English")
 
@@ -743,6 +776,7 @@ class MouseJigglerApp:
             "path_speed_text": self.var_path_speed.get(),
             "motion_pattern": self._motion_pattern,
             "close_to_tray": bool(self.var_tray_close.get()),
+            "schedule_window": bool(self.var_schedule_window.get()),
             "intro_acknowledged": self._intro_acknowledged,
         }
 
@@ -769,11 +803,16 @@ class MouseJigglerApp:
         def _on_write(*_a: object) -> None:
             self._schedule_save_config()
 
+        def _on_schedule_flag(*_a: object) -> None:
+            self._run_schedule_window = bool(self.var_schedule_window.get())
+            self._schedule_save_config()
+
         try:
             self.var_tray_close.trace_add("write", _on_write)
             self.var_minutes.trace_add("write", _on_write)
             self.var_pixels.trace_add("write", _on_write)
             self.var_path_speed.trace_add("write", _on_write)
+            self.var_schedule_window.trace_add("write", _on_schedule_flag)
         except (tk.TclError, AttributeError):
             pass
 
@@ -860,6 +899,8 @@ class MouseJigglerApp:
         if not HAS_TRAY:
             tray_hint += self._t("tray_no_pystray")
         self._hint_tray.configure(text=tray_hint)
+        self._lbl_schedule_sw.configure(text=self._t("schedule_window_title"))
+        self._hint_schedule.configure(text=self._t("schedule_window_hint"))
         self._lbl_log_title.configure(text=self._t("log_title"))
         self._lbl_settings_title.configure(text=self._t("settings_title"))
         if hasattr(self, "btn_open_config"):
@@ -892,6 +933,12 @@ class MouseJigglerApp:
     def _refresh_running_status_from_countdown(self) -> None:
         if self._current_interval_sec <= 0:
             return
+        if self._countdown_phase == "schedule" and self._schedule_resume_at is not None:
+            rem = (self._schedule_resume_at - datetime.now()).total_seconds()
+            cd = nudge_logic.remaining_seconds_to_countdown_display(rem)
+            self.status.set(self._t("status_schedule_wait", cd=cd))
+            self._apply_status_chrome("schedule")
+            return
         rem = self._next_jiggle_monotonic - time.monotonic()
         cd = nudge_logic.remaining_seconds_to_countdown_display(rem)
         if self._countdown_phase == "burst":
@@ -901,7 +948,9 @@ class MouseJigglerApp:
             self.status.set(self._t_status_running(cd))
             self._apply_status_chrome("interval")
 
-    def _apply_status_chrome(self, kind: Literal["stopped", "interval", "burst"]) -> None:
+    def _apply_status_chrome(
+        self, kind: Literal["stopped", "interval", "burst", "schedule"]
+    ) -> None:
         """Update status strip colors and LED to match schedule state."""
         if kind == "stopped":
             self._status_strip.configure(
@@ -917,6 +966,17 @@ class MouseJigglerApp:
             )
             self._status_led.configure(text_color=(self._STATUS_LED_RUN, self._STATUS_LED_RUN))
             self._lbl_status.configure(text_color=(self._STATUS_TEXT_RUN, self._STATUS_TEXT_RUN))
+        elif kind == "schedule":
+            self._status_strip.configure(
+                fg_color=self._STATUS_STRIP_BG_SCHEDULE,
+                border_color=self._STATUS_STRIP_BORDER_SCHEDULE,
+            )
+            self._status_led.configure(
+                text_color=(self._STATUS_LED_SCHEDULE, self._STATUS_LED_SCHEDULE)
+            )
+            self._lbl_status.configure(
+                text_color=(self._STATUS_TEXT_SCHEDULE, self._STATUS_TEXT_SCHEDULE)
+            )
         else:
             self._status_strip.configure(
                 fg_color=self._STATUS_STRIP_BG_BURST,
@@ -1587,8 +1647,46 @@ class MouseJigglerApp:
         self._sync_motion_pattern_seg()
         self._a11y_label_focus_entry(self._lbl_motion_pattern, self.seg_motion_pattern)
 
+        schedule_row = ctk.CTkFrame(card, fg_color="transparent")
+        schedule_row.grid(row=8, column=0, sticky="ew", padx=p, pady=(p, p))
+        schedule_row.grid_columnconfigure(0, weight=1)
+        self._lbl_schedule_sw = ctk.CTkLabel(
+            schedule_row,
+            text=self._t("schedule_window_title"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_schedule_sw.grid(row=0, column=0, sticky="w")
+        self.var_schedule_window = tk.BooleanVar(value=False)
+        self.swt_schedule = ctk.CTkSwitch(
+            schedule_row,
+            text="",
+            variable=self.var_schedule_window,
+            width=52,
+            switch_width=40,
+            switch_height=22,
+            fg_color=self._BORDER,
+            progress_color=self._ACCENT,
+            button_color="#FFFFFF",
+            button_hover_color="#F3F4F6",
+            font=self._font_body,
+        )
+        self.swt_schedule.grid(row=0, column=1, sticky="e", padx=(16, 0))
+        _try_takefocus(self.swt_schedule, 1)
+        self._hint_schedule = ctk.CTkLabel(
+            card,
+            text=self._t("schedule_window_hint"),
+            font=self._font_hint,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+            justify="left",
+            wraplength=520,
+        )
+        self._hint_schedule.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
+
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        btn_row.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
+        btn_row.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
 
         self.btn_start = self._btn(
             btn_row,
@@ -1693,7 +1791,12 @@ class MouseJigglerApp:
 
         rem = self._next_jiggle_monotonic - time.monotonic()
         countdown_str = nudge_logic.remaining_seconds_to_countdown_display(rem)
-        if self._countdown_phase == "burst":
+        if self._countdown_phase == "schedule" and self._schedule_resume_at is not None:
+            rem = (self._schedule_resume_at - datetime.now()).total_seconds()
+            countdown_str = nudge_logic.remaining_seconds_to_countdown_display(rem)
+            self.status.set(self._t("status_schedule_wait", cd=countdown_str))
+            self._apply_status_chrome("schedule")
+        elif self._countdown_phase == "burst":
             self.status.set(self._t("status_motion_burst", cd=countdown_str))
             self._apply_status_chrome("burst")
         else:
@@ -1761,6 +1864,65 @@ class MouseJigglerApp:
         except OSError as e:
             self._log(self._t("log_nudge_fail", err=e))
 
+    def _ui_schedule_wait_begin(self, resume_at: datetime) -> None:
+        if self._shutting_down:
+            return
+        self._countdown_phase = "schedule"
+        self._schedule_resume_at = resume_at
+        self._next_jiggle_monotonic = time.monotonic() + max(
+            0.0, (resume_at - datetime.now()).total_seconds()
+        )
+        self._apply_status_chrome("schedule")
+        self._schedule_countdown_tick()
+
+    def _ui_exit_schedule_wait(self) -> None:
+        if self._shutting_down:
+            return
+        self._schedule_resume_at = None
+        self._countdown_phase = "interval"
+        if self._worker is not None and self._worker.is_alive() and not self._stop.is_set():
+            self._apply_status_chrome("interval")
+            self._schedule_countdown_tick()
+        else:
+            self._apply_status_chrome("stopped")
+
+    def _ui_enter_interval_phase(self) -> None:
+        if self._shutting_down:
+            return
+        self._countdown_phase = "interval"
+        self._schedule_resume_at = None
+        if self._worker is not None and self._worker.is_alive() and not self._stop.is_set():
+            self._apply_status_chrome("interval")
+            self._schedule_countdown_tick()
+
+    def _wait_for_schedule_if_needed(self) -> bool:
+        if not self._run_schedule_window:
+            return not self._stop.is_set()
+        waited = False
+        while not self._stop.is_set():
+            now = datetime.now()
+            if schedule_window.is_within_work_window(now):
+                if waited:
+                    self.root.after(0, lambda: self._log(self._t("log_schedule_resumed")))
+                return not self._stop.is_set()
+            waited = True
+            resume_at = schedule_window.next_window_start(now)
+            self.root.after(0, lambda ra=resume_at: self._ui_schedule_wait_begin(ra))
+            end_mono = time.monotonic() + max(0.0, (resume_at - now).total_seconds())
+            while time.monotonic() < end_mono and not self._stop.is_set():
+                left = end_mono - time.monotonic()
+                if left <= 0:
+                    break
+                step = min(30.0, left)
+                if self._stop.wait(timeout=step):
+                    return False
+                if not self._run_schedule_window:
+                    self.root.after(0, self._ui_exit_schedule_wait)
+                    return not self._stop.is_set()
+            if self._stop.is_set():
+                return False
+        return False
+
     def _on_start(self) -> None:
         parsed = self._parse_interval()
         if parsed is None:
@@ -1798,6 +1960,7 @@ class MouseJigglerApp:
             return
 
         self._stop.clear()
+        self._run_schedule_window = bool(self.var_schedule_window.get())
         interval_sec = ival * 60.0 if iu == "min" else ival
         self._running_interval_value = ival
         self._running_interval_unit = iu
@@ -1825,6 +1988,10 @@ class MouseJigglerApp:
             self.seg_motion_pattern.configure(state="disabled")
         except (tk.TclError, AttributeError):
             pass
+        try:
+            self.swt_schedule.configure(state="disabled")
+        except (tk.TclError, AttributeError):
+            pass
         self.status.set(self._t_status_running("—"))
         self._apply_status_chrome("interval")
         self._schedule_countdown_tick()
@@ -1850,12 +2017,15 @@ class MouseJigglerApp:
                     ps=path_speed,
                 )
             )
+        if self._run_schedule_window:
+            self._log(self._t("log_start_schedule"))
 
     def _on_stop(self) -> None:
         self._stop.set()
         self._cancel_countdown_tick()
         self._current_interval_sec = 0.0
         self._countdown_phase = "interval"
+        self._schedule_resume_at = None
         self.btn_start.configure(state="normal")
         self.btn_stop.configure(state="disabled")
         self.entry_minutes.configure(state="normal")
@@ -1867,6 +2037,10 @@ class MouseJigglerApp:
             pass
         try:
             self.seg_motion_pattern.configure(state="normal")
+        except (tk.TclError, AttributeError):
+            pass
+        try:
+            self.swt_schedule.configure(state="normal")
         except (tk.TclError, AttributeError):
             pass
         self.status.set(self._t("status_stopped"))
@@ -1881,7 +2055,10 @@ class MouseJigglerApp:
         pattern: MotionPattern,
     ) -> None:
         while not self._stop.is_set():
+            if not self._wait_for_schedule_if_needed():
+                break
             self._next_jiggle_monotonic = time.monotonic() + interval_sec
+            self.root.after(0, self._ui_enter_interval_phase)
             if self._stop.wait(timeout=interval_sec):
                 break
             self._nudge_tick(pixels, pattern, path_speed, log_success=True)
