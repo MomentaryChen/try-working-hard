@@ -46,8 +46,10 @@ user32.SetCursorPos.restype = wintypes.BOOL
 
 
 def jiggle_mouse(delta_pixels: int) -> None:
-    """Move cursor right by delta_pixels horizontally, then restore; delta is clamped to at least 1."""
-    d = max(1, int(delta_pixels))
+    """Move cursor right by delta_pixels horizontally, then restore. If delta is 0 or less, do nothing."""
+    d = int(delta_pixels)
+    if d <= 0:
+        return
     pt = POINT()
     if not user32.GetCursorPos(ctypes.byref(pt)):
         return
@@ -60,9 +62,9 @@ def jiggle_mouse(delta_pixels: int) -> None:
 class MouseJigglerApp:
     MIN_MINUTES = 0.1
     DEFAULT_MINUTES = 5.0
-    MIN_PIXELS = 1
-    MAX_PIXELS = 50
-    DEFAULT_PIXELS = 1
+    MIN_PIXELS = 0
+    MAX_PIXELS = 500
+    DEFAULT_PIXELS = 100
     _LOG_TRIM_LINES = 48
 
     # macOS-like dark layering (sidebar vs content on top of dark-blue theme)
@@ -529,7 +531,10 @@ class MouseJigglerApp:
                 break
             try:
                 jiggle_mouse(pixels)
-                self._log("已執行游標微動。")
+                if pixels > 0:
+                    self._log("已執行游標微動。")
+                else:
+                    self._log("已觸發排程（位移 0，未移動游標）。")
             except OSError as e:
                 self._log(f"微動失敗：{e}")
 
