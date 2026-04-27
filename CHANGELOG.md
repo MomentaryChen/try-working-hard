@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Home → Control**: control card is **scrollable** so short windows still show Start, Stop, and fields; field order is interval (with quick presets) → interval jitter → nudge size → path speed → motion path → optional work-hours switch.
 - **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.
 - **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
+- **Cursor skill** `release-tag-pr-to-master`: expanded with **PEP 621 / build output** guidance—`pyproject.toml` `[project] version` is the only source for **`dist/`** sdist and wheel names; optional `__version__` metadata fallbacks should match the release. Checklist updated accordingly.
 - **docs/ACCESSIBILITY.md**: keyboard and reduced-motion notes updated for the Home status line (progress bar removed).
 
 ### Added
