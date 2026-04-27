@@ -27,6 +27,11 @@ The output is `dist/try-working-hard.exe`. You can share that file as-is, or let
 - Collects `customtkinter` and `pystray` resources via PyInstaller hooks
 - Collects `mouse_jiggler` data files (e.g. optional under `mouse_jiggler/assets/`)
 - **Windowed** mode (no extra console window)
+- **File icon**: embeds [`packaging/app.ico`](../packaging/app.ico) when that file exists (Explorer / taskbar shortcut icon for the `.exe`). To change the artwork, edit [`packaging/generate_icons.py`](../packaging/generate_icons.py) or replace the generated PNG/ICO, then from the repo root run:
+  ```powershell
+  uv run python packaging/generate_icons.py
+  uv run pyinstaller packaging/try-working-hard.spec
+  ```
 
 ### One-folder instead of one-file
 

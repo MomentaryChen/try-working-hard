@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from . import nudge_logic
+from .cursor_nudge import MotionPattern
 
 Lang = Literal["zh", "en"]
 
@@ -26,10 +27,12 @@ def _defaults() -> dict[str, Any]:
     return {
         "version": CONFIG_VERSION,
         "lang": "en",
+        "ui_theme": "dark",
         "interval_text": str(int(nudge_logic.DEFAULT_MINUTES)),
         "interval_unit": "min",
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
-        "motion_burst_text": str(int(nudge_logic.DEFAULT_MOTION_BURST_SEC)),
+        "path_speed_text": str(nudge_logic.DEFAULT_PATH_SPEED),
+        "motion_pattern": "horizontal",
         "close_to_tray": False,
         "intro_acknowledged": False,
     }
@@ -37,6 +40,12 @@ def _defaults() -> dict[str, Any]:
 
 def _sanitize_lang(raw: object) -> Lang | None:
     if raw in ("zh", "en"):
+        return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_ui_theme(raw: object) -> str | None:
+    if raw in ("dark", "light"):
         return raw  # type: ignore[return-value]
     return None
 
@@ -70,11 +79,21 @@ def _sanitize_pixels_text(raw: object, *, fallback: str) -> str:
     return s
 
 
-def _sanitize_motion_burst_text(raw: object, *, fallback: str) -> str:
+def _sanitize_motion_pattern(raw: object) -> MotionPattern | None:
+    if raw in ("horizontal", "circle", "square"):
+        return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_path_speed_text(raw: object, *, fallback: str) -> str:
     if not isinstance(raw, str):
         return fallback
     s = raw.strip()[:32]
-    if nudge_logic.parse_motion_burst_seconds_string(s) is None:
+    if nudge_logic.parse_path_speed_string(
+        s,
+        min_sp=nudge_logic.MIN_PATH_SPEED,
+        max_sp=nudge_logic.MAX_PATH_SPEED,
+    ) is None:
         return fallback
     return s
 
@@ -108,6 +127,10 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     if lang is not None:
         out["lang"] = lang
 
+    ut = _sanitize_ui_theme(raw.get("ui_theme"))
+    if ut is not None:
+        out["ui_theme"] = ut
+
     u = _sanitize_interval_unit(raw.get("interval_unit"))
     if u is not None:
         out["interval_unit"] = u
@@ -120,10 +143,19 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     fb_pixels = out["pixels_text"]
     out["pixels_text"] = _sanitize_pixels_text(raw.get("pixels_text"), fallback=fb_pixels)
 
-    fb_motion = out["motion_burst_text"]
-    out["motion_burst_text"] = _sanitize_motion_burst_text(
-        raw.get("motion_burst_text"), fallback=fb_motion
-    )
+    fb_ps = out["path_speed_text"]
+    if "path_speed_text" in raw:
+        out["path_speed_text"] = _sanitize_path_speed_text(
+            raw.get("path_speed_text"), fallback=fb_ps
+        )
+    elif "motion_burst_text" in raw:
+        out["path_speed_text"] = fb_ps
+    else:
+        out["path_speed_text"] = fb_ps
+
+    mp = _sanitize_motion_pattern(raw.get("motion_pattern"))
+    if mp is not None:
+        out["motion_pattern"] = mp
 
     ctt = _sanitize_close_to_tray(raw.get("close_to_tray"))
     if ctt is not None:
@@ -131,10 +163,8 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
 
     if "intro_acknowledged" in raw:
         ia = _sanitize_intro_acknowledged(raw.get("intro_acknowledged"))
-        # Invalid value: treat as already seen so we do not loop popups.
         out["intro_acknowledged"] = ia if ia is not None else True
     else:
-        # Older config files without the key: do not show intro on upgrade.
         out["intro_acknowledged"] = True
 
     out["version"] = CONFIG_VERSION
@@ -151,6 +181,7 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     payload = {
         "version": CONFIG_VERSION,
         "lang": _sanitize_lang(data.get("lang")) or base["lang"],
+        "ui_theme": _sanitize_ui_theme(data.get("ui_theme")) or base["ui_theme"],
         "interval_text": _sanitize_interval_text(
             data.get("interval_text"), unit, fallback=base["interval_text"]
         ),
@@ -158,9 +189,11 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         "pixels_text": _sanitize_pixels_text(
             data.get("pixels_text"), fallback=base["pixels_text"]
         ),
-        "motion_burst_text": _sanitize_motion_burst_text(
-            data.get("motion_burst_text"), fallback=base["motion_burst_text"]
+        "path_speed_text": _sanitize_path_speed_text(
+            data.get("path_speed_text"), fallback=base["path_speed_text"]
         ),
+        "motion_pattern": _sanitize_motion_pattern(data.get("motion_pattern"))
+        or base["motion_pattern"],
         "close_to_tray": ctt if ctt is not None else base["close_to_tray"],
         "intro_acknowledged": ia if ia is not None else base["intro_acknowledged"],
     }

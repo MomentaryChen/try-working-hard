@@ -4,10 +4,11 @@ This app is **Windows-only** and uses **CustomTkinter** for most of the window. 
 
 ## What we improved in code
 
-- **Tab / Shift+Tab** can move between interactive controls; `takefocus` is enabled on buttons, entries, segmented controls, the tray switch, and log read-only text areas. The indeterminate **progress** bar is not in the focus ring (it is a visual only).
+- **Tab / Shift+Tab** can move between interactive controls; `takefocus` is enabled on buttons, entries, segmented controls, the tray switch, and log read-only text areas. The **status area** at the top of Home (text plus colored strip and indicator) is display-only (not in the focus ring).
 - **F1** opens a help dialog (standard `tkinter` messagebox) with **keyboard shortcuts** and a short **screen reader** note. The help text is localized with the app strings (Traditional Chinese / English).
 - **F2 / F3 / F4** go to **Home, Settings, Analytics**.
 - On **Home → Control** only: **F5** = **Start**, **Shift+F5** = **Stop** (if the action is available).
+- **Enter** = **Start** and **Esc** = **Stop** under the same Home → Control rules, but **only while the main window is visible** (not when the app is closed to the **system tray**).
 - **F6** toggles **Control / Log** on Home; if you are on another page, it switches to Home first.
 - **Click the “Interval”, “Nudge (pixels)”, or “Active motion (sec)” labels** to move focus to the corresponding field (the label cursor becomes a hand where supported).
 
@@ -24,7 +25,7 @@ If you need **strong** ARIA/IA2 guarantees, a future version would need a differ
 ## Operating system and tools
 
 - **OS Magnifier**, **high-contrast** themes, and **sticky keys** work as usual; they are independent of the app.
-- For **reduced motion**, the progress bar and countdown are not tied to a system setting; you can **Stop** the schedule to halt cursor movement and animations related to the timer.
+- For **reduced motion**, the countdown text is not tied to a system setting; you can **Stop** the schedule to halt cursor movement and timer updates.
 
 ## Reporting issues
 
