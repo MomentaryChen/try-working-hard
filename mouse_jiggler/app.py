@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import threading
@@ -165,6 +166,62 @@ def _load_pkg_nav_png(stem: str) -> Any | None:
     if alt.is_file():
         return Image.open(alt).convert("RGBA")
     return None
+
+
+# HKCU\Software\Microsoft\Windows\CurrentVersion\Run (optional boot entry).
+_WIN_RUN_REGKEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+_WIN_RUN_VALUE_NAME = "TryWorkingHardMouseNudge"
+
+
+def _windows_autostart_command() -> str:
+    """Command line to relaunch the app in tray (matches registry value)."""
+    exe = str(Path(sys.executable).resolve())
+    if getattr(sys, "frozen", False):
+        return f'"{exe}" --start-in-tray'
+    return f'"{exe}" -m mouse_jiggler --start-in-tray'
+
+
+def _windows_run_autostart_read() -> str | None:
+    if sys.platform != "win32":
+        return None
+    import winreg
+
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, _WIN_RUN_REGKEY, 0, winreg.KEY_READ
+        ) as key:
+            val, _ = winreg.QueryValueEx(key, _WIN_RUN_VALUE_NAME)
+        return str(val) if val else None
+    except OSError:
+        return None
+
+
+def _windows_run_autoset(enabled: bool) -> None:
+    if sys.platform != "win32":
+        return
+    import winreg
+
+    if enabled:
+        cmd = _windows_autostart_command()
+        with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, _WIN_RUN_REGKEY) as k:
+            winreg.SetValueEx(
+                k, _WIN_RUN_VALUE_NAME, 0, winreg.REG_SZ, cmd
+            )
+    else:
+        try:
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER, _WIN_RUN_REGKEY, 0, winreg.KEY_SET_VALUE
+            ) as k:
+                winreg.DeleteValue(k, _WIN_RUN_VALUE_NAME)
+        except OSError:
+            pass
+
+
+def _windows_run_autostart_active() -> bool:
+    if sys.platform != "win32":
+        return False
+    cur = _windows_run_autostart_read()
+    return bool(cur) and cur.strip() == _windows_autostart_command().strip()
 
 
 class MouseJigglerApp:
@@ -351,11 +408,34 @@ class MouseJigglerApp:
                     button_color="#FFFFFF",
                     button_hover_color="#F3F4F6",
                 )
+        if hasattr(self, "swt_autostart"):
+            if self._ui_theme == "dark":
+                self.swt_autostart.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#C9D1D9",
+                    button_hover_color="#8B949E",
+                )
+            else:
+                self.swt_autostart.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#FFFFFF",
+                    button_hover_color="#F3F4F6",
+                )
+        if hasattr(self, "_interval_preset_btns"):
+            for b in self._interval_preset_btns:
+                b.configure(
+                    fg_color=self._SURFACE_SUBTLE,
+                    hover_color=self._SURFACE_SUBTLE_HOVER,
+                    text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                )
 
         for name in (
             "_lbl_settings_title",
             "_lbl_analytics_title",
             "_lbl_interval",
+            "_lbl_interval_presets",
             "_lbl_pixels",
             "_lbl_path_speed",
             "_lbl_motion_pattern",
@@ -363,6 +443,7 @@ class MouseJigglerApp:
             "_lbl_appearance",
             "_lbl_log_title",
             "_lbl_tray_sw",
+            "_lbl_autostart_sw",
         ):
             if hasattr(self, name):
                 w = getattr(self, name)
@@ -371,13 +452,22 @@ class MouseJigglerApp:
                 else:
                     w.configure(text_color=(self._TEXT_BODY, self._TEXT_BODY))
 
-        for name in ("_lbl_pixels_hint", "_lbl_path_speed_hint", "_hint_tray"):
+        for name in (
+            "_lbl_pixels_hint",
+            "_lbl_path_speed_hint",
+            "_hint_tray",
+            "_hint_autostart",
+        ):
             if hasattr(self, name):
                 getattr(self, name).configure(text_color=self._TEXT_MUTED)
         if hasattr(self, "_lbl_interval_hint"):
             self._lbl_interval_hint.configure(text_color=self._TEXT_MUTED)
         if hasattr(self, "_lbl_analytics_sub"):
             self._lbl_analytics_sub.configure(text_color=self._TEXT_MUTED)
+        if hasattr(self, "_lbl_interval_presets"):
+            self._lbl_interval_presets.configure(
+                text_color=(self._TEXT_MUTED, self._TEXT_MUTED)
+            )
 
         if hasattr(self, "log_text"):
             self.log_text.configure(
@@ -397,10 +487,12 @@ class MouseJigglerApp:
         else:
             self._refresh_running_status_from_countdown()
 
-    def __init__(self) -> None:
+    def __init__(self, start_in_tray: bool = False) -> None:
+        self._start_in_tray = bool(start_in_tray) and bool(HAS_TRAY)
+
         _cfg0 = local_config.load_config()
         _ut = _cfg0.get("ui_theme")
-        self._ui_theme: UiTheme = _ut if _ut in ("dark", "light") else "dark"
+        self._ui_theme: UiTheme = _ut if _ut in ("dark", "light") else "light"
         self._apply_theme_palette(self._ui_theme)
         self._set_ctk_builtin_theme(self._ui_theme)
 
@@ -461,13 +553,27 @@ class MouseJigglerApp:
 
         self._log(self._t("log_ready"))
         self._setup_a11y()
-        self.root.after(250, self._maybe_show_first_intro)
+        if not self._start_in_tray:
+            self.root.after(250, self._maybe_show_first_intro)
         # CTk can re-apply geometry after the first layout pass; schedule re-maximize after it.
-        self.root.after(0, self._reapply_start_maximized)
-        self.root.after(150, self._reapply_start_maximized)
+        if not self._start_in_tray:
+            self.root.after(0, self._reapply_start_maximized)
+            self.root.after(150, self._reapply_start_maximized)
+        if self._start_in_tray:
+            self.root.after(120, self._bootstrap_tray_start)
+
+    def _bootstrap_tray_start(self) -> None:
+        if self._shutting_down or not HAS_TRAY:
+            return
+        try:
+            self._log_ui(self._t("log_tray_start_hidden"))
+        except tk.TclError:
+            pass
+        self.root.withdraw()
+        self._start_tray()
 
     def _reapply_start_maximized(self) -> None:
-        if self._shutting_down:
+        if self._shutting_down or self._start_in_tray:
             return
         _apply_start_maximized(self.root)
 
@@ -657,6 +763,31 @@ class MouseJigglerApp:
         self._set_interval_hint()
         self._schedule_save_config()
 
+    def _apply_interval_preset(self, value: str, unit: nudge_logic.IntervalUnit) -> None:
+        if self._shutting_down:
+            return
+        self._interval_unit = unit
+        self.var_minutes.set(value)
+        self._sync_interval_unit_seg()
+        self._set_interval_hint()
+        self._schedule_save_config()
+
+    def _on_autostart_win_committed(self) -> None:
+        if self._shutting_down or self._config_loading:
+            return
+        if sys.platform != "win32" or not HAS_TRAY:
+            return
+        _windows_run_autoset(bool(self.var_autostart_win.get()))
+
+    def _set_interval_preset_widgets_state(self, st: str) -> None:
+        if not hasattr(self, "_interval_preset_btns"):
+            return
+        for b in self._interval_preset_btns:
+            try:
+                b.configure(state=st)
+            except (tk.TclError, AttributeError):
+                pass
+
     def _seg_value_for_motion_pattern(self, p: MotionPattern) -> str:
         if p == "horizontal":
             return self._t("motion_pattern_line")
@@ -749,6 +880,8 @@ class MouseJigglerApp:
     def _maybe_show_first_intro(self) -> None:
         if self._shutting_down:
             return
+        if self._start_in_tray:
+            return
         if self._intro_acknowledged:
             return
         try:
@@ -834,9 +967,14 @@ class MouseJigglerApp:
             self._hint_appearance.configure(text=self._theme_footer_text())
         self._lbl_dashboard.configure(text=self._t("dashboard"))
         self._lbl_interval.configure(text=self._t("interval_label"))
+        if hasattr(self, "_lbl_interval_presets"):
+            self._lbl_interval_presets.configure(text=self._t("interval_presets_caption"))
         if hasattr(self, "seg_interval_unit"):
             self._sync_interval_unit_seg()
         self._set_interval_hint()
+        if hasattr(self, "_interval_preset_btns") and hasattr(self, "_interval_preset_specs"):
+            for b, spec in zip(self._interval_preset_btns, self._interval_preset_specs, strict=True):
+                b.configure(text=self._t(spec))
         if hasattr(self, "_lbl_motion_pattern"):
             self._lbl_motion_pattern.configure(text=self._t("motion_pattern_label"))
         self._sync_motion_pattern_seg()
@@ -860,6 +998,15 @@ class MouseJigglerApp:
         if not HAS_TRAY:
             tray_hint += self._t("tray_no_pystray")
         self._hint_tray.configure(text=tray_hint)
+        if hasattr(self, "_lbl_autostart_sw"):
+            self._lbl_autostart_sw.configure(text=self._t("autostart_switch_title"))
+        if hasattr(self, "_hint_autostart"):
+            a_start = self._t("autostart_switch_hint")
+            if sys.platform != "win32":
+                a_start += self._t("autostart_not_windows")
+            elif not HAS_TRAY:
+                a_start += self._t("autostart_requires_tray")
+            self._hint_autostart.configure(text=a_start)
         self._lbl_log_title.configure(text=self._t("log_title"))
         self._lbl_settings_title.configure(text=self._t("settings_title"))
         if hasattr(self, "btn_open_config"):
@@ -1384,6 +1531,58 @@ class MouseJigglerApp:
         if not HAS_TRAY:
             self.swt_tray.configure(state="disabled")
 
+        can_autowin = sys.platform == "win32" and HAS_TRAY
+        self.var_autostart_win = tk.BooleanVar(
+            value=bool(can_autowin and _windows_run_autostart_active())
+        )
+        autostart_row = ctk.CTkFrame(card, fg_color="transparent")
+        autostart_row.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
+        autostart_row.grid_columnconfigure(0, weight=1)
+
+        self._lbl_autostart_sw = ctk.CTkLabel(
+            autostart_row,
+            text=self._t("autostart_switch_title"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_autostart_sw.grid(row=0, column=0, sticky="w")
+
+        self.swt_autostart = ctk.CTkSwitch(
+            autostart_row,
+            text="",
+            variable=self.var_autostart_win,
+            width=52,
+            switch_width=40,
+            switch_height=22,
+            fg_color=self._BORDER,
+            progress_color=self._ACCENT,
+            button_color="#FFFFFF",
+            button_hover_color="#F3F4F6",
+            font=self._font_body,
+            command=self._on_autostart_win_committed,
+        )
+        self.swt_autostart.grid(row=0, column=1, sticky="e", padx=(16, 0))
+        _try_takefocus(self.swt_autostart, 1)
+
+        a_hint = self._t("autostart_switch_hint")
+        if sys.platform != "win32":
+            a_hint += self._t("autostart_not_windows")
+        elif not HAS_TRAY:
+            a_hint += self._t("autostart_requires_tray")
+        self._hint_autostart = ctk.CTkLabel(
+            card,
+            text=a_hint,
+            font=self._font_hint,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+            justify="left",
+            wraplength=520,
+        )
+        self._hint_autostart.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
+        if not can_autowin:
+            self.swt_autostart.configure(state="disabled")
+
     def _fill_analytics_panel(self, card: ctk.CTkFrame) -> None:
         p = self._UI_PAD
         card.grid_columnconfigure(0, weight=1)
@@ -1484,15 +1683,51 @@ class MouseJigglerApp:
         self._set_interval_hint()
         self._a11y_label_focus_entry(self._lbl_interval, self.entry_minutes)
 
+        self._lbl_interval_presets = ctk.CTkLabel(
+            card,
+            text=self._t("interval_presets_caption"),
+            font=self._font_body,
+            text_color=(self._TEXT_MUTED, self._TEXT_MUTED),
+            anchor="w",
+        )
+        self._lbl_interval_presets.grid(row=2, column=0, sticky="w", padx=p, pady=(0, 2))
+        preset_row = ctk.CTkFrame(card, fg_color="transparent")
+        preset_row.grid(row=3, column=0, sticky="w", padx=p, pady=(0, p))
+        self._interval_preset_specs = [
+            "interval_preset_30s",
+            "interval_preset_1m",
+            "interval_preset_5m",
+            "interval_preset_10m",
+        ]
+        self._interval_preset_btns = []
+        for spec, (pv, punit) in zip(
+            self._interval_preset_specs,
+            (("30", "sec"), ("1", "min"), ("5", "min"), ("10", "min")),
+            strict=True,
+        ):
+            b = self._btn(
+                preset_row,
+                text=self._t(spec),
+                width=60,
+                height=34,
+                font=self._font_body,
+                fg_color=self._SURFACE_SUBTLE,
+                hover_color=self._SURFACE_SUBTLE_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                command=lambda v=pv, u=punit: self._apply_interval_preset(v, u),
+            )
+            b.pack(side="left", padx=(0, 6))
+            self._interval_preset_btns.append(b)
+
         self._lbl_pixels = ctk.CTkLabel(
             card,
             text=self._t("pixels_label"),
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_pixels.grid(row=2, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_pixels.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
         row3 = ctk.CTkFrame(card, fg_color="transparent")
-        row3.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
+        row3.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_pixels = tk.StringVar(value=str(self.DEFAULT_PIXELS))
         self.entry_pixels = ctk.CTkEntry(
             row3,
@@ -1523,9 +1758,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_path_speed.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_path_speed.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
         row_path_speed = ctk.CTkFrame(card, fg_color="transparent")
-        row_path_speed.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_path_speed.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_path_speed = tk.StringVar(value=str(int(self.DEFAULT_PATH_SPEED)))
         self.entry_path_speed = ctk.CTkEntry(
             row_path_speed,
@@ -1560,9 +1795,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_motion_pattern.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_motion_pattern.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
         row_pattern = ctk.CTkFrame(card, fg_color="transparent")
-        row_pattern.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_pattern.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, p))
         self.seg_motion_pattern = ctk.CTkSegmentedButton(
             row_pattern,
             values=[
@@ -1588,7 +1823,7 @@ class MouseJigglerApp:
         self._a11y_label_focus_entry(self._lbl_motion_pattern, self.seg_motion_pattern)
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        btn_row.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
+        btn_row.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
 
         self.btn_start = self._btn(
             btn_row,
@@ -1817,6 +2052,7 @@ class MouseJigglerApp:
         self.entry_minutes.configure(state="disabled")
         self.entry_pixels.configure(state="disabled")
         self.entry_path_speed.configure(state="disabled")
+        self._set_interval_preset_widgets_state("disabled")
         try:
             self.seg_interval_unit.configure(state="disabled")
         except (tk.TclError, AttributeError):
@@ -1861,6 +2097,7 @@ class MouseJigglerApp:
         self.entry_minutes.configure(state="normal")
         self.entry_pixels.configure(state="normal")
         self.entry_path_speed.configure(state="normal")
+        self._set_interval_preset_widgets_state("normal")
         try:
             self.seg_interval_unit.configure(state="normal")
         except (tk.TclError, AttributeError):
@@ -1965,4 +2202,14 @@ class MouseJigglerApp:
 
 
 def main() -> None:
-    MouseJigglerApp().run()
+    p = argparse.ArgumentParser(
+        prog="mouse_jiggler",
+        description="Mouse nudge on a schedule (CustomTkinter UI).",
+    )
+    p.add_argument(
+        "--start-in-tray",
+        action="store_true",
+        help="Start with the main window in the system tray (requires pystray).",
+    )
+    a = p.parse_args()
+    MouseJigglerApp(start_in_tray=bool(a.start_in_tray)).run()

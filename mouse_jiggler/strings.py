@@ -20,6 +20,16 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "lang_ui": "介面語言",
         "dashboard": "主控台",
         "interval_label": "間隔",
+        "interval_presets_caption": "快速間隔",
+        "interval_preset_30s": "30s",
+        "interval_preset_1m": "1m",
+        "interval_preset_5m": "5m",
+        "interval_preset_10m": "10m",
+        "autostart_switch_title": "隨 Windows 啟動",
+        "autostart_switch_hint": "登入 Windows 時自動執行，並在系統匣中啟動。",
+        "autostart_not_windows": "（僅支援 Windows。）",
+        "autostart_requires_tray": "（需安裝 pystray 系統匣。）",
+        "log_tray_start_hidden": "以系統匣模式執行（主視窗已隱藏）。",
         "interval_unit_min": "分鐘",
         "interval_unit_sec": "秒",
         "interval_hint_min": "≥ 0.1，可小數",
@@ -89,7 +99,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5 停止\n"
         "· Enter 開始、Esc 停止（僅主視窗顯示時；條件同 F5／Shift+F5）\n"
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
-        "可點擊「間隔」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」。\n\n"
+        "可點擊「間隔」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」；欄位下方有 30s／1m／5m／10m 快速按鈕。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
     },
     "en": {
@@ -105,6 +115,16 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "lang_ui": "Language",
         "dashboard": "Dashboard",
         "interval_label": "Interval",
+        "interval_presets_caption": "Quick presets",
+        "interval_preset_30s": "30s",
+        "interval_preset_1m": "1m",
+        "interval_preset_5m": "5m",
+        "interval_preset_10m": "10m",
+        "autostart_switch_title": "Start with Windows",
+        "autostart_switch_hint": "Run at sign-in and start in the system tray on supported setups.",
+        "autostart_not_windows": " (Windows only.)",
+        "autostart_requires_tray": " (pystray required.)",
+        "log_tray_start_hidden": "Running from the tray (main window hidden).",
         "interval_unit_min": "min",
         "interval_unit_sec": "sec",
         "interval_hint_min": "≥ 0.1, decimals allowed",
@@ -174,7 +194,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5  Stop\n"
         "· Enter / Esc  Start / Stop (main window visible only; same rules as F5 / Shift+F5)\n"
         "· F6  Home: toggle Control / Log\n\n"
-        "Click the Interval, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval unit.\n\n"
+        "Click the Interval, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval unit; use 30s / 1m / 5m / 10m under the field for a quick set.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
         "Tab / Shift+Tab move focus; tooltips are not used for the canvas controls.",
     },
