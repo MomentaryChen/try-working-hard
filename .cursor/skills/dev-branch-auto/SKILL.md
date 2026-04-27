@@ -1,6 +1,6 @@
 ---
 name: dev-branch-auto
-description: Provisions a local git development branch from the default remote base with consistent naming, fetch, and safety checks. Optional Git worktree under D:\projects\worktree for parallel checkouts. Use when the user asks to create a dev branch, feature branch, topic branch, worktree, or automatically set up a branch for parallel work in this repository.
+description: Provisions a local git development branch from the default remote base with consistent naming, fetch, and safety checks. Optional Git worktree under D:\projects\worktree for parallel checkouts; after creating a worktree, continue implementation from that directory. Use when the user asks to create a dev branch, feature branch, topic branch, worktree, or automatically set up a branch for parallel work in this repository.
 ---
 
 # Dev branch auto-setup (this project)
@@ -9,7 +9,7 @@ description: Provisions a local git development branch from the default remote b
 
 - User wants a **new development / feature / fix branch** from the default line.
 - User says **create a dev branch**, **open a feature branch**, **branch off from main**, etc.
-- User wants a **separate working directory** for the same repo (**git worktree**) so they can keep another branch checked out in the main folder—use **Optional: Worktree (parallel directory)**.
+- User wants a **separate working directory** for the same repo (**git worktree**) so they can keep another branch checked out in the main folder—use **Optional: Worktree (parallel directory)**. After adding the worktree, the agent **switches context to that directory** for ongoing implementation in the same task.
 
 ## Conventions (defaults)
 
@@ -103,7 +103,14 @@ Use this when the user wants the new (or existing) branch in a **second checkout
    git worktree add $path $name
    ```
 
-4. Confirm: `git worktree list` and report the new path so the user can open it in the editor.
+4. Confirm: `git worktree list`, branch name, and the new directory path.
+
+5. **Continue in the new worktree (agent)** — After the worktree is created, **do not** keep using the original repo root for implementation in the same task.
+
+   - Treat **`$path`** (the full worktree directory from step 2 or 3) as the **active repo root** for the rest of the session: run shell commands with `working_directory` / `cd` set to `$path`, and use paths under `$path` for file reads, edits, searches, and tests.
+   - Run `git status -sb` and `git log -1 --oneline` from `$path` to confirm HEAD.
+   - Tell the user to **open that folder in the editor** (e.g. Cursor **File → Open Folder** → `$path`) if their workspace is still the main clone, so the UI matches where the agent is working.
+   - Proceed with the user’s implementation work (install, code changes, commits) **from `$path`** unless they ask to switch back.
 
 ### Remove a worktree later
 

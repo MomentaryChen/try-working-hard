@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 import tkinter as tk
@@ -395,6 +396,25 @@ class MouseJigglerApp:
             return
         local_config.save_config(self._config_snapshot())
 
+    def _on_open_config_file(self) -> None:
+        path = local_config.default_config_path()
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            if not path.is_file():
+                self._save_config_now()
+            if hasattr(os, "startfile"):
+                os.startfile(str(path.resolve()))
+            else:
+                messagebox.showinfo(
+                    self._t("settings_title"),
+                    self._t("open_config_path_only", path=str(path.resolve())),
+                )
+        except OSError as e:
+            messagebox.showerror(
+                self._t("err_title"),
+                self._t("err_open_config_file", err=str(e)),
+            )
+
     def _apply_language(self) -> None:
         self.root.title(self._t("window_title"))
         self._lbl_subtitle.configure(text=self._t("app_subtitle"))
@@ -423,6 +443,8 @@ class MouseJigglerApp:
         self._hint_tray.configure(text=tray_hint)
         self._lbl_log_title.configure(text=self._t("log_title"))
         self._lbl_settings_title.configure(text=self._t("settings_title"))
+        if hasattr(self, "btn_open_config"):
+            self.btn_open_config.configure(text=self._t("btn_open_config_file"))
         self._lbl_analytics_title.configure(text=self._t("analytics_title"))
         self._lbl_analytics_sub.configure(text=self._t("analytics_subtitle"))
 
@@ -806,9 +828,21 @@ class MouseJigglerApp:
         )
         self._hint_settings.grid(row=3, column=0, sticky="w", padx=p, pady=(p, p))
 
+        self.btn_open_config = self._btn(
+            card,
+            text=self._t("btn_open_config_file"),
+            command=self._on_open_config_file,
+            fg_color=self._BTN_SECONDARY,
+            hover_color=self._BTN_SECONDARY_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self.btn_open_config.grid(row=4, column=0, sticky="w", padx=p, pady=(0, p))
+        _try_takefocus(self.btn_open_config, 1)
+
         self.var_tray_close = tk.BooleanVar(value=False)
         tray_row = ctk.CTkFrame(card, fg_color="transparent")
-        tray_row.grid(row=4, column=0, sticky="ew", padx=p, pady=(0, 8))
+        tray_row.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, 8))
         tray_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_tray_sw = ctk.CTkLabel(
@@ -848,7 +882,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_tray.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_tray.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, p))
         if not HAS_TRAY:
             self.swt_tray.configure(state="disabled")
 

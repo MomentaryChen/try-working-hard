@@ -46,6 +46,7 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 5. Click **Start** to begin the schedule; **Stop** ends it. Use the **segmented control** (or matching sidebar items) to switch between the control panel and the **log** view.
 6. While running, the **progress bar** fills toward the next nudge; the status line shows the **countdown** (`mm:ss`, or `h:mm:ss` after one hour). During an active-motion phase, the status line indicates **active motion** and counts down to the end of that phase.
 7. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
+8. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
 
 ## Technical notes
 
