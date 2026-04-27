@@ -111,6 +111,24 @@ def remaining_seconds_to_countdown_display(remaining: float) -> str:
     return format_countdown_display(sec)
 
 
+def eta_seconds_until_idle_nudge(
+    interval_sec: float,
+    idle_sec: float,
+    *,
+    now: float,
+    last_nudge_monotonic: float | None,
+) -> float:
+    """
+    Time until a nudge may fire, given required idle time ``interval_sec`` and optional
+    spacing (no closer than ``interval_sec`` after ``last_nudge_monotonic``).
+    """
+    need_idle = max(0.0, interval_sec - idle_sec)
+    if last_nudge_monotonic is None:
+        return need_idle
+    need_gap = max(0.0, interval_sec - (now - last_nudge_monotonic))
+    return max(need_idle, need_gap)
+
+
 def log_lines_to_delete_from_top(total_lines: int, max_lines: int) -> int:
     """How many lines to remove from the head so at most ``max_lines`` remain."""
     excess = total_lines - max_lines

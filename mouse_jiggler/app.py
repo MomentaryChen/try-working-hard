@@ -21,7 +21,7 @@ from .app_icon import load_app_icon_rgba
 from .cursor_nudge import MotionPattern
 from .strings import Lang, STRINGS
 from .tray import HAS_TRAY, TrayController
-from .win32_mouse import jiggle_mouse
+from .win32_mouse import get_seconds_since_last_user_input, jiggle_mouse
 
 # Primary UI font (Inter). If missing, Tk picks a substitute.
 _FONT_INTER = "Inter"
@@ -1565,11 +1565,26 @@ class MouseJigglerApp:
         path_speed: int,
         pattern: MotionPattern,
     ) -> None:
+        last_nudge_monotonic: float | None = None
+        poll = 0.2
         while not self._stop.is_set():
-            self._next_jiggle_monotonic = time.monotonic() + interval_sec
-            if self._stop.wait(timeout=interval_sec):
+            now = time.monotonic()
+            idle = get_seconds_since_last_user_input()
+            eta = nudge_logic.eta_seconds_until_idle_nudge(
+                interval_sec, idle, now=now, last_nudge_monotonic=last_nudge_monotonic
+            )
+            self._next_jiggle_monotonic = now + eta
+            to_sleep = min(poll, max(0.01, eta))
+            if self._stop.wait(timeout=to_sleep):
                 break
+            now = time.monotonic()
+            idle = get_seconds_since_last_user_input()
+            if idle < interval_sec:
+                continue
+            if last_nudge_monotonic is not None and (now - last_nudge_monotonic) < interval_sec:
+                continue
             self._nudge_tick(pixels, pattern, path_speed, log_success=True)
+            last_nudge_monotonic = now
 
     def _start_tray(self) -> None:
         self._tray.start(
