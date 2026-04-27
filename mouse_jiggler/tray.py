@@ -16,6 +16,13 @@ else:
 def build_tray_image() -> Any:
     from PIL import Image, ImageDraw
 
+    from .app_icon import load_app_icon_rgba
+
+    src = load_app_icon_rgba()
+    if src is not None:
+        w, h = 64, 64
+        return src.resize((w, h), Image.Resampling.LANCZOS)
+
     w, h = 64, 64
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)

@@ -16,6 +16,7 @@ from typing import Any, Literal
 import customtkinter as ctk
 
 from . import local_config, nudge_logic
+from .app_icon import load_app_icon_rgba
 from .strings import Lang, STRINGS
 from .tray import HAS_TRAY, TrayController
 from .win32_mouse import jiggle_mouse
@@ -120,6 +121,8 @@ class MouseJigglerApp:
         self.root.geometry("920x640")
         self.root.minsize(860, 580)
         self.root.configure(fg_color=self._MAIN_BG)
+        self._window_icon_photo: tk.PhotoImage | None = None
+        self._apply_window_icon()
 
         self._nav_icons = self._build_nav_icons()
 
@@ -130,15 +133,16 @@ class MouseJigglerApp:
         self._running_interval_value = 0.0
         self._running_interval_unit: nudge_logic.IntervalUnit = "min"
         self._current_interval_sec = 0.0
+        self._running_motion_burst_sec = 0.0
         self._countdown_after_id: str | None = None
         self._countdown_phase: Literal["interval", "burst"] = "interval"
+        self.status = tk.StringVar(value=self._t("status_stopped"))
 
         self._tray = TrayController()
         self._shutting_down = False
         self._config_save_after_id: str | None = None
         self._config_loading = False
         self._intro_acknowledged = True
-        self.status = tk.StringVar(value=self._t("status_stopped"))
 
         self.root.grid_columnconfigure(1, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
@@ -164,6 +168,20 @@ class MouseJigglerApp:
             return pkg_version("try-working-hard")
         except Exception:
             return "1.0.0"
+
+    def _apply_window_icon(self) -> None:
+        from PIL import Image, ImageTk
+
+        im = load_app_icon_rgba()
+        if im is None:
+            return
+        if im.size[0] > 128 or im.size[1] > 128:
+            im = im.resize((128, 128), Image.Resampling.LANCZOS)
+        try:
+            self._window_icon_photo = ImageTk.PhotoImage(im)
+            self.root.iconphoto(True, self._window_icon_photo)
+        except tk.TclError:
+            self._window_icon_photo = None
 
     def _a11y_label_focus_entry(self, label: ctk.CTkLabel, entry: ctk.CTkEntry) -> None:
         try:
@@ -654,7 +672,7 @@ class MouseJigglerApp:
         self.page_home = ctk.CTkFrame(self.pages_host, corner_radius=10, fg_color="transparent")
         self.page_home.grid(row=0, column=0, sticky="nsew")
         self.page_home.grid_columnconfigure(0, weight=1)
-        self.page_home.grid_rowconfigure(2, weight=1)
+        self.page_home.grid_rowconfigure(3, weight=1)
 
         self._lbl_status = ctk.CTkLabel(
             self.page_home,
@@ -697,7 +715,7 @@ class MouseJigglerApp:
         self.segmented.set(self._segment_text(self._segment_mode))
 
         self.content_host = ctk.CTkFrame(self.page_home, fg_color="transparent")
-        self.content_host.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
+        self.content_host.grid(row=3, column=0, sticky="nsew", padx=p, pady=(0, p))
         self.content_host.grid_columnconfigure(0, weight=1)
         self.content_host.grid_rowconfigure(0, weight=1)
 
@@ -1242,6 +1260,7 @@ class MouseJigglerApp:
         self._running_interval_value = ival
         self._running_interval_unit = iu
         self._current_interval_sec = interval_sec
+        self._running_motion_burst_sec = motion_burst
         self._next_jiggle_monotonic = time.monotonic() + interval_sec
 
         self._worker = threading.Thread(
@@ -1286,6 +1305,7 @@ class MouseJigglerApp:
         self._stop.set()
         self._cancel_countdown_tick()
         self._current_interval_sec = 0.0
+        self._running_motion_burst_sec = 0.0
         self._countdown_phase = "interval"
         self.btn_start.configure(state="normal")
         self.btn_stop.configure(state="disabled")

@@ -52,7 +52,7 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 
 - GUI: **CustomTkinter** (dark / `dark-blue` theme, sidebar + segmented control)
 - Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`
-- Tray: **pystray**; icon: **Pillow**
+- Tray: **pystray**; icon: **Pillow** (shared PNG for window, tray, and—when rebuilt—[`packaging/app.ico`](packaging/app.ico) for the `.exe`; see [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md))
 
 ## Limitations
 

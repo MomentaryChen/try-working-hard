@@ -43,6 +43,7 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
+_ICO = os.path.join(_spec_dir, "app.ico")
 exe = EXE(
     pyz,
     a.scripts,
@@ -62,4 +63,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=_ICO if os.path.isfile(_ICO) else None,
 )
