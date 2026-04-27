@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
+
 ### Added
 
 - **Settings → Open config file**: button on the Settings page opens the JSON preferences file in the system default app (or creates it from the current in-memory settings first if it is missing). On systems without `os.startfile`, the app shows the resolved path in a message box.

@@ -1,6 +1,6 @@
 ---
 name: dev-branch-auto
-description: Provisions a local git development branch from the default remote base with consistent naming, fetch, and safety checks. Optional Git worktree under D:\projects\worktree for parallel checkouts; after creating a worktree, continue implementation from that directory. Use when the user asks to create a dev branch, feature branch, topic branch, worktree, or automatically set up a branch for parallel work in this repository.
+description: Provisions a local git development branch from origin/develop with consistent naming, fetch, and safety checks. Optional Git worktree under D:\projects\worktree for parallel checkouts; after creating a worktree, continue implementation from that directory. Use when the user asks to create a dev branch, feature branch, topic branch, worktree, or automatically set up a branch for parallel work in this repository.
 ---
 
 # Dev branch auto-setup (this project)
@@ -8,14 +8,14 @@ description: Provisions a local git development branch from the default remote b
 ## When to use
 
 - User wants a **new development / feature / fix branch** from the default line.
-- User says **create a dev branch**, **open a feature branch**, **branch off from main**, etc.
+- User says **create a dev branch**, **open a feature branch**, **branch off from develop**, etc.
 - User wants a **separate working directory** for the same repo (**git worktree**) so they can keep another branch checked out in the main folder—use **Optional: Worktree (parallel directory)**. After adding the worktree, the agent **switches context to that directory** for ongoing implementation in the same task.
 
 ## Conventions (defaults)
 
 | Item | Default |
 |------|---------|
-| Base branch | Resolve with `git symbolic-ref refs/remotes/origin/HEAD` or try `main`, then `master` |
+| Base branch | **`origin/develop`** — always use `develop` as `<base>` when this skill runs (after fetch and verify; see step 3) |
 | Local branch prefix | `dev/` for generic work, `feature/` for user-facing features, `fix/` for bugfix |
 | Name body | kebab-case, short; include issue id if user gives one, e.g. `dev/JIRA-123-slider-interval` → prefer `dev/jira-123-slider-interval` (ASCII, lowercase) |
 | Worktree parent (this project) | `D:\projects\worktree` |
@@ -33,11 +33,11 @@ If the user provides an exact branch name, use it (after basic sanity: no spaces
 
    - `git fetch origin` (or the user’s `remote` name from `git remote`).
 
-3. **Resolve default base** (one of):
+3. **Resolve default base** (required for this skill)
 
-   - `git rev-parse --verify origin/main 2>/dev/null` → use `main`
-   - else `git rev-parse --verify origin/master` → use `master`
-   - else first remote head: `git remote show origin` / `git branch -r` and ask if ambiguous.
+   - After fetch, run `git rev-parse --verify origin/develop`. On success, set `<base>` to **`develop`** (branch from **`origin/develop`**).
+   - If `origin/develop` is missing, **stop** and tell the user to fetch, create `develop` on the remote, or name another base explicitly; do **not** silently fall back to `main` / `master` unless the user overrides in the same message.
+   - If the user **explicitly** asks for a different base (e.g. `main`, a release branch), use that name instead of `develop` for this run only.
 
 4. **Create branch** (in the current worktree)
 
@@ -88,7 +88,7 @@ Use this when the user wants the new (or existing) branch in a **second checkout
 
    ```powershell
    $wtRoot = 'D:\projects\worktree'
-   $base = '<base>'   # e.g. main, master, develop
+   $base = '<base>'   # default: develop (this skill)
    $name = '<name>'   # full branch name, e.g. feature/my-task
    $repoBase = Split-Path (git rev-parse --show-toplevel) -Leaf
    $safe = $name -replace '/', '-'
@@ -123,7 +123,7 @@ git worktree remove <path>
 ### Notes
 
 - This workflow does not copy `.env` or install dependencies; do that only if the user asks or the task needs it, matching the same rules as **Optional: after branch exists** below.
-- `develop`: if the remote uses `origin/develop` as the integration branch, use that as `base` when the user asks to branch off `develop`.
+- Default integration line for this skill is **`origin/develop`**; the worktree snippet uses the same `<base>` from step 3 (normally `develop`).
 
 ## Windows / PowerShell
 
