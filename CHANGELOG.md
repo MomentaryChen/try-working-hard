@@ -8,11 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Dark / light UI**: **Settings → Appearance** toggles **Dark** or **Light**; the choice is stored in `config.json` as **`ui_theme`** (`"dark"` or `"light"`, default **`"dark"`**). Dark mode uses a GitHub-style dark surface; light mode matches the previous **#F9FAFB** / card layout.
 - **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
 
 ### Changed
 
-- **GUI (CustomTkinter)**: switched to a **light** appearance (`appearance_mode` **light** / built-in **blue** theme) with a **#F9FAFB** app surface, **#F3F4F6** sidebar, **#FFFFFF** content cards (1px **#E5E7EB** border), **#3B82F6** primary actions with white copy, and transparent **secondary** actions with gray text; titles use a larger **bold** type scale and radii in the **12–16** px range for a rounder layout.
+- **GUI (CustomTkinter)**: **light** mode uses `appearance_mode` **light** with the built-in **blue** theme; surfaces stay **#F9FAFB** (app), **#F3F4F6** (sidebar), **#FFFFFF** cards, **#3B82F6** primary actions. **Dark** mode uses `appearance_mode` **dark** with **dark-blue** and a Pro Dark–inspired palette. Titles use a larger **bold** type scale; radii stay in the **12–16** px range.
 
 - **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual. Maximize is **re-applied** after the first layout tick and after the first-run **intro** dialog so CustomTkinter / modals do not leave the window at the default size.
 
