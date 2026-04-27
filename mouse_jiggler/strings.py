@@ -30,6 +30,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "path_speed_hint": "幾何路徑繪製快慢 · {lo}–{hi}（數字愈大愈快）",
         "log_start_fail_path_speed": "開始失敗：路徑速度無效。",
         "err_path_speed": "請輸入有效路徑速度（整數，{lo}–{hi}）。",
+        "status_motion_burst": "狀態：執行中 · 持續微動 · 約 {cd}",
         "btn_start": "開始",
         "btn_stop": "停止",
         "tray_checkbox": "關閉視窗時縮到系統匣（排程繼續）",
@@ -62,7 +63,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "nav_analytics": "分析",
         "settings_title": "設定",
         "btn_open_config_file": "開啟設定檔",
-        "open_config_path_only": "目前僅 Windows 可直接開啟檔案。設定檔路徑：\n{path}",
+        "open_config_path_only": "此環境無法以預設程式開啟檔案。設定檔路徑：\n{path}",
         "err_open_config_file": "無法開啟或建立設定檔：{err}",
         "analytics_title": "分析",
         "analytics_subtitle": "與首頁「紀錄」同步的活動紀錄。",
@@ -82,6 +83,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· F2 / F3 / F4 首頁、設定、分析\n"
         "· F5 開始（首頁「控制面板」且可開始時）\n"
         "· Shift+F5 停止\n"
+        "· Enter 開始、Esc 停止（僅主視窗顯示時；條件同 F5／Shift+F5）\n"
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
         "可點擊「間隔」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
@@ -109,6 +111,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "path_speed_hint": "How fast to trace the path · {lo}–{hi} (higher = faster)",
         "log_start_fail_path_speed": "Start failed: invalid path speed.",
         "err_path_speed": "Enter a valid path speed (integer, {lo}–{hi}).",
+        "status_motion_burst": "Status: running · active motion · ~{cd} left",
         "btn_start": "Start",
         "btn_stop": "Stop",
         "tray_checkbox": "Close to system tray (schedule continues)",
@@ -161,6 +164,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· F2 / F3 / F4  Home, Settings, Analytics\n"
         "· F5  Start (Home → Control, when available)\n"
         "· Shift+F5  Stop\n"
+        "· Enter / Esc  Start / Stop (main window visible only; same rules as F5 / Shift+F5)\n"
         "· F6  Home: toggle Control / Log\n\n"
         "Click the Interval, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval unit.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"

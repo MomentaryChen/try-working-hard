@@ -59,6 +59,8 @@ def test_a11y_help_body_includes_version(lang: str) -> None:
     body = STRINGS[lang]["a11y_help_body"].format(version="1.0.0")
     assert "1.0.0" in body
     assert "F1" in body
+    assert "F5" in body
+    assert "Enter" in body or "Enter／Esc" in body
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])

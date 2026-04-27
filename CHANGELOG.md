@@ -8,10 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Home → Control**: control card is scrollable so short windows still show Start, Stop, and status; field order is interval → nudge size → path speed → motion path.
+- **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual.
+- **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
+- **Home status**: the schedule state is shown in a **bordered strip** at the **top** of Home with a **colored indicator** and tint (muted when stopped, green while counting down to the next nudge, amber reserved for an active-motion phase if enabled in the future). The **progress bar** was removed in favor of the status text alone.
+- **Home → Control**: control card is **scrollable** so short windows still show Start, Stop, and fields; field order is interval → nudge size → path speed → motion path.
+- **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.
+- **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
+- **docs/ACCESSIBILITY.md**: keyboard and reduced-motion notes updated for the Home status line (progress bar removed).
 
 ### Added
 
+- **Keyboard**: **Enter** starts and **Esc** stops the schedule under the same rules as **F5** / **Shift+F5** on **Home → Control**, but only while the **main window is visible** (not when the window is closed to the **system tray**).
+- **App branding icon**: shared `mouse_jiggler/assets/app_icon.png` for the main window (`iconphoto`), system tray, and the Windows `.exe` file icon via `packaging/app.ico` in the PyInstaller spec. Regenerate both from `packaging/generate_icons.py` (`uv run python packaging/generate_icons.py`).
+- **Settings → Open config file**: button on the Settings page opens the JSON preferences file in the system default app (or creates it from the current in-memory settings first if it is missing). On systems without `os.startfile`, the app shows the resolved path in a message box.
 - **Motion path** on Home → Control: choose **line** (horizontal nudge and restore), **circle** (trace a full circle; nudge size is the radius in pixels), or **square** (trace a square clockwise; nudge size is the edge length). Persisted in local config as `motion_pattern`.
 - **Path speed** (1–10) on Home → Control: scales how fast the line, circle, or square is traced (higher = faster). Persisted in local config as `path_speed_text`. Older `config.json` files that used `motion_burst_text` are ignored for this setting; defaults apply until the user saves again.
 
