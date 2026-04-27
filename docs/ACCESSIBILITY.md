@@ -25,7 +25,7 @@ If you need **strong** ARIA/IA2 guarantees, a future version would need a differ
 ## Operating system and tools
 
 - **OS Magnifier**, **high-contrast** themes, and **sticky keys** work as usual; they are independent of the app.
-- For **reduced motion**, the countdown text is not tied to a system setting; you can **Stop** the schedule to halt cursor movement and timer updates.
+- For **reduced motion**, the countdown text is not tied to a system setting; you can **Stop** the schedule to halt cursor movement and status (idle-based countdown) updates.
 
 ## Reporting issues
 

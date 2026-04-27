@@ -32,8 +32,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "log_tray_start_hidden": "以系統匣模式執行（主視窗已隱藏）。",
         "interval_unit_min": "分鐘",
         "interval_unit_sec": "秒",
-        "interval_hint_min": "≥ 0.1，可小數",
-        "interval_hint_sec": "≥ 6，可小數",
+        "interval_hint_min": "≥ 0.1，可小數（鍵盤／滑鼠無輸入須達此時間）",
+        "interval_hint_sec": "≥ 6，可小數（鍵盤／滑鼠無輸入須達此時間）",
         "motion_pattern_label": "移動路徑",
         "motion_pattern_line": "直線",
         "motion_pattern_circle": "圓形",
@@ -52,14 +52,14 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "tray_switch_hint": "啟用後關閉視窗將保留排程並在背景執行，可從系統匣圖示還原視窗。",
         "tray_no_pystray": "（未安裝 pystray）",
         "status_stopped": "狀態：已停止",
-        "status_running_min": "狀態：執行中 · 每 {v:g} 分鐘 · 下次約 {cd}",
-        "status_running_sec": "狀態：執行中 · 每 {v:g} 秒 · 下次約 {cd}",
+        "status_running_min": "狀態：執行中 · 鍵盤／滑鼠無輸入達 {v:g} 分鐘後微動 · 下次約 {cd}",
+        "status_running_sec": "狀態：執行中 · 鍵盤／滑鼠無輸入達 {v:g} 秒後微動 · 下次約 {cd}",
         "log_title": "活動紀錄",
         "log_ready": "程式已就緒。",
         "log_start_fail_interval": "開始失敗：間隔設定無效。",
         "log_start_fail_pixels": "開始失敗：位移設定無效。",
-        "log_started_min": "已開始，間隔 {v:g} 分鐘（約 {sec:.0f} 秒）、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
-        "log_started_sec": "已開始，間隔 {v:g} 秒、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
+        "log_started_min": "已開始，鍵盤／滑鼠無輸入達 {v:g} 分鐘（約 {sec:.0f} 秒）後微動、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
+        "log_started_sec": "已開始，鍵盤／滑鼠無輸入達 {v:g} 秒後微動、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
         "log_stopped": "已手動停止。",
         "log_nudge": "已執行游標微動。",
         "log_nudge_zero": "已觸發排程（位移 0，未移動游標）。",
@@ -86,7 +86,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "motion_pattern_log_circle": "圓形",
         "motion_pattern_log_square": "方形",
         "intro_body": "try-working-hard {version}\n\n"
-        "本程式會依您設定的間隔，以直線、圓形或方形路徑微量移動游標再還原，可用於簡報或閱讀時避免螢幕休眠。\n\n"
+        "本程式會在鍵盤與滑鼠皆無輸入達您設定的時間後，以直線、圓形或方形路徑微量移動游標再還原，可用於簡報或閱讀時避免螢幕休眠（Windows 以系統閒置時間為準）。\n\n"
         "請僅在合法、符合公司／學校規定與服務條款的前提下使用；勿用於規避安全或監控機制。\n\n"
         "按 F1 可開啟鍵盤與無障礙說明。您的偏好設定會儲存在本機，下次開啟時自動載入。\n\n"
         "點選「確定」後不會再顯示本視窗（除非刪除設定檔）。",
@@ -99,7 +99,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5 停止\n"
         "· Enter 開始、Esc 停止（僅主視窗顯示時；條件同 F5／Shift+F5）\n"
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
-        "可點擊「間隔」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」；欄位下方有 30s／1m／5m／10m 快速按鈕。\n\n"
+        "可點擊「間隔」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」；「間隔」指鍵盤與滑鼠皆無輸入需累積的時間（與主控台狀態列、Windows 系統閒置時間一致）。欄位下方有 30s／1m／5m／10m 快速按鈕。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
     },
     "en": {
@@ -127,8 +127,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "log_tray_start_hidden": "Running from the tray (main window hidden).",
         "interval_unit_min": "min",
         "interval_unit_sec": "sec",
-        "interval_hint_min": "≥ 0.1, decimals allowed",
-        "interval_hint_sec": "≥ 6, decimals (same minimum as 0.1 min)",
+        "interval_hint_min": "≥ 0.1, decimals — min idle (no keyboard/mouse) before nudge",
+        "interval_hint_sec": "≥ 6, decimals — min idle (no keyboard/mouse) before nudge",
         "motion_pattern_label": "Path",
         "motion_pattern_line": "Line",
         "motion_pattern_circle": "Circle",
@@ -147,14 +147,14 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "tray_switch_hint": "When enabled, closing the window keeps the schedule running; restore from the tray icon.",
         "tray_no_pystray": "(pystray not installed)",
         "status_stopped": "Status: stopped",
-        "status_running_min": "Status: running · every {v:g} min · next in {cd}",
-        "status_running_sec": "Status: running · every {v:g} s · next in {cd}",
+        "status_running_min": "Status: running · nudge after {v:g} min idle (keyboard/mouse) · next in {cd}",
+        "status_running_sec": "Status: running · nudge after {v:g} s idle (keyboard/mouse) · next in {cd}",
         "log_title": "Activity log",
         "log_ready": "Ready.",
         "log_start_fail_interval": "Start failed: invalid interval.",
         "log_start_fail_pixels": "Start failed: invalid nudge size.",
-        "log_started_min": "Started: every {v:g} min (~{sec:.0f} s), path {pat}, nudge {px} px, path speed {ps}.",
-        "log_started_sec": "Started: every {v:g} s, path {pat}, nudge {px} px, path speed {ps}.",
+        "log_started_min": "Started: nudge after {v:g} min (~{sec:.0f} s) with no keyboard/mouse input, path {pat}, nudge {px} px, path speed {ps}.",
+        "log_started_sec": "Started: nudge after {v:g} s with no keyboard/mouse input, path {pat}, nudge {px} px, path speed {ps}.",
         "log_stopped": "Stopped manually.",
         "log_nudge": "Cursor nudge executed.",
         "log_nudge_zero": "Tick fired (0 px — cursor not moved).",
@@ -181,7 +181,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "motion_pattern_log_circle": "circle",
         "motion_pattern_log_square": "square",
         "intro_body": "try-working-hard {version}\n\n"
-        "This app nudges the cursor on a timer along a line, circle, or square path and restores it—useful to keep the screen awake while presenting or reading.\n\n"
+        "This app nudges the cursor only after the interval elapses with no keyboard or mouse input, along a line, circle, or square path, then restores it—useful to keep the screen awake while presenting or reading (on Windows, idle time uses the system last-input time).\n\n"
         "Use it only in lawful ways that comply with employer, school, and service rules; do not use it to bypass security or monitoring.\n\n"
         "Press F1 for keyboard and accessibility help. Your preferences are saved locally and loaded next time.\n\n"
         "You will not see this dialog again after you click OK (unless you delete the config file).",
@@ -194,7 +194,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5  Stop\n"
         "· Enter / Esc  Start / Stop (main window visible only; same rules as F5 / Shift+F5)\n"
         "· F6  Home: toggle Control / Log\n\n"
-        "Click the Interval, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval unit; use 30s / 1m / 5m / 10m under the field for a quick set.\n\n"
+        "Click the Interval, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval: Interval is the required idle time with no keyboard or mouse input before a nudge (status line uses the same idle time as Windows GetLastInputInfo). Use 30s / 1m / 5m / 10m under the field for a quick set.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
         "Tab / Shift+Tab move focus; tooltips are not used for the canvas controls.",
     },

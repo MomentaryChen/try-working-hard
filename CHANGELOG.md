@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Schedule (Windows)**: nudges run only after the **interval** elapses with **no keyboard or mouse input**, using `GetLastInputInfo` (not a fixed wall-clock timer). Repeats while you stay idle require at least one full interval between nudges so synthetic cursor motion does not immediately re-trigger if the OS does not count it as user input.
+
 ### Added
 
 - **Dark / light UI**: **Settings → Appearance** toggles **Dark** or **Light**; the choice is stored in `config.json` as **`ui_theme`** (`"dark"` or `"light"`, default **`"light"`**). Dark mode uses a GitHub-style dark surface; light mode matches the **#F9FAFB** / card layout.
