@@ -2,7 +2,7 @@
 
 **Languages:** English (this file) · [正體中文](README.zh-TW.md)
 
-Periodically nudges the mouse by one pixel and restores it, with a GUI to set the interval (minutes). For **lawful personal use only** (for example, keeping the screen awake during a presentation or reading). You must comply with applicable laws, employer or school policies, and service terms.
+Periodically nudges the mouse along a small path (line, circle, or square) and restores it, with a GUI to set the interval and options. For **lawful personal use only** (for example, keeping the screen awake during a presentation or reading). You must comply with applicable laws, employer or school policies, and service terms.
 
 ## Requirements
 
@@ -34,20 +34,21 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 
 ### Keyboard and accessibility
 
-- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **Enter** / **Esc** do the same while the **main window is visible** (they do nothing when the app is only in the **system tray**). **F6** toggles Control / Log. You can **click the interval, nudge, and active-motion labels** to focus the matching field. **Tab / Shift+Tab** moves between controls.
+- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **Enter** / **Esc** do the same while the **main window is visible** (they do nothing when the app is only in the **system tray**). **F6** toggles Control / Log. You can **click the interval, nudge, path speed, and path labels** to focus the matching field. **Tab / Shift+Tab** moves between controls.
 - CustomTkinter draws many controls on a **canvas**, so **screen reader** coverage is not the same as for fully native Win32 UIs. Details: [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 
 ## Usage
 
 1. The main window **opens maximized**; use the title bar to restore or resize as needed.
 2. Use the sidebar **繁中 / English** segmented control to switch the UI language.
-3. Enter the **interval in minutes** (decimals allowed, e.g. `0.5` ≈ 30 seconds; minimum **0.1** minutes).
-4. Set **nudge size in pixels** (integer, **0–500**): the cursor moves horizontally by this amount, then returns; **0** skips movement for that tick. Default is **100**.
-5. Set **active motion (seconds)** (**0–600**, decimals allowed): after each interval fires, the app repeats the nudge at a short cadence for this many seconds, then waits for the next interval. **0** means a single nudge per tick (legacy behavior). If nudge size is **0**, this duration is ignored.
-6. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
-7. While running, the **status area** at the top of Home shows the **countdown** (`mm:ss`, or `h:mm:ss` after one hour) with a **color cue** (green while waiting for the next nudge, amber during **active motion**). When stopped, the strip uses a neutral style.
-8. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
-9. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
+3. Enter the **interval**; use **min** or **sec** to pick units (minutes allow decimals, e.g. `0.5` ≈ 30 seconds, minimum **0.1** min; seconds follow the same minimum in seconds as **0.1** min).
+4. Set **nudge size in pixels** (integer, **0–500**). Meaning depends on the path: line = horizontal distance; circle = radius; square = edge length. **0** skips movement for that tick. Default is **100**.
+5. Set **path speed** (integer, **1–10**): how quickly the app traces the line, circle, or square (higher = faster). Default is **5**. Stored in `config.json` as `path_speed_text`.
+6. Choose **motion path**: **Line**, **Circle**, or **Square**—this matches how the nudge size is applied. Saved in `config.json` as `motion_pattern`. The home control area **scrolls** if the window is short.
+7. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
+8. While running, the **status strip** at the top of Home shows the **countdown** to the next nudge (`mm:ss`, or `h:mm:ss` after one hour) and a color cue; when stopped, the strip is neutral.
+9. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
+10. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
 
 ## Technical notes
 

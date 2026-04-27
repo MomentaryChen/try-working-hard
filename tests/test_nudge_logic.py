@@ -91,24 +91,22 @@ def test_parse_pixels_custom_bounds() -> None:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("0", 0.0),
-        ("0.5", 0.5),
-        ("30", 30.0),
-        ("600", 600.0),
-        (" 10 ", 10.0),
-        ("1,5", 1.5),
+        ("1", 1),
+        ("5", 5),
+        ("10", 10),
+        (" 7 ", 7),
     ],
 )
-def test_parse_motion_burst_valid(raw: str, expected: float) -> None:
-    assert nudge_logic.parse_motion_burst_seconds_string(raw) == expected
+def test_parse_path_speed_valid(raw: str, expected: int) -> None:
+    assert nudge_logic.parse_path_speed_string(raw) == expected
 
 
 @pytest.mark.parametrize(
     "raw",
-    ["", "abc", "-0.1", "600.1", "601", "nan", "inf"],
+    ["", "abc", "0", "11", "99", "nan", "inf"],
 )
-def test_parse_motion_burst_invalid(raw: str) -> None:
-    assert nudge_logic.parse_motion_burst_seconds_string(raw) is None
+def test_parse_path_speed_invalid(raw: str) -> None:
+    assert nudge_logic.parse_path_speed_string(raw) is None
 
 
 @pytest.mark.parametrize(
