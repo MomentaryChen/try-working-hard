@@ -29,13 +29,13 @@ uv run python -m mouse_jiggler
 
 1. Enter the **interval in minutes** (decimals allowed, e.g. `0.5` ≈ 30 seconds; minimum **0.1** minutes).
 2. Set **nudge size in pixels** (integer, **1–50**): the cursor moves horizontally by this amount, then returns. Default is **1** (minimal).
-3. Click **Start** to begin the schedule; **Stop** ends it.
-4. While running, the status line shows a **countdown to the next nudge** (`mm:ss`, or `h:mm:ss` after one hour).
+3. Click **Start** to begin the schedule; **Stop** ends it. Use the **segmented control** (or matching sidebar items) to switch between the control panel and the **log** view.
+4. While running, the **progress bar** fills toward the next nudge; the status line shows the **countdown** (`mm:ss`, or `h:mm:ss` after one hour).
 5. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit**.
 
 ## Technical notes
 
-- GUI: **tkinter** (standard library)
+- GUI: **CustomTkinter** (dark / `dark-blue` theme, sidebar + segmented control + progress)
 - Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`
 - Tray: **pystray**; icon: **Pillow**
 
