@@ -29,6 +29,7 @@ def _defaults() -> dict[str, Any]:
         "interval_text": str(int(nudge_logic.DEFAULT_MINUTES)),
         "interval_unit": "min",
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
+        "motion_burst_text": str(int(nudge_logic.DEFAULT_MOTION_BURST_SEC)),
         "close_to_tray": False,
         "intro_acknowledged": False,
     }
@@ -65,6 +66,15 @@ def _sanitize_pixels_text(raw: object, *, fallback: str) -> str:
     if nudge_logic.parse_pixels_string(
         s, min_px=nudge_logic.MIN_PIXELS, max_px=nudge_logic.MAX_PIXELS
     ) is None:
+        return fallback
+    return s
+
+
+def _sanitize_motion_burst_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:32]
+    if nudge_logic.parse_motion_burst_seconds_string(s) is None:
         return fallback
     return s
 
@@ -110,6 +120,11 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     fb_pixels = out["pixels_text"]
     out["pixels_text"] = _sanitize_pixels_text(raw.get("pixels_text"), fallback=fb_pixels)
 
+    fb_motion = out["motion_burst_text"]
+    out["motion_burst_text"] = _sanitize_motion_burst_text(
+        raw.get("motion_burst_text"), fallback=fb_motion
+    )
+
     ctt = _sanitize_close_to_tray(raw.get("close_to_tray"))
     if ctt is not None:
         out["close_to_tray"] = ctt
@@ -142,6 +157,9 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         "interval_unit": unit,
         "pixels_text": _sanitize_pixels_text(
             data.get("pixels_text"), fallback=base["pixels_text"]
+        ),
+        "motion_burst_text": _sanitize_motion_burst_text(
+            data.get("motion_burst_text"), fallback=base["motion_burst_text"]
         ),
         "close_to_tray": ctt if ctt is not None else base["close_to_tray"],
         "intro_acknowledged": ia if ia is not None else base["intro_acknowledged"],

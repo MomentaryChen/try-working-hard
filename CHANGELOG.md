@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Active motion (seconds)** on Home → Control: after each interval elapses, the app can keep nudging at a fixed cadence for that duration before the next idle wait; `0` keeps the previous behavior (one nudge per tick). Persisted in local config as `motion_burst_text`. If nudge size is `0`, the extra duration is skipped.
+
 ## [1.0.0] - 2026-04-27
 
 ### Added

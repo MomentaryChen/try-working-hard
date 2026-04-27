@@ -12,6 +12,12 @@ MIN_SECONDS = MIN_MINUTES * 60.0
 MIN_PIXELS = 0
 MAX_PIXELS = 500
 DEFAULT_PIXELS = 100
+# After each interval, repeat nudges for this many seconds before the next idle wait (0 = one nudge only).
+MIN_MOTION_BURST_SEC = 0.0
+MAX_MOTION_BURST_SEC = 600.0
+DEFAULT_MOTION_BURST_SEC = 0.0
+# Pause between nudges while a motion burst is active (keeps input rate reasonable).
+MOTION_BURST_STEP_SEC = 0.25
 LOG_TRIM_LINES = 48
 
 
@@ -51,6 +57,23 @@ def parse_interval_to_seconds(
         return None if m is None else m * 60.0
     s = parse_seconds_string(raw, min_seconds=min_seconds)
     return None if s is None else s
+
+
+def parse_motion_burst_seconds_string(
+    raw: str,
+    *,
+    min_sec: float = MIN_MOTION_BURST_SEC,
+    max_sec: float = MAX_MOTION_BURST_SEC,
+) -> float | None:
+    """Parse active motion duration in seconds; ``None`` if out of range or non-finite."""
+    s = raw.strip().replace(",", ".")
+    try:
+        v = float(s)
+    except ValueError:
+        return None
+    if not math.isfinite(v) or v < min_sec or v > max_sec:
+        return None
+    return v
 
 
 def parse_pixels_string(raw: str, *, min_px: int = MIN_PIXELS, max_px: int = MAX_PIXELS) -> int | None:
