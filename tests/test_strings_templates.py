@@ -8,22 +8,37 @@ from mouse_jiggler.strings import STRINGS
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
-def test_status_running_template(lang: str) -> None:
-    s = STRINGS[lang]["status_running"]
-    out = s.format(m=5.5, cd="3:00")
+def test_status_running_min_template(lang: str) -> None:
+    s = STRINGS[lang]["status_running_min"]
+    out = s.format(v=5.5, cd="3:00")
     assert "3:00" in out
+    assert len(out) > 10
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_status_running_sec_template(lang: str) -> None:
+    s = STRINGS[lang]["status_running_sec"]
+    out = s.format(v=30.0, cd="0:12")
+    assert "0:12" in out
     assert len(out) > 10
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_error_templates(lang: str) -> None:
     assert "0.1" in STRINGS[lang]["err_minutes"].format(min=0.1)
+    assert STRINGS[lang]["err_seconds"].format(min=6.0)
     assert STRINGS[lang]["err_pixels"].format(lo=0, hi=500)
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
-def test_log_started_template(lang: str) -> None:
-    line = STRINGS[lang]["log_started"].format(m=2, sec=120, px=50)
+def test_log_started_min_template(lang: str) -> None:
+    line = STRINGS[lang]["log_started_min"].format(v=2, sec=120, px=50)
+    assert "50" in line
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_log_started_sec_template(lang: str) -> None:
+    line = STRINGS[lang]["log_started_sec"].format(v=30, px=50)
     assert "50" in line
 
 

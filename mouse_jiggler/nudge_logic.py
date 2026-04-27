@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import math
+from typing import Literal
 
 MIN_MINUTES = 0.1
 DEFAULT_MINUTES = 5.0
+# Minimum interval in seconds (matches 0.1 min) so the floor is the same in both unit modes.
+MIN_SECONDS = MIN_MINUTES * 60.0
 MIN_PIXELS = 0
 MAX_PIXELS = 500
 DEFAULT_PIXELS = 100
@@ -22,6 +25,32 @@ def parse_minutes_string(raw: str, *, min_minutes: float = MIN_MINUTES) -> float
     if not math.isfinite(m) or m < min_minutes:
         return None
     return m
+
+
+IntervalUnit = Literal["min", "sec"]
+
+
+def parse_seconds_string(raw: str, *, min_seconds: float = MIN_SECONDS) -> float | None:
+    """Parse interval seconds; ``None`` if invalid or below ``min_seconds``."""
+    s = raw.strip().replace(",", ".")
+    try:
+        sec = float(s)
+    except ValueError:
+        return None
+    if not math.isfinite(sec) or sec < min_seconds:
+        return None
+    return sec
+
+
+def parse_interval_to_seconds(
+    raw: str, unit: IntervalUnit, *, min_minutes: float = MIN_MINUTES, min_seconds: float = MIN_SECONDS
+) -> float | None:
+    """User-facing interval → seconds, or ``None`` if the value is not allowed for ``unit``."""
+    if unit == "min":
+        m = parse_minutes_string(raw, min_minutes=min_minutes)
+        return None if m is None else m * 60.0
+    s = parse_seconds_string(raw, min_seconds=min_seconds)
+    return None if s is None else s
 
 
 def parse_pixels_string(raw: str, *, min_px: int = MIN_PIXELS, max_px: int = MAX_PIXELS) -> int | None:

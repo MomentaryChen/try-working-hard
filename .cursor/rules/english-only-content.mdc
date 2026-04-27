@@ -1,0 +1,31 @@
+---
+description: Project files and agent output use English only (code, comments, strings, docs)
+alwaysApply: true
+---
+
+# English-Only Project Content
+
+All project-facing text MUST be in English. This keeps the codebase consistent and tooling-friendly.
+
+## What must be in English
+
+- **Comments and docstrings** in code
+- **User-facing copy** in source (UI strings, error messages) unless the product explicitly localizes; if i18n exists, English remains the default/source locale
+- **README, changelogs, and technical docs** in the repo
+- **Commit messages and PR titles/descriptions** for this project
+- **Variable, function, class, and file names** (ASCII English identifiers)
+
+## Exceptions (when non-English is allowed)
+
+- **Data**: user-provided or third-party text that is stored or displayed as-is
+- **Locales**: translated strings in dedicated locale/resource files (e.g. `en.json`, `zh-TW.json`) where the file format requires it
+- **Legal or compliance** text that must match a non-English original (cite source)
+
+## For the agent
+
+- Write new or edited project content in English by default
+- Do not add Chinese (or other non-English) comments or docs in source files unless the user explicitly asks for a specific exception
+
+## Quick check
+
+If you would write it in 中文 for clarity, prefer a clear English sentence instead.

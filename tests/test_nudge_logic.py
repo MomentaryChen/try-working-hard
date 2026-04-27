@@ -36,6 +36,34 @@ def test_parse_minutes_custom_floor() -> None:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
+        ("6", 6.0),
+        ("60", 60.0),
+        ("6,5", 6.5),
+        ("  300  ", 300.0),
+    ],
+)
+def test_parse_seconds_valid(raw: str, expected: float) -> None:
+    assert nudge_logic.parse_seconds_string(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["", "  ", "abc", "5.9", "-1", "nan", "inf"],
+)
+def test_parse_seconds_invalid(raw: str) -> None:
+    assert nudge_logic.parse_seconds_string(raw) is None
+
+
+def test_parse_interval_to_seconds() -> None:
+    assert nudge_logic.parse_interval_to_seconds("2", "min") == 120.0
+    assert nudge_logic.parse_interval_to_seconds("30", "sec") == 30.0
+    assert nudge_logic.parse_interval_to_seconds("0.05", "min") is None
+    assert nudge_logic.parse_interval_to_seconds("3", "sec") is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
         ("0", 0),
         ("100", 100),
         ("500", 500),
