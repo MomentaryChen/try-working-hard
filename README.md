@@ -34,7 +34,7 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 
 ### Keyboard and accessibility
 
-- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **F6** toggles Control / Log. You can **click the interval, nudge, active-motion, and path labels** to focus the matching field. **Tab / Shift+Tab** moves between controls.
+- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **F6** toggles Control / Log. You can **click the interval, nudge, path speed, and path labels** to focus the matching field. **Tab / Shift+Tab** moves between controls.
 - CustomTkinter draws many controls on a **canvas**, so **screen reader** coverage is not the same as for fully native Win32 UIs. Details: [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 
 ## Usage
@@ -42,10 +42,10 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 1. Use the sidebar **繁中 / English** segmented control to switch the UI language.
 2. Enter the **interval in minutes** (decimals allowed, e.g. `0.5` ≈ 30 seconds; minimum **0.1** minutes), or use **min / sec** to switch units.
 3. Set **nudge size in pixels** (integer, **0–500**). Meaning depends on the path: line = horizontal distance; circle = radius; square = edge length. **0** skips movement for that tick. Default is **100**.
-4. Set **active motion (seconds)** (**0–600**, decimals allowed): after each interval fires, the app repeats the nudge at a short cadence for this many seconds, then waits for the next interval. **0** means a single nudge per tick. If nudge size is **0**, this duration is ignored.
-5. Choose **motion path** (under active motion): **Line**, **Circle**, or **Square**—this matches how the nudge size is applied. Saved in `config.json` as `motion_pattern`. The home control area **scrolls** if the window is short so the bottom controls stay reachable.
+4. Set **path speed** (integer, **1–10**): how quickly the app traces the line, circle, or square (higher = faster). Default is **5**. Stored in `config.json` as `path_speed_text`.
+5. Choose **motion path**: **Line**, **Circle**, or **Square**—this matches how the nudge size is applied. Saved in `config.json` as `motion_pattern`. The home control area **scrolls** if the window is short so the bottom controls stay reachable.
 6. Click **Start** to begin the schedule; **Stop** ends it. Use the **segmented control** (or matching sidebar items) to switch between the control panel and the **log** view.
-7. While running, the **progress bar** fills toward the next nudge; the status line shows the **countdown** (`mm:ss`, or `h:mm:ss` after one hour). During an active-motion phase, the status line indicates **active motion** and counts down to the end of that phase.
+7. While running, the **progress bar** animates; the status line shows the **countdown** to the next nudge (`mm:ss`, or `h:mm:ss` after one hour).
 8. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
 
 ## Technical notes

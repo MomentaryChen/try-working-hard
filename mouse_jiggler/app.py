@@ -76,9 +76,9 @@ class MouseJigglerApp:
     MIN_PIXELS = nudge_logic.MIN_PIXELS
     MAX_PIXELS = nudge_logic.MAX_PIXELS
     DEFAULT_PIXELS = nudge_logic.DEFAULT_PIXELS
-    MIN_MOTION_BURST = nudge_logic.MIN_MOTION_BURST_SEC
-    MAX_MOTION_BURST = nudge_logic.MAX_MOTION_BURST_SEC
-    DEFAULT_MOTION_BURST = nudge_logic.DEFAULT_MOTION_BURST_SEC
+    MIN_PATH_SPEED = nudge_logic.MIN_PATH_SPEED
+    MAX_PATH_SPEED = nudge_logic.MAX_PATH_SPEED
+    DEFAULT_PATH_SPEED = nudge_logic.DEFAULT_PATH_SPEED
     _LOG_TRIM_LINES = nudge_logic.LOG_TRIM_LINES
 
     # Deep gray palette; accent = soft purple (Discord-like)
@@ -132,7 +132,6 @@ class MouseJigglerApp:
         self._running_interval_unit: nudge_logic.IntervalUnit = "min"
         self._current_interval_sec = 0.0
         self._countdown_after_id: str | None = None
-        self._countdown_phase: Literal["interval", "burst"] = "interval"
 
         self._tray = TrayController()
         self._shutting_down = False
@@ -364,8 +363,8 @@ class MouseJigglerApp:
         u = cfg.get("interval_unit", "min")
         self._interval_unit = u if u in ("min", "sec") else "min"
         self.var_pixels.set(str(cfg.get("pixels_text", str(self.DEFAULT_PIXELS))))
-        self.var_motion_burst.set(
-            str(cfg.get("motion_burst_text", str(int(self.DEFAULT_MOTION_BURST))))
+        self.var_path_speed.set(
+            str(cfg.get("path_speed_text", str(int(self.DEFAULT_PATH_SPEED))))
         )
         mp = cfg.get("motion_pattern", "horizontal")
         self._motion_pattern = mp if mp in ("horizontal", "circle", "square") else "horizontal"
@@ -380,7 +379,7 @@ class MouseJigglerApp:
             "interval_text": self.var_minutes.get(),
             "interval_unit": self._interval_unit,
             "pixels_text": self.var_pixels.get(),
-            "motion_burst_text": self.var_motion_burst.get(),
+            "path_speed_text": self.var_path_speed.get(),
             "motion_pattern": self._motion_pattern,
             "close_to_tray": bool(self.var_tray_close.get()),
             "intro_acknowledged": self._intro_acknowledged,
@@ -412,7 +411,7 @@ class MouseJigglerApp:
             self.var_tray_close.trace_add("write", _on_write)
             self.var_minutes.trace_add("write", _on_write)
             self.var_pixels.trace_add("write", _on_write)
-            self.var_motion_burst.trace_add("write", _on_write)
+            self.var_path_speed.trace_add("write", _on_write)
         except (tk.TclError, AttributeError):
             pass
 
@@ -480,10 +479,15 @@ class MouseJigglerApp:
         self._lbl_pixels_hint.configure(
             text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS)
         )
-        self._lbl_motion_burst.configure(text=self._t("motion_burst_label"))
-        self._lbl_motion_burst_hint.configure(
-            text=self._t("motion_burst_hint", hi=self.MAX_MOTION_BURST)
-        )
+        if hasattr(self, "_lbl_path_speed"):
+            self._lbl_path_speed.configure(text=self._t("path_speed_label"))
+            self._lbl_path_speed_hint.configure(
+                text=self._t(
+                    "path_speed_hint",
+                    lo=self.MIN_PATH_SPEED,
+                    hi=self.MAX_PATH_SPEED,
+                )
+            )
         self.btn_start.configure(text=self._t("btn_start"))
         self.btn_stop.configure(text=self._t("btn_stop"))
         self._lbl_tray_sw.configure(text=self._t("tray_switch_title"))
@@ -520,10 +524,7 @@ class MouseJigglerApp:
             return
         rem = self._next_jiggle_monotonic - time.monotonic()
         cd = nudge_logic.remaining_seconds_to_countdown_display(rem)
-        if self._countdown_phase == "burst":
-            self.status.set(self._t("status_motion_burst", cd=cd))
-        else:
-            self.status.set(self._t_status_running(cd))
+        self.status.set(self._t_status_running(cd))
 
     def _btn(self, master: Any, **kwargs: Any) -> ctk.CTkButton:
         """Rounded buttons (radius 10) with hover_color (solid hover approximates a gradient)."""
@@ -1077,19 +1078,19 @@ class MouseJigglerApp:
         self._lbl_pixels_hint.pack(side="left", padx=(12, 0))
         self._a11y_label_focus_entry(self._lbl_pixels, self.entry_pixels)
 
-        self._lbl_motion_burst = ctk.CTkLabel(
+        self._lbl_path_speed = ctk.CTkLabel(
             card,
-            text=self._t("motion_burst_label"),
+            text=self._t("path_speed_label"),
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_motion_burst.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
-        row_motion = ctk.CTkFrame(card, fg_color="transparent")
-        row_motion.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
-        self.var_motion_burst = tk.StringVar(value=str(int(self.DEFAULT_MOTION_BURST)))
-        self.entry_motion_burst = ctk.CTkEntry(
-            row_motion,
-            textvariable=self.var_motion_burst,
+        self._lbl_path_speed.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
+        row_path_speed = ctk.CTkFrame(card, fg_color="transparent")
+        row_path_speed.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.var_path_speed = tk.StringVar(value=str(int(self.DEFAULT_PATH_SPEED)))
+        self.entry_path_speed = ctk.CTkEntry(
+            row_path_speed,
+            textvariable=self.var_path_speed,
             width=120,
             height=36,
             corner_radius=10,
@@ -1099,16 +1100,20 @@ class MouseJigglerApp:
             border_width=1,
             border_color=self._BORDER,
         )
-        self.entry_motion_burst.pack(side="left")
-        _try_takefocus(self.entry_motion_burst, 1)
-        self._lbl_motion_burst_hint = ctk.CTkLabel(
-            row_motion,
-            text=self._t("motion_burst_hint", hi=self.MAX_MOTION_BURST),
+        self.entry_path_speed.pack(side="left")
+        _try_takefocus(self.entry_path_speed, 1)
+        self._lbl_path_speed_hint = ctk.CTkLabel(
+            row_path_speed,
+            text=self._t(
+                "path_speed_hint",
+                lo=self.MIN_PATH_SPEED,
+                hi=self.MAX_PATH_SPEED,
+            ),
             font=self._font_body,
             text_color=self._TEXT_MUTED,
         )
-        self._lbl_motion_burst_hint.pack(side="left", padx=(12, 0))
-        self._a11y_label_focus_entry(self._lbl_motion_burst, self.entry_motion_burst)
+        self._lbl_path_speed_hint.pack(side="left", padx=(12, 0))
+        self._a11y_label_focus_entry(self._lbl_path_speed, self.entry_path_speed)
 
         self._lbl_motion_pattern = ctk.CTkLabel(
             card,
@@ -1260,10 +1265,7 @@ class MouseJigglerApp:
 
         rem = self._next_jiggle_monotonic - time.monotonic()
         countdown_str = nudge_logic.remaining_seconds_to_countdown_display(rem)
-        if self._countdown_phase == "burst":
-            self.status.set(self._t("status_motion_burst", cd=countdown_str))
-        else:
-            self.status.set(self._t_status_running(countdown_str))
+        self.status.set(self._t_status_running(countdown_str))
         self._countdown_after_id = self.root.after(500, self._countdown_tick)
 
     def _log(self, message: str) -> None:
@@ -1300,18 +1302,23 @@ class MouseJigglerApp:
             self.var_pixels.get(), min_px=self.MIN_PIXELS, max_px=self.MAX_PIXELS
         )
 
-    def _parse_motion_burst_sec(self) -> float | None:
-        return nudge_logic.parse_motion_burst_seconds_string(
-            self.var_motion_burst.get(),
-            min_sec=self.MIN_MOTION_BURST,
-            max_sec=self.MAX_MOTION_BURST,
+    def _parse_path_speed(self) -> int | None:
+        return nudge_logic.parse_path_speed_string(
+            self.var_path_speed.get(),
+            min_sp=self.MIN_PATH_SPEED,
+            max_sp=self.MAX_PATH_SPEED,
         )
 
     def _nudge_tick(
-        self, pixels: int, pattern: MotionPattern, *, log_success: bool = True
+        self,
+        pixels: int,
+        pattern: MotionPattern,
+        path_speed: int,
+        *,
+        log_success: bool = True,
     ) -> None:
         try:
-            jiggle_mouse(pixels, pattern)
+            jiggle_mouse(pixels, pattern, path_speed=path_speed)
             if not log_success:
                 return
             if pixels > 0:
@@ -1345,20 +1352,19 @@ class MouseJigglerApp:
             )
             self._log(self._t("log_start_fail_pixels"))
             return
-        motion_burst = self._parse_motion_burst_sec()
-        if motion_burst is None:
+        path_speed = self._parse_path_speed()
+        if path_speed is None:
             messagebox.showerror(
                 self._t("err_title"),
-                self._t("err_motion_burst", hi=self.MAX_MOTION_BURST),
+                self._t("err_path_speed", lo=self.MIN_PATH_SPEED, hi=self.MAX_PATH_SPEED),
                 parent=self.root,
             )
-            self._log(self._t("log_start_fail_motion"))
+            self._log(self._t("log_start_fail_path_speed"))
             return
         if self._worker is not None and self._worker.is_alive():
             return
 
         self._stop.clear()
-        self._countdown_phase = "interval"
         interval_sec = ival * 60.0 if iu == "min" else ival
         self._running_interval_value = ival
         self._running_interval_unit = iu
@@ -1368,7 +1374,7 @@ class MouseJigglerApp:
 
         self._worker = threading.Thread(
             target=self._run_loop,
-            args=(interval_sec, pixels, motion_burst, run_pattern),
+            args=(interval_sec, pixels, path_speed, run_pattern),
             daemon=True,
         )
         self._worker.start()
@@ -1377,7 +1383,7 @@ class MouseJigglerApp:
         self.btn_stop.configure(state="normal")
         self.entry_minutes.configure(state="disabled")
         self.entry_pixels.configure(state="disabled")
-        self.entry_motion_burst.configure(state="disabled")
+        self.entry_path_speed.configure(state="disabled")
         try:
             self.seg_interval_unit.configure(state="disabled")
         except (tk.TclError, AttributeError):
@@ -1392,11 +1398,6 @@ class MouseJigglerApp:
         except (tk.TclError, AttributeError):
             pass
         self._schedule_countdown_tick()
-        extra = (
-            self._t("log_started_motion_extra", mb=motion_burst)
-            if motion_burst > 0
-            else ""
-        )
         pat = self._pattern_log_label()
         if iu == "min":
             self._log(
@@ -1406,7 +1407,7 @@ class MouseJigglerApp:
                     sec=interval_sec,
                     pat=pat,
                     px=pixels,
-                    extra=extra,
+                    ps=path_speed,
                 )
             )
         else:
@@ -1416,7 +1417,7 @@ class MouseJigglerApp:
                     v=ival,
                     pat=pat,
                     px=pixels,
-                    extra=extra,
+                    ps=path_speed,
                 )
             )
 
@@ -1428,12 +1429,11 @@ class MouseJigglerApp:
         except (tk.TclError, AttributeError):
             pass
         self._current_interval_sec = 0.0
-        self._countdown_phase = "interval"
         self.btn_start.configure(state="normal")
         self.btn_stop.configure(state="disabled")
         self.entry_minutes.configure(state="normal")
         self.entry_pixels.configure(state="normal")
-        self.entry_motion_burst.configure(state="normal")
+        self.entry_path_speed.configure(state="normal")
         try:
             self.seg_interval_unit.configure(state="normal")
         except (tk.TclError, AttributeError):
@@ -1449,30 +1449,14 @@ class MouseJigglerApp:
         self,
         interval_sec: float,
         pixels: int,
-        motion_burst_sec: float,
+        path_speed: int,
         pattern: MotionPattern,
     ) -> None:
         while not self._stop.is_set():
-            self._countdown_phase = "interval"
             self._next_jiggle_monotonic = time.monotonic() + interval_sec
             if self._stop.wait(timeout=interval_sec):
                 break
-            burst = motion_burst_sec if pixels > 0 else 0.0
-            if burst <= 0:
-                self._nudge_tick(pixels, pattern, log_success=True)
-            else:
-                self._countdown_phase = "burst"
-                burst_end = time.monotonic() + burst
-                self._next_jiggle_monotonic = burst_end
-                self._log(self._t("log_motion_burst_start", sec=burst))
-                while time.monotonic() < burst_end and not self._stop.is_set():
-                    self._nudge_tick(pixels, pattern, log_success=False)
-                    rem = burst_end - time.monotonic()
-                    if rem <= 0:
-                        break
-                    delay = min(nudge_logic.MOTION_BURST_STEP_SEC, rem)
-                    if self._stop.wait(timeout=delay):
-                        break
+            self._nudge_tick(pixels, pattern, path_speed, log_success=True)
 
     def _start_tray(self) -> None:
         self._tray.start(

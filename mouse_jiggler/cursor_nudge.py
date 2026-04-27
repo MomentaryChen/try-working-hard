@@ -8,13 +8,21 @@ from typing import Literal
 
 MotionPattern = Literal["horizontal", "circle", "square"]
 
-# Pause between samples along a path (keeps input rate reasonable).
-_TRAJECTORY_STEP_SLEEP = 0.02
+_TRAJECTORY_BASE_SLEEP = 0.02
+_HORIZ_BASE_SLEEP = 0.05
+
+
+def _step_delay(base: float, path_speed: int) -> float:
+    """Higher ``path_speed`` (1–10) → shorter delay. Nominal speed = 5."""
+    ps = max(1, min(10, int(path_speed)))
+    t = base * (5.0 / float(ps))
+    return max(0.002, min(0.12, t))
 
 
 def nudge_horizontal(
     delta_pixels: int,
     *,
+    path_speed: int = 5,
     get_pos: Callable[[], tuple[int, int] | None],
     set_pos: Callable[[int, int], object],
     sleep: Callable[[float], object],
@@ -31,13 +39,14 @@ def nudge_horizontal(
         return
     x, y = pos
     set_pos(x + d, y)
-    sleep(0.05)
+    sleep(_step_delay(_HORIZ_BASE_SLEEP, path_speed))
     set_pos(x, y)
 
 
 def nudge_trajectory(
     pattern: MotionPattern,
     pixels: int,
+    path_speed: int,
     *,
     get_pos: Callable[[], tuple[int, int] | None],
     set_pos: Callable[[int, int], object],
@@ -46,14 +55,15 @@ def nudge_trajectory(
     """
     Move the cursor along a path and return to the starting position.
 
-    - ``horizontal``: same as :func:`nudge_horizontal` (``pixels`` = horizontal delta).
-    - ``circle``: ``pixels`` = radius in pixels; path is a full circle around the start point.
-    - ``square``: ``pixels`` = edge length; path is a square with the start point as the top-left
-      corner, moving clockwise.
+    ``path_speed`` (1–10) scales trace speed; higher is faster.
     """
     if pattern == "horizontal":
         nudge_horizontal(
-            pixels, get_pos=get_pos, set_pos=set_pos, sleep=sleep
+            pixels,
+            path_speed=path_speed,
+            get_pos=get_pos,
+            set_pos=set_pos,
+            sleep=sleep,
         )
         return
 
@@ -66,12 +76,12 @@ def nudge_trajectory(
     sx, sy = pos
 
     if pattern == "circle":
-        _trace_circle(sx, sy, r, set_pos=set_pos, sleep=sleep)
+        _trace_circle(sx, sy, r, path_speed, set_pos=set_pos, sleep=sleep)
         set_pos(sx, sy)
         return
 
     if pattern == "square":
-        _trace_square(sx, sy, r, set_pos=set_pos, sleep=sleep)
+        _trace_square(sx, sy, r, path_speed, set_pos=set_pos, sleep=sleep)
         set_pos(sx, sy)
 
 
@@ -79,28 +89,31 @@ def _trace_circle(
     cx: int,
     cy: int,
     radius: int,
+    path_speed: int,
     *,
     set_pos: Callable[[int, int], object],
     sleep: Callable[[float], object],
 ) -> None:
-    # Resolution scales slightly with radius; bounded for very large values.
+    step = _step_delay(_TRAJECTORY_BASE_SLEEP, path_speed)
     n = max(12, min(72, max(radius, 1) * 2))
     for k in range(n):
         theta = 2.0 * math.pi * k / n
         x = int(round(cx + radius * math.cos(theta)))
         y = int(round(cy + radius * math.sin(theta)))
         set_pos(x, y)
-        sleep(_TRAJECTORY_STEP_SLEEP)
+        sleep(step)
 
 
 def _trace_square(
     sx: int,
     sy: int,
     side: int,
+    path_speed: int,
     *,
     set_pos: Callable[[int, int], object],
     sleep: Callable[[float], object],
 ) -> None:
+    step = _step_delay(_TRAJECTORY_BASE_SLEEP, path_speed)
     x1, y1 = sx + side, sy
     x2, y2 = sx + side, sy + side
     x3, y3 = sx, sy + side
@@ -113,5 +126,5 @@ def _trace_square(
             x = int(round(prev_x + (tx - prev_x) * a))
             y = int(round(prev_y + (ty - prev_y) * a))
             set_pos(x, y)
-            sleep(_TRAJECTORY_STEP_SLEEP)
+            sleep(step)
         prev_x, prev_y = tx, ty

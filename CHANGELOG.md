@@ -8,12 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
-- **Home → Control**: control card is scrollable so short windows still show Start, Stop, and status; field order is interval → nudge size → active motion (seconds) → motion path (placed under the seconds field).
+- **Home → Control**: control card is scrollable so short windows still show Start, Stop, and status; field order is interval → nudge size → path speed → motion path.
 
 ### Added
 
-- **Motion path** on Home → Control: choose **line** (horizontal nudge and restore), **circle** (full path; nudge size is the radius in pixels), or **square** (clockwise along the perimeter; nudge size is the edge length). Persisted in local config as `motion_pattern`.
-- **Active motion (seconds)** on Home → Control: after each interval elapses, the app can keep nudging at a fixed cadence for that duration before the next idle wait; `0` keeps the previous behavior (one nudge per tick). Persisted in local config as `motion_burst_text`. If nudge size is `0`, the extra duration is skipped.
+- **Motion path** on Home → Control: choose **line** (horizontal nudge and restore), **circle** (trace a full circle; nudge size is the radius in pixels), or **square** (trace a square clockwise; nudge size is the edge length). Persisted in local config as `motion_pattern`.
+- **Path speed** (1–10) on Home → Control: scales how fast the line, circle, or square is traced (higher = faster). Persisted in local config as `path_speed_text`. Older `config.json` files that used `motion_burst_text` are ignored for this setting; defaults apply until the user saves again.
 
 ## [1.0.0] - 2026-04-27
 

@@ -26,12 +26,10 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "motion_pattern_square": "方形",
         "pixels_label": "位移（像素）",
         "pixels_hint": "直線＝左右再還原；圓＝半徑；方＝邊長 · {lo}–{hi}",
-        "motion_burst_label": "持續微動（秒）",
-        "motion_burst_hint": "每輪間隔到期後再微動多久；0 = 只微動一次 · 0–{hi:g}",
-        "status_motion_burst": "狀態：執行中 · 持續微動 · 約 {cd}",
-        "log_motion_burst_start": "開始持續微動約 {sec:g} 秒（至下一輪等待前）。",
-        "log_start_fail_motion": "開始失敗：持續微動秒數無效。",
-        "err_motion_burst": "請輸入有效的秒數（數字，0–{hi:g}）。",
+        "path_speed_label": "路徑速度",
+        "path_speed_hint": "幾何路徑繪製快慢 · {lo}–{hi}（數字愈大愈快）",
+        "log_start_fail_path_speed": "開始失敗：路徑速度無效。",
+        "err_path_speed": "請輸入有效路徑速度（整數，{lo}–{hi}）。",
         "btn_start": "開始",
         "btn_stop": "停止",
         "tray_checkbox": "關閉視窗時縮到系統匣（排程繼續）",
@@ -45,9 +43,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "log_ready": "程式已就緒。",
         "log_start_fail_interval": "開始失敗：間隔設定無效。",
         "log_start_fail_pixels": "開始失敗：位移設定無效。",
-        "log_started_min": "已開始，間隔 {v:g} 分鐘（約 {sec:.0f} 秒）、路徑 {pat}、位移 {px} px{extra}。",
-        "log_started_sec": "已開始，間隔 {v:g} 秒、路徑 {pat}、位移 {px} px{extra}。",
-        "log_started_motion_extra": "，每輪後持續微動 {mb:g} 秒",
+        "log_started_min": "已開始，間隔 {v:g} 分鐘（約 {sec:.0f} 秒）、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
+        "log_started_sec": "已開始，間隔 {v:g} 秒、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
         "log_stopped": "已手動停止。",
         "log_nudge": "已執行游標微動。",
         "log_nudge_zero": "已觸發排程（位移 0，未移動游標）。",
@@ -86,7 +83,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· F5 開始（首頁「控制面板」且可開始時）\n"
         "· Shift+F5 停止\n"
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
-        "可點擊「間隔」「位移」「持續微動」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」。\n\n"
+        "可點擊「間隔」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
     },
     "en": {
@@ -108,12 +105,10 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "motion_pattern_square": "Square",
         "pixels_label": "Nudge (pixels)",
         "pixels_hint": "Line: horizontal; circle: radius; square: edge · {lo}–{hi}",
-        "motion_burst_label": "Active motion (sec)",
-        "motion_burst_hint": "Keep nudging this long after each interval; 0 = single nudge · 0–{hi:g}",
-        "status_motion_burst": "Status: running · active motion · ~{cd} left",
-        "log_motion_burst_start": "Active motion for ~{sec:g} s (until next idle wait).",
-        "log_start_fail_motion": "Start failed: invalid active motion duration.",
-        "err_motion_burst": "Enter a valid duration in seconds (number, 0–{hi:g}).",
+        "path_speed_label": "Path speed",
+        "path_speed_hint": "How fast to trace the path · {lo}–{hi} (higher = faster)",
+        "log_start_fail_path_speed": "Start failed: invalid path speed.",
+        "err_path_speed": "Enter a valid path speed (integer, {lo}–{hi}).",
         "btn_start": "Start",
         "btn_stop": "Stop",
         "tray_checkbox": "Close to system tray (schedule continues)",
@@ -127,9 +122,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "log_ready": "Ready.",
         "log_start_fail_interval": "Start failed: invalid interval.",
         "log_start_fail_pixels": "Start failed: invalid nudge size.",
-        "log_started_min": "Started: every {v:g} min (~{sec:.0f} s), path {pat}, nudge {px} px{extra}.",
-        "log_started_sec": "Started: every {v:g} s, path {pat}, nudge {px} px{extra}.",
-        "log_started_motion_extra": ", active motion {mb:g} s after each tick",
+        "log_started_min": "Started: every {v:g} min (~{sec:.0f} s), path {pat}, nudge {px} px, path speed {ps}.",
+        "log_started_sec": "Started: every {v:g} s, path {pat}, nudge {px} px, path speed {ps}.",
         "log_stopped": "Stopped manually.",
         "log_nudge": "Cursor nudge executed.",
         "log_nudge_zero": "Tick fired (0 px — cursor not moved).",
@@ -168,7 +162,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· F5  Start (Home → Control, when available)\n"
         "· Shift+F5  Stop\n"
         "· F6  Home: toggle Control / Log\n\n"
-        "Click the Interval, Nudge (pixels), Active motion, or Path label to move focus to that field. Choose min or sec for the interval unit.\n\n"
+        "Click the Interval, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval unit.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
         "Tab / Shift+Tab move focus; tooltips are not used for the canvas controls.",
     },

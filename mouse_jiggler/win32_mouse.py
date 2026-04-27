@@ -33,14 +33,16 @@ def _get_cursor_xy() -> tuple[int, int] | None:
     return int(pt.x), int(pt.y)
 
 
-def jiggle_mouse(delta_pixels: int, pattern: MotionPattern = "horizontal") -> None:
+def jiggle_mouse(
+    delta_pixels: int, pattern: MotionPattern = "horizontal", *, path_speed: int = 5
+) -> None:
     """
-    Nudge the cursor: horizontal line, circle, or square path (see ``nudge_trajectory``).
-    If ``delta_pixels`` is 0 or less, or the pattern needs no movement, do nothing.
+    Nudge the cursor along a path. ``path_speed`` (1–10) controls how fast the path runs.
     """
     nudge_trajectory(
         pattern,
         delta_pixels,
+        path_speed,
         get_pos=_get_cursor_xy,
         set_pos=lambda x, y: user32.SetCursorPos(int(x), int(y)),
         sleep=time.sleep,
