@@ -100,6 +100,18 @@ class MouseJigglerApp:
     _NAV_SELECTED = "#7289DA"
     _SIDEBAR_WIDTH = 200
     _UI_PAD = 20
+    # Home status strip: background, border, and LED (bullet) by runtime state
+    _STATUS_STRIP_BG_STOP = "#2B2B2C"
+    _STATUS_STRIP_BORDER_STOP = "#3F3F40"
+    _STATUS_LED_STOP = "#7A7A7B"
+    _STATUS_STRIP_BG_RUN = "#1E2A22"
+    _STATUS_STRIP_BORDER_RUN = "#3D8F5C"
+    _STATUS_LED_RUN = "#43B581"
+    _STATUS_TEXT_RUN = "#C4E8D4"
+    _STATUS_STRIP_BG_BURST = "#2A2618"
+    _STATUS_STRIP_BORDER_BURST = "#B8942E"
+    _STATUS_LED_BURST = "#E8B84A"
+    _STATUS_TEXT_BURST = "#F0E0B8"
 
     def __init__(self) -> None:
         ctk.set_appearance_mode("dark")
@@ -473,14 +485,11 @@ class MouseJigglerApp:
 
         self.segmented.configure(values=[self._t("seg_control"), self._t("seg_log")])
         self.segmented.set(self._segment_text(self._segment_mode))
-        self.view_segmented.configure(
-            values=[self._t("nav_home"), self._t("nav_settings"), self._t("nav_analytics")]
-        )
-        self._sync_view_segment()
         self._sync_nav_highlight()
 
         if self._stop.is_set() or not (self._worker and self._worker.is_alive()):
             self.status.set(self._t("status_stopped"))
+            self._apply_status_chrome("stopped")
         else:
             self._refresh_running_status_from_countdown()
 
@@ -491,8 +500,34 @@ class MouseJigglerApp:
         cd = nudge_logic.remaining_seconds_to_countdown_display(rem)
         if self._countdown_phase == "burst":
             self.status.set(self._t("status_motion_burst", cd=cd))
+            self._apply_status_chrome("burst")
         else:
             self.status.set(self._t_status_running(cd))
+            self._apply_status_chrome("interval")
+
+    def _apply_status_chrome(self, kind: Literal["stopped", "interval", "burst"]) -> None:
+        """Update status strip colors and LED to match schedule state."""
+        if kind == "stopped":
+            self._status_strip.configure(
+                fg_color=self._STATUS_STRIP_BG_STOP,
+                border_color=self._STATUS_STRIP_BORDER_STOP,
+            )
+            self._status_led.configure(text_color=(self._STATUS_LED_STOP, self._STATUS_LED_STOP))
+            self._lbl_status.configure(text_color=(self._TEXT_BODY, self._TEXT_BODY))
+        elif kind == "interval":
+            self._status_strip.configure(
+                fg_color=self._STATUS_STRIP_BG_RUN,
+                border_color=self._STATUS_STRIP_BORDER_RUN,
+            )
+            self._status_led.configure(text_color=(self._STATUS_LED_RUN, self._STATUS_LED_RUN))
+            self._lbl_status.configure(text_color=(self._STATUS_TEXT_RUN, self._STATUS_TEXT_RUN))
+        else:
+            self._status_strip.configure(
+                fg_color=self._STATUS_STRIP_BG_BURST,
+                border_color=self._STATUS_STRIP_BORDER_BURST,
+            )
+            self._status_led.configure(text_color=(self._STATUS_LED_BURST, self._STATUS_LED_BURST))
+            self._lbl_status.configure(text_color=(self._STATUS_TEXT_BURST, self._STATUS_TEXT_BURST))
 
     def _btn(self, master: Any, **kwargs: Any) -> ctk.CTkButton:
         """Rounded buttons (radius 10) with hover_color (solid hover approximates a gradient)."""
@@ -639,33 +674,10 @@ class MouseJigglerApp:
         main = ctk.CTkFrame(self.root, corner_radius=10, fg_color="transparent")
         main.grid(row=0, column=1, sticky="nsew", padx=(0, p), pady=p)
         main.grid_columnconfigure(0, weight=1)
-        main.grid_rowconfigure(1, weight=1)
-
-        main_top = ctk.CTkFrame(main, fg_color="transparent")
-        main_top.grid(row=0, column=0, sticky="ew", padx=p, pady=(0, 8))
-        main_top.grid_columnconfigure(0, weight=1)
-
-        self.view_segmented = ctk.CTkSegmentedButton(
-            main_top,
-            values=[self._t("nav_home"), self._t("nav_settings"), self._t("nav_analytics")],
-            command=self._on_view_segment,
-            corner_radius=10,
-            font=self._font_body_bold,
-            height=36,
-            fg_color=self._CARD_BG,
-            selected_color=self._ACCENT,
-            selected_hover_color=self._ACCENT_HOVER,
-            unselected_color=self._BTN_SECONDARY,
-            unselected_hover_color=self._BTN_SECONDARY_HOVER,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
-            text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
-        )
-        _try_takefocus(self.view_segmented, 1)
-        self.view_segmented.grid(row=0, column=0, sticky="w")
-        self.view_segmented.set(self._t("nav_home"))
+        main.grid_rowconfigure(0, weight=1)
 
         self.pages_host = ctk.CTkFrame(main, corner_radius=10, fg_color="transparent")
-        self.pages_host.grid(row=1, column=0, sticky="nsew")
+        self.pages_host.grid(row=0, column=0, sticky="nsew")
         self.pages_host.grid_columnconfigure(0, weight=1)
         self.pages_host.grid_rowconfigure(0, weight=1)
 
@@ -674,14 +686,35 @@ class MouseJigglerApp:
         self.page_home.grid_columnconfigure(0, weight=1)
         self.page_home.grid_rowconfigure(3, weight=1)
 
-        self._lbl_status = ctk.CTkLabel(
+        self._status_strip = ctk.CTkFrame(
             self.page_home,
+            corner_radius=10,
+            fg_color=self._STATUS_STRIP_BG_STOP,
+            border_width=1,
+            border_color=self._STATUS_STRIP_BORDER_STOP,
+        )
+        self._status_strip.grid(row=0, column=0, sticky="ew", padx=p, pady=(p, 8))
+        self._status_strip.grid_columnconfigure(0, weight=1)
+        status_inner = ctk.CTkFrame(self._status_strip, fg_color="transparent")
+        status_inner.grid(row=0, column=0, sticky="ew", padx=14, pady=12)
+        status_inner.grid_columnconfigure(1, weight=1)
+        self._status_led = ctk.CTkLabel(
+            status_inner,
+            text="\u25cf",
+            font=ctk.CTkFont(family=_FONT_INTER, size=12, weight="bold"),
+            text_color=(self._STATUS_LED_STOP, self._STATUS_LED_STOP),
+            width=18,
+        )
+        self._status_led.grid(row=0, column=0, sticky="nw", padx=(0, 10), pady=2)
+        self._lbl_status = ctk.CTkLabel(
+            status_inner,
             textvariable=self.status,
             font=self._font_body,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
+            justify="left",
         )
-        self._lbl_status.grid(row=0, column=0, sticky="ew", padx=p, pady=(p, 8))
+        self._lbl_status.grid(row=0, column=1, sticky="ew")
 
         head = ctk.CTkFrame(self.page_home, fg_color="transparent")
         head.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
@@ -736,30 +769,9 @@ class MouseJigglerApp:
         self.page_settings.grid_remove()
         self.page_analytics.grid_remove()
 
-    def _on_view_segment(self, value: str) -> None:
-        if value == self._t("nav_home"):
-            self._on_nav("home")
-        elif value == self._t("nav_settings"):
-            self._on_nav("settings")
-        else:
-            self._on_nav("analytics")
-
-    def _sync_view_segment(self) -> None:
-        if self._active_nav == "home":
-            label = self._t("nav_home")
-        elif self._active_nav == "settings":
-            label = self._t("nav_settings")
-        else:
-            label = self._t("nav_analytics")
-        try:
-            self.view_segmented.set(label)
-        except (tk.TclError, AttributeError):
-            pass
-
     def _on_nav(self, page: Literal["home", "settings", "analytics"]) -> None:
         self._active_nav = page
         self._sync_nav_highlight()
-        self._sync_view_segment()
         self.page_home.grid_remove()
         self.page_settings.grid_remove()
         self.page_analytics.grid_remove()
@@ -1161,8 +1173,10 @@ class MouseJigglerApp:
         countdown_str = nudge_logic.remaining_seconds_to_countdown_display(rem)
         if self._countdown_phase == "burst":
             self.status.set(self._t("status_motion_burst", cd=countdown_str))
+            self._apply_status_chrome("burst")
         else:
             self.status.set(self._t_status_running(countdown_str))
+            self._apply_status_chrome("interval")
         self._countdown_after_id = self.root.after(500, self._countdown_tick)
 
     def _log(self, message: str) -> None:
@@ -1280,6 +1294,7 @@ class MouseJigglerApp:
         except (tk.TclError, AttributeError):
             pass
         self.status.set(self._t_status_running("—"))
+        self._apply_status_chrome("interval")
         self._schedule_countdown_tick()
         extra = (
             self._t("log_started_motion_extra", mb=motion_burst)
@@ -1317,6 +1332,7 @@ class MouseJigglerApp:
         except (tk.TclError, AttributeError):
             pass
         self.status.set(self._t("status_stopped"))
+        self._apply_status_chrome("stopped")
         self._log(self._t("log_stopped"))
 
     def _run_loop(self, interval_sec: float, pixels: int, motion_burst_sec: float) -> None:

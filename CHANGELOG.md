@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
+
+- **Home status**: the schedule state is shown in a **bordered strip** with a **colored indicator** and tint (muted when stopped, green while counting down to the next nudge, amber during active motion).
+
 - **Home**: runtime status and countdown moved to the **top** of the page (above the dashboard title) so they stay visible while adjusting controls or reading the log; the **progress bar** was removed in favor of the status text alone.
 
 - **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.

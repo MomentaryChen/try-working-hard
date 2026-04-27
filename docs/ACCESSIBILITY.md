@@ -4,7 +4,7 @@ This app is **Windows-only** and uses **CustomTkinter** for most of the window. 
 
 ## What we improved in code
 
-- **Tab / Shift+Tab** can move between interactive controls; `takefocus` is enabled on buttons, entries, segmented controls, the tray switch, and log read-only text areas. The **status line** at the top of Home is display-only (not in the focus ring).
+- **Tab / Shift+Tab** can move between interactive controls; `takefocus` is enabled on buttons, entries, segmented controls, the tray switch, and log read-only text areas. The **status area** at the top of Home (text plus colored strip and indicator) is display-only (not in the focus ring).
 - **F1** opens a help dialog (standard `tkinter` messagebox) with **keyboard shortcuts** and a short **screen reader** note. The help text is localized with the app strings (Traditional Chinese / English).
 - **F2 / F3 / F4** go to **Home, Settings, Analytics**.
 - On **Home → Control** only: **F5** = **Start**, **Shift+F5** = **Stop** (if the action is available).
