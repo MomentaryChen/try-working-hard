@@ -15,6 +15,7 @@ def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
     assert cfg["interval_text"] == "5"
     assert cfg["pixels_text"] == "100"
     assert cfg["motion_burst_text"] == "0"
+    assert cfg["motion_pattern"] == "horizontal"
     assert cfg["close_to_tray"] is False
     assert cfg["intro_acknowledged"] is False
 
@@ -27,6 +28,7 @@ def test_round_trip(tmp_path: Path) -> None:
             "interval_text": "0.5",
             "pixels_text": "50",
             "motion_burst_text": "12",
+            "motion_pattern": "circle",
             "close_to_tray": True,
         },
         path=p,
@@ -36,6 +38,7 @@ def test_round_trip(tmp_path: Path) -> None:
     assert cfg["interval_text"] == "0.5"
     assert cfg["pixels_text"] == "50"
     assert cfg["motion_burst_text"] == "12"
+    assert cfg["motion_pattern"] == "circle"
     assert cfg["close_to_tray"] is True
     assert cfg["intro_acknowledged"] is False
 
@@ -56,6 +59,7 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
                 "interval_text": "0.01",
                 "pixels_text": "9999",
                 "motion_burst_text": "9999",
+                "motion_pattern": "triangle",
                 "close_to_tray": "yes",
             }
         ),
@@ -66,5 +70,6 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
     assert cfg["interval_text"] == "5"
     assert cfg["pixels_text"] == "100"
     assert cfg["motion_burst_text"] == "0"
+    assert cfg["motion_pattern"] == "horizontal"
     assert cfg["close_to_tray"] is False
     assert cfg["intro_acknowledged"] is True

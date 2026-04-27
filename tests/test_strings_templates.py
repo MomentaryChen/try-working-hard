@@ -32,13 +32,17 @@ def test_error_templates(lang: str) -> None:
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_log_started_min_template(lang: str) -> None:
-    line = STRINGS[lang]["log_started_min"].format(v=2, sec=120, px=50, extra="")
+    line = STRINGS[lang]["log_started_min"].format(
+        v=2, sec=120, pat="circle", px=50, extra=""
+    )
     assert "50" in line
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_log_started_sec_template(lang: str) -> None:
-    line = STRINGS[lang]["log_started_sec"].format(v=30, px=50, extra="")
+    line = STRINGS[lang]["log_started_sec"].format(
+        v=30, pat="line", px=50, extra=""
+    )
     assert "50" in line
 
 

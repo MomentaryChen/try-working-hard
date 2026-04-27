@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from . import nudge_logic
+from .cursor_nudge import MotionPattern
 
 Lang = Literal["zh", "en"]
 
@@ -30,6 +31,7 @@ def _defaults() -> dict[str, Any]:
         "interval_unit": "min",
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
         "motion_burst_text": str(int(nudge_logic.DEFAULT_MOTION_BURST_SEC)),
+        "motion_pattern": "horizontal",
         "close_to_tray": False,
         "intro_acknowledged": False,
     }
@@ -68,6 +70,12 @@ def _sanitize_pixels_text(raw: object, *, fallback: str) -> str:
     ) is None:
         return fallback
     return s
+
+
+def _sanitize_motion_pattern(raw: object) -> MotionPattern | None:
+    if raw in ("horizontal", "circle", "square"):
+        return raw  # type: ignore[return-value]
+    return None
 
 
 def _sanitize_motion_burst_text(raw: object, *, fallback: str) -> str:
@@ -125,6 +133,10 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
         raw.get("motion_burst_text"), fallback=fb_motion
     )
 
+    mp = _sanitize_motion_pattern(raw.get("motion_pattern"))
+    if mp is not None:
+        out["motion_pattern"] = mp
+
     ctt = _sanitize_close_to_tray(raw.get("close_to_tray"))
     if ctt is not None:
         out["close_to_tray"] = ctt
@@ -161,6 +173,8 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         "motion_burst_text": _sanitize_motion_burst_text(
             data.get("motion_burst_text"), fallback=base["motion_burst_text"]
         ),
+        "motion_pattern": _sanitize_motion_pattern(data.get("motion_pattern"))
+        or base["motion_pattern"],
         "close_to_tray": ctt if ctt is not None else base["close_to_tray"],
         "intro_acknowledged": ia if ia is not None else base["intro_acknowledged"],
     }
