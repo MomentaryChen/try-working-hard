@@ -8,17 +8,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Home**: runtime status and countdown moved to the **top** of the page (above the dashboard title) so they stay visible while adjusting controls or reading the log; the **progress bar** was removed in favor of the status text alone.
+
 - **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.
 
 - **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
+
+- **docs/ACCESSIBILITY.md**: keyboard and reduced-motion notes updated for the Home status line (progress bar removed).
 
 ### Added
 
 - **App branding icon**: shared `mouse_jiggler/assets/app_icon.png` for the main window (`iconphoto`), system tray, and the Windows `.exe` file icon via `packaging/app.ico` in the PyInstaller spec. Regenerate both from `packaging/generate_icons.py` (`uv run python packaging/generate_icons.py`).
 
 - **Settings → Open config file**: button on the Settings page opens the JSON preferences file in the system default app (or creates it from the current in-memory settings first if it is missing). On systems without `os.startfile`, the app shows the resolved path in a message box.
-
-- **Cursor skill** `dev-branch-auto`: optional Git worktree instructions with parent directory `D:\projects\worktree` for parallel branch checkouts alongside the in-place branch flow.
 
 - **Active motion (seconds)** on Home → Control: after each interval elapses, the app can keep nudging at a fixed cadence for that duration before the next idle wait; `0` keeps the previous behavior (one nudge per tick). Persisted in local config as `motion_burst_text`. If nudge size is `0`, the extra duration is skipped.
 

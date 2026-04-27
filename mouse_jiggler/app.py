@@ -493,29 +493,6 @@ class MouseJigglerApp:
             self.status.set(self._t("status_motion_burst", cd=cd))
         else:
             self.status.set(self._t_status_running(cd))
-        self._sync_home_progress_bar()
-
-    def _sync_home_progress_bar(self) -> None:
-        """Determinate bar: elapsed fraction toward next phase (no indeterminate animation)."""
-        if self._stop.is_set() or not (self._worker and self._worker.is_alive()):
-            try:
-                self.progress.set(0)
-            except (tk.TclError, AttributeError):
-                pass
-            return
-        rem = max(0.0, self._next_jiggle_monotonic - time.monotonic())
-        if self._countdown_phase == "burst":
-            total = self._running_motion_burst_sec
-        else:
-            total = self._current_interval_sec
-        if total <= 0:
-            frac = 0.0
-        else:
-            frac = 1.0 - min(1.0, rem / total)
-        try:
-            self.progress.set(frac)
-        except (tk.TclError, AttributeError):
-            pass
 
     def _btn(self, master: Any, **kwargs: Any) -> ctk.CTkButton:
         """Rounded buttons (radius 10) with hover_color (solid hover approximates a gradient)."""
@@ -697,8 +674,17 @@ class MouseJigglerApp:
         self.page_home.grid_columnconfigure(0, weight=1)
         self.page_home.grid_rowconfigure(3, weight=1)
 
+        self._lbl_status = ctk.CTkLabel(
+            self.page_home,
+            textvariable=self.status,
+            font=self._font_body,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_status.grid(row=0, column=0, sticky="ew", padx=p, pady=(p, 8))
+
         head = ctk.CTkFrame(self.page_home, fg_color="transparent")
-        head.grid(row=0, column=0, sticky="ew", padx=p, pady=(p, p))
+        head.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
         head.grid_columnconfigure(0, weight=1)
 
         self._lbl_dashboard = ctk.CTkLabel(
@@ -727,26 +713,6 @@ class MouseJigglerApp:
         _try_takefocus(self.segmented, 1)
         self.segmented.grid(row=0, column=1, sticky="e")
         self.segmented.set(self._segment_text(self._segment_mode))
-
-        ctk.CTkLabel(
-            self.page_home,
-            textvariable=self.status,
-            font=self._font_body,
-            text_color=self._TEXT_MUTED,
-            anchor="w",
-        ).grid(row=1, column=0, sticky="ew", padx=p, pady=(0, 6))
-
-        self.progress = ctk.CTkProgressBar(
-            self.page_home,
-            mode="determinate",
-            corner_radius=10,
-            height=12,
-            fg_color=self._CARD_BG,
-            progress_color=self._ACCENT,
-        )
-        self.progress.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
-        _try_takefocus(self.progress, 0)
-        self.progress.set(0)
 
         self.content_host = ctk.CTkFrame(self.page_home, fg_color="transparent")
         self.content_host.grid(row=3, column=0, sticky="nsew", padx=p, pady=(0, p))
@@ -800,7 +766,6 @@ class MouseJigglerApp:
         if page == "home":
             self.page_home.grid(row=0, column=0, sticky="nsew")
             self._apply_view()
-            self._sync_home_progress_bar()
         elif page == "settings":
             self.page_settings.grid(row=0, column=0, sticky="nsew")
         else:
@@ -1190,10 +1155,6 @@ class MouseJigglerApp:
         if self._shutting_down:
             return
         if self._stop.is_set() or not (self._worker and self._worker.is_alive()):
-            try:
-                self.progress.set(0)
-            except (tk.TclError, AttributeError):
-                pass
             return
 
         rem = self._next_jiggle_monotonic - time.monotonic()
@@ -1202,7 +1163,6 @@ class MouseJigglerApp:
             self.status.set(self._t("status_motion_burst", cd=countdown_str))
         else:
             self.status.set(self._t_status_running(countdown_str))
-        self._sync_home_progress_bar()
         self._countdown_after_id = self.root.after(500, self._countdown_tick)
 
     def _log(self, message: str) -> None:
@@ -1320,7 +1280,6 @@ class MouseJigglerApp:
         except (tk.TclError, AttributeError):
             pass
         self.status.set(self._t_status_running("—"))
-        self._sync_home_progress_bar()
         self._schedule_countdown_tick()
         extra = (
             self._t("log_started_motion_extra", mb=motion_burst)
@@ -1345,10 +1304,6 @@ class MouseJigglerApp:
     def _on_stop(self) -> None:
         self._stop.set()
         self._cancel_countdown_tick()
-        try:
-            self.progress.set(0)
-        except (tk.TclError, AttributeError):
-            pass
         self._current_interval_sec = 0.0
         self._running_motion_burst_sec = 0.0
         self._countdown_phase = "interval"
@@ -1407,10 +1362,6 @@ class MouseJigglerApp:
 
         self._stop.set()
         self._cancel_countdown_tick()
-        try:
-            self.progress.set(0)
-        except (tk.TclError, AttributeError):
-            pass
 
         w = self._worker
         if w is not None and w.is_alive():
