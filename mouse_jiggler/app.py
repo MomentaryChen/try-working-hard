@@ -241,6 +241,7 @@ class MouseJigglerApp:
     MIN_PATH_SPEED = nudge_logic.MIN_PATH_SPEED
     MAX_PATH_SPEED = nudge_logic.MAX_PATH_SPEED
     DEFAULT_PATH_SPEED = nudge_logic.DEFAULT_PATH_SPEED
+    MAX_INTERVAL_JITTER_SEC = int(nudge_logic.MAX_INTERVAL_JITTER_SEC)
     _LOG_TRIM_LINES = nudge_logic.LOG_TRIM_LINES
     _SIDEBAR_WIDTH = 200
     _UI_PAD = 26
@@ -869,6 +870,7 @@ class MouseJigglerApp:
         self.var_minutes.set(str(cfg.get("interval_text", str(int(self.DEFAULT_MINUTES)))))
         u = cfg.get("interval_unit", "min")
         self._interval_unit = u if u in ("min", "sec") else "min"
+        self.var_interval_jitter.set(str(cfg.get("interval_jitter_text", "0")))
         self.var_pixels.set(str(cfg.get("pixels_text", str(self.DEFAULT_PIXELS))))
         self.var_path_speed.set(
             str(cfg.get("path_speed_text", str(int(self.DEFAULT_PATH_SPEED))))
@@ -899,6 +901,7 @@ class MouseJigglerApp:
             "ui_theme": self._ui_theme,
             "interval_text": self.var_minutes.get(),
             "interval_unit": self._interval_unit,
+            "interval_jitter_text": self.var_interval_jitter.get(),
             "pixels_text": self.var_pixels.get(),
             "path_speed_text": self.var_path_speed.get(),
             "motion_pattern": self._motion_pattern,
@@ -939,6 +942,7 @@ class MouseJigglerApp:
         try:
             self.var_tray_close.trace_add("write", _on_write)
             self.var_minutes.trace_add("write", _on_write)
+            self.var_interval_jitter.trace_add("write", _on_write)
             self.var_pixels.trace_add("write", _on_write)
             self.var_path_speed.trace_add("write", _on_write)
             self.var_schedule_window.trace_add("write", _on_schedule_flag)
@@ -1007,6 +1011,11 @@ class MouseJigglerApp:
         if hasattr(self, "seg_interval_unit"):
             self._sync_interval_unit_seg()
         self._set_interval_hint()
+        if hasattr(self, "_lbl_interval_jitter"):
+            self._lbl_interval_jitter.configure(text=self._t("interval_jitter_label"))
+            self._lbl_interval_jitter_hint.configure(
+                text=self._t("interval_jitter_hint", max=self.MAX_INTERVAL_JITTER_SEC)
+            )
         if hasattr(self, "_interval_preset_btns") and hasattr(self, "_interval_preset_specs"):
             for b, spec in zip(self._interval_preset_btns, self._interval_preset_specs, strict=True):
                 b.configure(text=self._t(spec))
@@ -1775,15 +1784,48 @@ class MouseJigglerApp:
             b.pack(side="left", padx=(0, 6))
             self._interval_preset_btns.append(b)
 
+        self._lbl_interval_jitter = ctk.CTkLabel(
+            card,
+            text=self._t("interval_jitter_label"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+        )
+        self._lbl_interval_jitter.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
+        row_jitter = ctk.CTkFrame(card, fg_color="transparent")
+        row_jitter.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.var_interval_jitter = tk.StringVar(value="0")
+        self.entry_interval_jitter = ctk.CTkEntry(
+            row_jitter,
+            textvariable=self.var_interval_jitter,
+            width=120,
+            height=40,
+            corner_radius=_R,
+            font=self._font_body,
+            fg_color=self._ENTRY_BG,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            border_width=1,
+            border_color=self._ENTRY_BORDER,
+        )
+        self.entry_interval_jitter.pack(side="left")
+        _try_takefocus(self.entry_interval_jitter, 1)
+        self._lbl_interval_jitter_hint = ctk.CTkLabel(
+            row_jitter,
+            text=self._t("interval_jitter_hint", max=self.MAX_INTERVAL_JITTER_SEC),
+            font=self._font_body,
+            text_color=self._TEXT_MUTED,
+        )
+        self._lbl_interval_jitter_hint.pack(side="left", padx=(12, 0))
+        self._a11y_label_focus_entry(self._lbl_interval_jitter, self.entry_interval_jitter)
+
         self._lbl_pixels = ctk.CTkLabel(
             card,
             text=self._t("pixels_label"),
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_pixels.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_pixels.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
         row3 = ctk.CTkFrame(card, fg_color="transparent")
-        row3.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        row3.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_pixels = tk.StringVar(value=str(self.DEFAULT_PIXELS))
         self.entry_pixels = ctk.CTkEntry(
             row3,
@@ -1814,9 +1856,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_path_speed.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_path_speed.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
         row_path_speed = ctk.CTkFrame(card, fg_color="transparent")
-        row_path_speed.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_path_speed.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_path_speed = tk.StringVar(value=str(int(self.DEFAULT_PATH_SPEED)))
         self.entry_path_speed = ctk.CTkEntry(
             row_path_speed,
@@ -1851,9 +1893,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_motion_pattern.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_motion_pattern.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
         row_pattern = ctk.CTkFrame(card, fg_color="transparent")
-        row_pattern.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_pattern.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, p))
         self.seg_motion_pattern = ctk.CTkSegmentedButton(
             row_pattern,
             values=[
@@ -1917,7 +1959,7 @@ class MouseJigglerApp:
         self._hint_schedule.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        btn_row.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
+        btn_row.grid(row=12, column=0, sticky="w", padx=p, pady=(p, p))
 
         self.btn_start = self._btn(
             btn_row,
@@ -2064,6 +2106,12 @@ class MouseJigglerApp:
             return None
         return (s, "sec")
 
+    def _parse_interval_jitter(self) -> float | None:
+        return nudge_logic.parse_interval_jitter_seconds_string(
+            self.var_interval_jitter.get(),
+            max_jitter=float(self.MAX_INTERVAL_JITTER_SEC),
+        )
+
     def _parse_pixels(self) -> int | None:
         return nudge_logic.parse_pixels_string(
             self.var_pixels.get(), min_px=self.MIN_PIXELS, max_px=self.MAX_PIXELS
@@ -2169,6 +2217,15 @@ class MouseJigglerApp:
             self._log(self._t("log_start_fail_interval"))
             return
         ival, iu = parsed
+        jitter_sec = self._parse_interval_jitter()
+        if jitter_sec is None:
+            messagebox.showerror(
+                self._t("err_title"),
+                self._t("err_jitter", max=self.MAX_INTERVAL_JITTER_SEC),
+                parent=self.root,
+            )
+            self._log(self._t("log_start_fail_jitter"))
+            return
         pixels = self._parse_pixels()
         if pixels is None:
             messagebox.showerror(
@@ -2201,7 +2258,7 @@ class MouseJigglerApp:
 
         self._worker = threading.Thread(
             target=self._run_loop,
-            args=(interval_sec, pixels, path_speed, run_pattern),
+            args=(interval_sec, jitter_sec, pixels, path_speed, run_pattern),
             daemon=True,
         )
         self._worker.start()
@@ -2211,6 +2268,7 @@ class MouseJigglerApp:
         self.entry_minutes.configure(state="disabled")
         self.entry_pixels.configure(state="disabled")
         self.entry_path_speed.configure(state="disabled")
+        self.entry_interval_jitter.configure(state="disabled")
         self._set_interval_preset_widgets_state("disabled")
         try:
             self.seg_interval_unit.configure(state="disabled")
@@ -2229,11 +2287,35 @@ class MouseJigglerApp:
         self._schedule_countdown_tick()
         pat = self._pattern_log_label()
         if iu == "min":
+            if jitter_sec > 0.0:
+                self._log(
+                    self._t(
+                        "log_started_min_jitter",
+                        v=ival,
+                        sec=interval_sec,
+                        j=jitter_sec,
+                        pat=pat,
+                        px=pixels,
+                        ps=path_speed,
+                    )
+                )
+            else:
+                self._log(
+                    self._t(
+                        "log_started_min",
+                        v=ival,
+                        sec=interval_sec,
+                        pat=pat,
+                        px=pixels,
+                        ps=path_speed,
+                    )
+                )
+        elif jitter_sec > 0.0:
             self._log(
                 self._t(
-                    "log_started_min",
+                    "log_started_sec_jitter",
                     v=ival,
-                    sec=interval_sec,
+                    j=jitter_sec,
                     pat=pat,
                     px=pixels,
                     ps=path_speed,
@@ -2263,6 +2345,7 @@ class MouseJigglerApp:
         self.entry_minutes.configure(state="normal")
         self.entry_pixels.configure(state="normal")
         self.entry_path_speed.configure(state="normal")
+        self.entry_interval_jitter.configure(state="normal")
         self._set_interval_preset_widgets_state("normal")
         try:
             self.seg_interval_unit.configure(state="normal")
@@ -2283,19 +2366,21 @@ class MouseJigglerApp:
     def _run_loop(
         self,
         interval_sec: float,
+        jitter_sec: float,
         pixels: int,
         path_speed: int,
         pattern: MotionPattern,
     ) -> None:
         last_nudge_monotonic: float | None = None
         poll = 0.2
+        active_interval = nudge_logic.next_wait_seconds(interval_sec, jitter_sec)
         while not self._stop.is_set():
             if not self._wait_for_schedule_if_needed():
                 break
             now = time.monotonic()
             idle = get_seconds_since_last_user_input()
             eta = nudge_logic.eta_seconds_until_idle_nudge(
-                interval_sec, idle, now=now, last_nudge_monotonic=last_nudge_monotonic
+                active_interval, idle, now=now, last_nudge_monotonic=last_nudge_monotonic
             )
             self._next_jiggle_monotonic = now + eta
             to_sleep = min(poll, max(0.01, eta))
@@ -2303,12 +2388,13 @@ class MouseJigglerApp:
                 break
             now = time.monotonic()
             idle = get_seconds_since_last_user_input()
-            if idle < interval_sec:
+            if idle < active_interval:
                 continue
-            if last_nudge_monotonic is not None and (now - last_nudge_monotonic) < interval_sec:
+            if last_nudge_monotonic is not None and (now - last_nudge_monotonic) < active_interval:
                 continue
             self._nudge_tick(pixels, pattern, path_speed, log_success=True)
             last_nudge_monotonic = now
+            active_interval = nudge_logic.next_wait_seconds(interval_sec, jitter_sec)
 
     def _start_tray(self) -> None:
         self._tray.start(

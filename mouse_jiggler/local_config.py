@@ -30,6 +30,7 @@ def _defaults() -> dict[str, Any]:
         "ui_theme": "dark",
         "interval_text": str(int(nudge_logic.DEFAULT_MINUTES)),
         "interval_unit": "min",
+        "interval_jitter_text": "0",
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
         "path_speed_text": str(nudge_logic.DEFAULT_PATH_SPEED),
         "motion_pattern": "horizontal",
@@ -54,6 +55,15 @@ def _sanitize_interval_unit(raw: object) -> str | None:
     if raw in ("min", "sec"):
         return raw  # type: ignore[return-value]
     return None
+
+
+def _sanitize_interval_jitter_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:32]
+    if nudge_logic.parse_interval_jitter_seconds_string(s) is None:
+        return fallback
+    return s
 
 
 def _sanitize_interval_text(
@@ -140,6 +150,11 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
         raw.get("interval_text"), out["interval_unit"], fallback=fb_interval
     )
 
+    fb_jitter = out["interval_jitter_text"]
+    out["interval_jitter_text"] = _sanitize_interval_jitter_text(
+        raw.get("interval_jitter_text"), fallback=fb_jitter
+    )
+
     fb_pixels = out["pixels_text"]
     out["pixels_text"] = _sanitize_pixels_text(raw.get("pixels_text"), fallback=fb_pixels)
 
@@ -186,6 +201,9 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
             data.get("interval_text"), unit, fallback=base["interval_text"]
         ),
         "interval_unit": unit,
+        "interval_jitter_text": _sanitize_interval_jitter_text(
+            data.get("interval_jitter_text"), fallback=base["interval_jitter_text"]
+        ),
         "pixels_text": _sanitize_pixels_text(
             data.get("pixels_text"), fallback=base["pixels_text"]
         ),

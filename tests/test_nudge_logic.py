@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from mouse_jiggler import nudge_logic
@@ -179,3 +181,39 @@ def test_eta_seconds_until_idle_nudge_max_of_idle_and_gap() -> None:
         60.0, 50.0, now=200.0, last_nudge_monotonic=150.0
     )
     assert eta == 10.0
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("0", 0.0),
+        ("60", 60.0),
+        (" 30.5 ", 30.5),
+        ("3600", 3600.0),
+    ],
+)
+def test_parse_interval_jitter_valid(raw: str, expected: float) -> None:
+    assert nudge_logic.parse_interval_jitter_seconds_string(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["", "abc", "-1", "3601", "nan", "inf"],
+)
+def test_parse_interval_jitter_invalid(raw: str) -> None:
+    assert nudge_logic.parse_interval_jitter_seconds_string(raw) is None
+
+
+def test_next_wait_seconds_no_jitter() -> None:
+    assert nudge_logic.next_wait_seconds(120.0, 0.0) == 120.0
+    assert nudge_logic.next_wait_seconds(120.0, -1.0) == 120.0
+
+
+@patch("mouse_jiggler.nudge_logic.random.uniform", return_value=250.0)
+def test_next_wait_seconds_with_jitter(_mock_u: object) -> None:
+    assert nudge_logic.next_wait_seconds(300.0, 60.0) == 250.0
+
+
+@patch("mouse_jiggler.nudge_logic.random.uniform", return_value=2.0)
+def test_next_wait_seconds_clamped_to_min(_mock_u: object) -> None:
+    assert nudge_logic.next_wait_seconds(10.0, 100.0) == nudge_logic.MIN_SECONDS
