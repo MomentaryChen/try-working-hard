@@ -218,6 +218,8 @@ class MouseJigglerApp:
         self.root.bind_all("<F4>", self._a11y_f4)
         self.root.bind_all("<KeyPress-F5>", self._a11y_f5)
         self.root.bind_all("<F6>", self._a11y_f6)
+        self.root.bind_all("<Return>", self._a11y_return)
+        self.root.bind_all("<Escape>", self._a11y_escape)
         self.root.after(120, self._a11y_initial_focus)
 
     def _a11y_initial_focus(self) -> None:
@@ -262,6 +264,27 @@ class MouseJigglerApp:
         if self._active_nav != "home":
             self._on_nav("home")
         self._nav_to_mode("log" if self._segment_mode == "control" else "control")
+        return "break"
+
+    def _is_main_window_visible(self) -> bool:
+        """True when the main window is mapped (not minimized to the tray)."""
+        if self._shutting_down:
+            return False
+        try:
+            return bool(self.root.winfo_viewable())
+        except tk.TclError:
+            return False
+
+    def _a11y_return(self, _e: object | None = None) -> str | None:
+        if not self._is_main_window_visible():
+            return
+        self._a11y_try_start()
+        return "break"
+
+    def _a11y_escape(self, _e: object | None = None) -> str | None:
+        if not self._is_main_window_visible():
+            return
+        self._a11y_try_stop()
         return "break"
 
     def _a11y_try_start(self) -> None:

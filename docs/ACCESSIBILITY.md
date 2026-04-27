@@ -8,6 +8,7 @@ This app is **Windows-only** and uses **CustomTkinter** for most of the window. 
 - **F1** opens a help dialog (standard `tkinter` messagebox) with **keyboard shortcuts** and a short **screen reader** note. The help text is localized with the app strings (Traditional Chinese / English).
 - **F2 / F3 / F4** go to **Home, Settings, Analytics**.
 - On **Home → Control** only: **F5** = **Start**, **Shift+F5** = **Stop** (if the action is available).
+- **Enter** = **Start** and **Esc** = **Stop** under the same Home → Control rules, but **only while the main window is visible** (not when the app is closed to the **system tray**).
 - **F6** toggles **Control / Log** on Home; if you are on another page, it switches to Home first.
 - **Click the “Interval”, “Nudge (pixels)”, or “Active motion (sec)” labels** to move focus to the corresponding field (the label cursor becomes a hand where supported).
 

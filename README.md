@@ -34,7 +34,7 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 
 ### Keyboard and accessibility
 
-- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **F6** toggles Control / Log. You can **click the interval, nudge, and active-motion labels** to focus the matching field. **Tab / Shift+Tab** moves between controls.
+- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **Enter** / **Esc** do the same while the **main window is visible** (they do nothing when the app is only in the **system tray**). **F6** toggles Control / Log. You can **click the interval, nudge, and active-motion labels** to focus the matching field. **Tab / Shift+Tab** moves between controls.
 - CustomTkinter draws many controls on a **canvas**, so **screen reader** coverage is not the same as for fully native Win32 UIs. Details: [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 
 ## Usage

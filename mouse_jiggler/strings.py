@@ -78,6 +78,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· F2 / F3 / F4 首頁、設定、分析\n"
         "· F5 開始（首頁「控制面板」且可開始時）\n"
         "· Shift+F5 停止\n"
+        "· Enter 開始、Esc 停止（僅主視窗顯示時；條件同 F5／Shift+F5）\n"
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
         "可點擊「間隔」「位移」或「持續微動」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
@@ -153,6 +154,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· F2 / F3 / F4  Home, Settings, Analytics\n"
         "· F5  Start (Home → Control, when available)\n"
         "· Shift+F5  Stop\n"
+        "· Enter / Esc  Start / Stop (main window visible only; same rules as F5 / Shift+F5)\n"
         "· F6  Home: toggle Control / Log\n\n"
         "Click the Interval, Nudge (pixels), or Active motion label to move focus to that field. Choose min or sec for the interval unit.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
