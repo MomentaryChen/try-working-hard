@@ -40,7 +40,7 @@ uv run python -m mouse_jiggler
 ## 使用方式
 
 1. 主視窗啟動時**預設最大化**；可從標題列還原或調整大小。
-2. 在左側欄使用 **繁中 / English** 分段切換介面語言。
+2. 在 **設定** 的 **外觀** 選擇 **深色** 或 **淺色**（存於 `config.json` 的 `ui_theme`；預設 **dark**）。同一頁的 **繁中 / English** 可切換介面語言。
 3. 在「間隔」輸入數字（鍵盤／滑鼠無輸入須累積達此時間後才微動），並以 **分鐘／秒** 切換單位（分鐘可為小數，例如 `0.5` 約 30 秒；與以秒為單位時的「最小可設秒數」同樣有下限）。
 4. 在「位移（像素）」輸入 **0–500** 的整數；意義依**移動路徑**而定：直線＝水平距離、圓＝半徑、方＝邊長。**0** 表示該次不位移。預設 **100**。
 5. 在「**路徑速度**」輸入 **1–10** 的整數：直線、圓形、方形**繪製**的快慢（數字愈大愈快）。預設 **5**，存於 `config.json` 的 `path_speed_text`。
@@ -52,7 +52,7 @@ uv run python -m mouse_jiggler
 
 ## 技術說明
 
-- GUI：**CustomTkinter**（淺色 / `blue` 主題：主畫面 **#F9FAFB**、側欄 **#F3F4F6**、白色卡片內容區帶淺邊框；**首頁**內以分段切換 **控制面板 / 紀錄**）
+- GUI：**CustomTkinter**—**淺色**為內建 `blue` 主題，主畫面 **#F9FAFB**、側欄 **#F3F4F6**、白底卡片；**深色**為 `dark`＋`dark-blue` 與深色色票。**首頁**內以分段切換 **控制面板 / 紀錄**。
 - 滑鼠：**ctypes** 呼叫 `user32.GetCursorPos` / `SetCursorPos`；排程以 `GetLastInputInfo` 與 `GetTickCount` 取得閒置時間
 - 系統匣：**pystray**、圖示繪製：**Pillow**（主視窗與匣區共用 PNG；重建 `.exe` 時另以 [`packaging/app.ico`](packaging/app.ico) 作為檔案圖示，見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)）
 

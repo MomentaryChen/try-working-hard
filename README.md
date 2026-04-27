@@ -40,7 +40,7 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 ## Usage
 
 1. The main window **opens maximized**; use the title bar to restore or resize as needed.
-2. Use the sidebar **繁中 / English** segmented control to switch the UI language.
+2. On **Settings**, under **Appearance**, choose **Dark** or **Light** (saved as `ui_theme` in `config.json`; default is **dark**). Use the **繁中 / English** control on the same page to switch the UI language.
 3. Enter the **interval** (minimum **idle** time with no keyboard/mouse input before a nudge); use **min** or **sec** to pick units (minutes allow decimals, e.g. `0.5` ≈ 30 seconds, minimum **0.1** min; seconds follow the same minimum in seconds as **0.1** min).
 4. Set **nudge size in pixels** (integer, **0–500**). Meaning depends on the path: line = horizontal distance; circle = radius; square = edge length. **0** skips movement for that tick. Default is **100**.
 5. Set **path speed** (integer, **1–10**): how quickly the app traces the line, circle, or square (higher = faster). Default is **5**. Stored in `config.json` as `path_speed_text`.
@@ -52,7 +52,7 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 
 ## Technical notes
 
-- GUI: **CustomTkinter** (light / `blue` theme: **#F9FAFB** app background, **#F3F4F6** sidebar, **#FFFFFF** card panels with a light border; **Home** uses a segmented control for Control / Log)
+- GUI: **CustomTkinter** — **light** mode: built-in `blue` theme, **#F9FAFB** app background, **#F3F4F6** sidebar, **#FFFFFF** card panels. **Dark** mode: `dark` + `dark-blue` with a dark surface palette. **Home** uses a segmented control for Control / Log.
 - Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`; schedule uses `user32.GetLastInputInfo` with `kernel32.GetTickCount` for idle time
 - Tray: **pystray**; icon: **Pillow** (shared PNG for window, tray, and—when rebuilt—[`packaging/app.ico`](packaging/app.ico) for the `.exe`; see [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md))
 
