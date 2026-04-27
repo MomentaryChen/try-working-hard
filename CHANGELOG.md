@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Windows: Start with Windows** (Settings, when `pystray` is available): optional entry under **HKCU\Software\Microsoft\Windows\CurrentVersion\Run** so the app starts at sign-in; it passes **`--start-in-tray`** to open with the main window in the system tray.
 - **Home → Control:** quick interval buttons **30s / 1m / 5m / 10m** next to the interval field (they set the unit and value together).
 - **CLI:** `python -m mouse_jiggler --start-in-tray` to launch with the main window hidden and the tray only (pystray required; same as autostart when enabled from Settings).
+- **Home → Control → Work hours (09:00–18:00)**: optional **schedule window** so nudges run only on **Mon–Fri** between **09:00 and 18:00** (local time); **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long-running background schedules. Persisted in `config.json` as `schedule_window`.
 - **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
 
 ### Changed
