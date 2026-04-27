@@ -31,7 +31,7 @@ Given a **version tag** the user provides (e.g. `v1.0.1`), align **release notes
 
 1. Work on a **topic branch**, never directly on `master` or `develop` (the PR script rejects base branches).
    - Suggested name: `release/vX.Y.Z` or `chore/release-vX.Y.Z`.
-2. **Conflict check** (mirror `.cursor/commands/pr-to-develop.md` intent): after `git fetch origin master`, run `git merge --no-commit --no-ff origin/master`; resolve conflicts or rebase; if only verifying, `git merge --abort`.
+2. **Optional conflict check** before the PR: after `git fetch origin master`, run `git merge --no-commit --no-ff origin/master`; resolve conflicts or rebase; if only verifying, `git merge --abort`.
 3. From repo root, open the PR with **`scripts/open-pr-to-develop.ps1`** and **`-Base master`**:
 
    ```powershell
