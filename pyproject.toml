@@ -1,6 +1,6 @@
 [project]
 name = "try-working-hard"
-version = "1.0.0"
+version = "1.1.0"
 description = "try-working-hard：定時輕微移動滑鼠（Windows GUI）"
 readme = "README.md"
 license = { file = "LICENSE" }

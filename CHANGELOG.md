@@ -6,10 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-04-27
+
 ### Added
 
 - **Dark / light UI**: **Settings → Appearance** toggles **Dark** or **Light**; the choice is stored in `config.json` as **`ui_theme`** (`"dark"` or `"light"`, default **`"dark"`**). Dark mode uses a GitHub-style dark surface; light mode matches the previous **#F9FAFB** / card layout.
 - **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
+- **Keyboard**: **Enter** starts and **Esc** stops the schedule under the same rules as **F5** / **Shift+F5** on **Home → Control**, but only while the **main window is visible** (not when the window is closed to the **system tray**).
+- **App branding icon**: shared `mouse_jiggler/assets/app_icon.png` for the main window (`iconphoto`), system tray, and the Windows `.exe` file icon via `packaging/app.ico` in the PyInstaller spec. Regenerate both from `packaging/generate_icons.py` (`uv run python packaging/generate_icons.py`).
+- **Settings → Open config file**: button on the Settings page opens the JSON preferences file in the system default app (or creates it from the current in-memory settings first if it is missing). On systems without `os.startfile`, the app shows the resolved path in a message box.
+- **Motion path** on Home → Control: choose **line** (horizontal nudge and restore), **circle** (trace a full circle; nudge size is the radius in pixels), or **square** (trace a square clockwise; nudge size is the edge length). Persisted in local config as `motion_pattern`.
+- **Path speed** (1–10) on Home → Control: scales how fast the line, circle, or square is traced (higher = faster). Persisted in local config as `path_speed_text`. Older `config.json` files that used `motion_burst_text` are ignored for this setting; defaults apply until the user saves again.
 
 ### Changed
 
@@ -24,14 +31,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.
 - **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
 - **docs/ACCESSIBILITY.md**: keyboard and reduced-motion notes updated for the Home status line (progress bar removed).
-
-### Added
-
-- **Keyboard**: **Enter** starts and **Esc** stops the schedule under the same rules as **F5** / **Shift+F5** on **Home → Control**, but only while the **main window is visible** (not when the window is closed to the **system tray**).
-- **App branding icon**: shared `mouse_jiggler/assets/app_icon.png` for the main window (`iconphoto`), system tray, and the Windows `.exe` file icon via `packaging/app.ico` in the PyInstaller spec. Regenerate both from `packaging/generate_icons.py` (`uv run python packaging/generate_icons.py`).
-- **Settings → Open config file**: button on the Settings page opens the JSON preferences file in the system default app (or creates it from the current in-memory settings first if it is missing). On systems without `os.startfile`, the app shows the resolved path in a message box.
-- **Motion path** on Home → Control: choose **line** (horizontal nudge and restore), **circle** (trace a full circle; nudge size is the radius in pixels), or **square** (trace a square clockwise; nudge size is the edge length). Persisted in local config as `motion_pattern`.
-- **Path speed** (1–10) on Home → Control: scales how fast the line, circle, or square is traced (higher = faster). Persisted in local config as `path_speed_text`. Older `config.json` files that used `motion_burst_text` are ignored for this setting; defaults apply until the user saves again.
 
 ## [1.0.0] - 2026-04-27
 

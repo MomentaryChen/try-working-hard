@@ -27,10 +27,10 @@ uv run python -m mouse_jiggler
 
 ### Windows 單檔執行檔（不需安裝 Python）
 
-在 **GitHub Releases** 可下載 **單一** `try-working-hard.exe`（PyInstaller 打包、無主控台視窗）。請到對應版本（例如 `v1.0.0`）的 **Assets** 下載後直接執行。
+在 **GitHub Releases** 可下載 **單一** `try-working-hard.exe`（PyInstaller 打包、無主控台視窗）。請到對應版本（例如 `v1.1.0`）的 **Assets** 下載後直接執行。
 
 - 自行或 CI 如何建置：見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)（含 SmartScreen／防毒說明，以及 Briefcase 等替代方案簡介）。
-- **發佈方式：** 推送 `v*` 標籤（例如 `v1.0.0`），[`.github/workflows/release.yml`](.github/workflows/release.yml) 會跑測試、建置並上傳至該 GitHub Release。
+- **發佈方式：** 推送 `v*` 標籤（例如 `v1.1.0`），[`.github/workflows/release.yml`](.github/workflows/release.yml) 會跑測試、建置並上傳至該 GitHub Release。
 
 ### 鍵盤與無障礙
 
