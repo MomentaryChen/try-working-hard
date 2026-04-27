@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Cursor skill** `dev-branch-auto`: optional Git worktree instructions with parent directory `D:\projects\worktree` for parallel branch checkouts alongside the in-place branch flow.
+
 - **Active motion (seconds)** on Home → Control: after each interval elapses, the app can keep nudging at a fixed cadence for that duration before the next idle wait; `0` keeps the previous behavior (one nudge per tick). Persisted in local config as `motion_burst_text`. If nudge size is `0`, the extra duration is skipped.
 
 ## [1.0.0] - 2026-04-27
