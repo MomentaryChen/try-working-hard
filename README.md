@@ -27,11 +27,12 @@ uv run python -m mouse_jiggler
 
 ## Usage
 
-1. Enter the **interval in minutes** (decimals allowed, e.g. `0.5` ≈ 30 seconds; minimum **0.1** minutes).
-2. Set **nudge size in pixels** (integer, **0–500**): the cursor moves horizontally by this amount, then returns; **0** skips movement for that tick. Default is **100**.
-3. Click **Start** to begin the schedule; **Stop** ends it. Use the **segmented control** (or matching sidebar items) to switch between the control panel and the **log** view.
-4. While running, the **progress bar** fills toward the next nudge; the status line shows the **countdown** (`mm:ss`, or `h:mm:ss` after one hour).
-5. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit**.
+1. Use the sidebar **繁中 / English** segmented control to switch the UI language.
+2. Enter the **interval in minutes** (decimals allowed, e.g. `0.5` ≈ 30 seconds; minimum **0.1** minutes).
+3. Set **nudge size in pixels** (integer, **0–500**): the cursor moves horizontally by this amount, then returns; **0** skips movement for that tick. Default is **100**.
+4. Click **Start** to begin the schedule; **Stop** ends it. Use the **segmented control** (or matching sidebar items) to switch between the control panel and the **log** view.
+5. While running, the **progress bar** fills toward the next nudge; the status line shows the **countdown** (`mm:ss`, or `h:mm:ss` after one hour).
+6. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
 
 ## Technical notes
 

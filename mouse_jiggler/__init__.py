@@ -13,12 +13,12 @@ import tkinter as tk
 from ctypes import wintypes
 from datetime import datetime
 from tkinter import messagebox
-from typing import Any
+from typing import Any, Literal
 
 import customtkinter as ctk
 
 if sys.platform != "win32":
-    print("此程式僅支援 Windows。")
+    print("This application supports Windows only.")
     sys.exit(1)
 
 try:
@@ -33,6 +33,81 @@ user32 = ctypes.windll.user32
 # macOS-style fonts: SF Pro Display on macOS, Segoe UI elsewhere
 _FONT_FAMILY_TITLE = "SF Pro Display" if sys.platform == "darwin" else "Segoe UI"
 _FONT_FAMILY_BODY = _FONT_FAMILY_TITLE
+
+Lang = Literal["zh", "en"]
+
+STRINGS: dict[Lang, dict[str, str]] = {
+    "zh": {
+        "window_title": "滑鼠定時微動",
+        "app_subtitle": "滑鼠定時微動",
+        "seg_control": "控制面板",
+        "seg_log": "紀錄",
+        "theme_hint": "深色主題 · dark-blue",
+        "lang_ui": "介面語言",
+        "dashboard": "主控台",
+        "interval_label": "間隔（分鐘）",
+        "interval_hint": "≥ 0.1，可小數",
+        "pixels_label": "位移（像素）",
+        "pixels_hint": "水平再還原 · {lo}–{hi}",
+        "btn_start": "開始",
+        "btn_stop": "停止",
+        "tray_checkbox": "關閉視窗時縮到系統匣（排程繼續）",
+        "tray_no_pystray": "（未安裝 pystray）",
+        "status_stopped": "狀態：已停止",
+        "status_running": "狀態：執行中 · 每 {m:g} 分鐘 · 下次約 {cd}",
+        "log_title": "活動紀錄",
+        "log_ready": "程式已就緒。",
+        "log_start_fail_interval": "開始失敗：間隔設定無效。",
+        "log_start_fail_pixels": "開始失敗：位移設定無效。",
+        "log_started": "已開始，間隔 {m:g} 分鐘（約 {sec:.0f} 秒）、位移 {px} px。",
+        "log_stopped": "已手動停止。",
+        "log_nudge": "已執行游標微動。",
+        "log_nudge_zero": "已觸發排程（位移 0，未移動游標）。",
+        "log_nudge_fail": "微動失敗：{err}",
+        "log_exit": "結束程式。",
+        "log_tray_minimize": "已縮至系統匣（排程仍執行，可從圖示還原或結束）。",
+        "err_title": "輸入錯誤",
+        "err_minutes": "請輸入有效的分鐘數（數字，且 ≥ {min}）。",
+        "err_pixels": "請輸入有效的位移像素（整數，{lo}–{hi}）。",
+        "tray_show": "顯示主視窗",
+        "tray_quit": "結束程式",
+    },
+    "en": {
+        "window_title": "Mouse nudge",
+        "app_subtitle": "Mouse nudge",
+        "seg_control": "Control",
+        "seg_log": "Log",
+        "theme_hint": "Dark theme · dark-blue",
+        "lang_ui": "Language",
+        "dashboard": "Dashboard",
+        "interval_label": "Interval (minutes)",
+        "interval_hint": "≥ 0.1, decimals allowed",
+        "pixels_label": "Nudge (pixels)",
+        "pixels_hint": "Horizontal move & restore · {lo}–{hi}",
+        "btn_start": "Start",
+        "btn_stop": "Stop",
+        "tray_checkbox": "Close to system tray (schedule continues)",
+        "tray_no_pystray": "(pystray not installed)",
+        "status_stopped": "Status: stopped",
+        "status_running": "Status: running · every {m:g} min · next in {cd}",
+        "log_title": "Activity log",
+        "log_ready": "Ready.",
+        "log_start_fail_interval": "Start failed: invalid interval.",
+        "log_start_fail_pixels": "Start failed: invalid nudge size.",
+        "log_started": "Started: every {m:g} min (~{sec:.0f} s), nudge {px} px.",
+        "log_stopped": "Stopped manually.",
+        "log_nudge": "Cursor nudge executed.",
+        "log_nudge_zero": "Tick fired (0 px — cursor not moved).",
+        "log_nudge_fail": "Nudge failed: {err}",
+        "log_exit": "Exiting.",
+        "log_tray_minimize": "Minimized to tray (schedule still running).",
+        "err_title": "Invalid input",
+        "err_minutes": "Enter a valid interval in minutes (number, ≥ {min}).",
+        "err_pixels": "Enter a valid nudge size (integer, {lo}–{hi}).",
+        "tray_show": "Show window",
+        "tray_quit": "Quit",
+    },
+}
 
 
 class POINT(ctypes.Structure):
@@ -77,12 +152,12 @@ class MouseJigglerApp:
     _BTN_SECONDARY_HOVER = "#3d4d66"
     _MUTED_TEXT = "#94a3b8"
 
-    _SEG_CONTROL = "控制面板"
-    _SEG_LOG = "紀錄"
-
     def __init__(self) -> None:
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
+
+        self._lang: Lang = "zh"
+        self._segment_mode: Literal["control", "log"] = "control"
 
         # CTkFont requires an existing Tk root or tkinter raises RuntimeError
         self.root = ctk.CTk()
@@ -90,7 +165,7 @@ class MouseJigglerApp:
         self._font_body = ctk.CTkFont(family=_FONT_FAMILY_BODY, size=12)
         self._font_body_bold = ctk.CTkFont(family=_FONT_FAMILY_BODY, size=12, weight="bold")
 
-        self.root.title("滑鼠定時微動")
+        self.root.title(self._t("window_title"))
         self.root.geometry("920x640")
         self.root.minsize(860, 580)
         self.root.configure(fg_color=self._MAIN_BG)
@@ -113,7 +188,68 @@ class MouseJigglerApp:
         self._build_main()
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
-        self._log("程式已就緒。")
+        self._log(self._t("log_ready"))
+
+    def _t(self, key: str, **kwargs: Any) -> str:
+        s = STRINGS[self._lang][key]
+        return s.format(**kwargs) if kwargs else s
+
+    def _segment_text(self, mode: Literal["control", "log"]) -> str:
+        return self._t("seg_control") if mode == "control" else self._t("seg_log")
+
+    def _mode_from_segment_value(self, value: str) -> Literal["control", "log"]:
+        if value == self._t("seg_control"):
+            return "control"
+        return "log"
+
+    def _on_lang_switch(self, label: str) -> None:
+        self._lang = "zh" if label == "繁中" else "en"
+        self._apply_language()
+
+    def _apply_language(self) -> None:
+        self.root.title(self._t("window_title"))
+        self._lbl_subtitle.configure(text=self._t("app_subtitle"))
+        self._lbl_lang.configure(text=self._t("lang_ui"))
+        self._hint.configure(text=self._t("theme_hint"))
+        self._lbl_dashboard.configure(text=self._t("dashboard"))
+        self._lbl_interval.configure(text=self._t("interval_label"))
+        self._lbl_interval_hint.configure(text=self._t("interval_hint"))
+        self._lbl_pixels.configure(text=self._t("pixels_label"))
+        self._lbl_pixels_hint.configure(
+            text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS)
+        )
+        self.btn_start.configure(text=self._t("btn_start"))
+        self.btn_stop.configure(text=self._t("btn_stop"))
+        tray = self._t("tray_checkbox")
+        if not HAS_TRAY:
+            tray += self._t("tray_no_pystray")
+        self.chk_tray.configure(text=tray)
+        self._lbl_log_title.configure(text=self._t("log_title"))
+
+        self._sidebar_nav_control.configure(text=f"  {self._t('seg_control')}")
+        self._sidebar_nav_log.configure(text=f"  {self._t('seg_log')}")
+
+        self.segmented.configure(values=[self._t("seg_control"), self._t("seg_log")])
+        self.segmented.set(self._segment_text(self._segment_mode))
+        self._sync_sidebar_highlight()
+
+        if self._stop.is_set() or not (self._worker and self._worker.is_alive()):
+            self.status.set(self._t("status_stopped"))
+        else:
+            self._refresh_running_status_from_countdown()
+
+    def _refresh_running_status_from_countdown(self) -> None:
+        if self._current_interval_sec <= 0:
+            return
+        rem = max(0.0, self._next_jiggle_monotonic - time.monotonic())
+        total_sec = int(rem + 0.5)
+        mm, ss = divmod(total_sec, 60)
+        if mm >= 60:
+            hh, mm = divmod(mm, 60)
+            cd = f"{hh}:{mm:02d}:{ss:02d}"
+        else:
+            cd = f"{mm}:{ss:02d}"
+        self.status.set(self._t("status_running", m=self._running_minutes, cd=cd))
 
     def _btn(self, master: Any, **kwargs: Any) -> ctk.CTkButton:
         """Rounded buttons (radius 10) with hover_color (solid hover approximates a gradient)."""
@@ -135,45 +271,71 @@ class MouseJigglerApp:
         )
         brand.pack(anchor="w", padx=24, pady=(28, 4))
 
-        sub = ctk.CTkLabel(
+        self._lbl_subtitle = ctk.CTkLabel(
             sidebar,
-            text="滑鼠定時微動",
+            text=self._t("app_subtitle"),
             font=self._font_body,
             text_color=self._MUTED_TEXT,
             anchor="w",
         )
-        sub.pack(anchor="w", padx=24, pady=(0, 28))
+        self._lbl_subtitle.pack(anchor="w", padx=24, pady=(0, 20))
 
         self._sidebar_nav_control = self._btn(
             sidebar,
-            text=f"  {self._SEG_CONTROL}",
+            text=f"  {self._t('seg_control')}",
             anchor="w",
             fg_color=self._ACCENT,
             hover_color=self._ACCENT_HOVER,
-            command=lambda: self._nav_to(self._SEG_CONTROL),
+            command=lambda: self._nav_to_mode("control"),
         )
         self._sidebar_nav_control.pack(fill="x", padx=16, pady=(0, 8))
 
         self._sidebar_nav_log = self._btn(
             sidebar,
-            text=f"  {self._SEG_LOG}",
+            text=f"  {self._t('seg_log')}",
             anchor="w",
             fg_color=self._BTN_SECONDARY,
             hover_color=self._BTN_SECONDARY_HOVER,
-            command=lambda: self._nav_to(self._SEG_LOG),
+            command=lambda: self._nav_to_mode("log"),
         )
-        self._sidebar_nav_log.pack(fill="x", padx=16, pady=(0, 8))
+        self._sidebar_nav_log.pack(fill="x", padx=16, pady=(0, 16))
+
+        self._lbl_lang = ctk.CTkLabel(
+            sidebar,
+            text=self._t("lang_ui"),
+            font=self._font_body_bold,
+            text_color=("#e2e8f0", "#e2e8f0"),
+            anchor="w",
+        )
+        self._lbl_lang.pack(anchor="w", padx=24, pady=(0, 8))
+
+        self._lang_seg = ctk.CTkSegmentedButton(
+            sidebar,
+            values=["繁中", "English"],
+            command=self._on_lang_switch,
+            corner_radius=10,
+            font=self._font_body_bold,
+            height=32,
+            fg_color=self._CARD_BG,
+            selected_color=self._ACCENT,
+            selected_hover_color=self._ACCENT_HOVER,
+            unselected_color=self._BTN_SECONDARY,
+            unselected_hover_color=self._BTN_SECONDARY_HOVER,
+            text_color=("#e2e8f0", "#e2e8f0"),
+        )
+        self._lang_seg.pack(fill="x", padx=16, pady=(0, 8))
+        self._lang_seg.set("繁中")
 
         spacer = ctk.CTkFrame(sidebar, fg_color="transparent")
         spacer.pack(expand=True, fill="both")
 
-        hint = ctk.CTkLabel(
+        self._hint = ctk.CTkLabel(
             sidebar,
-            text="深色主題 · dark-blue",
+            text=self._t("theme_hint"),
             font=ctk.CTkFont(family=_FONT_FAMILY_BODY, size=11),
             text_color=self._MUTED_TEXT,
         )
-        hint.pack(anchor="w", padx=24, pady=(0, 24))
+        self._hint.pack(anchor="w", padx=24, pady=(0, 24))
 
     def _build_main(self) -> None:
         main = ctk.CTkFrame(self.root, corner_radius=0, fg_color=self._MAIN_BG)
@@ -185,16 +347,17 @@ class MouseJigglerApp:
         head.grid(row=0, column=0, sticky="ew", padx=28, pady=(24, 12))
         head.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(
+        self._lbl_dashboard = ctk.CTkLabel(
             head,
-            text="主控台",
+            text=self._t("dashboard"),
             font=self._font_title,
             text_color=("#f1f5f9", "#f1f5f9"),
-        ).grid(row=0, column=0, sticky="w")
+        )
+        self._lbl_dashboard.grid(row=0, column=0, sticky="w")
 
         self.segmented = ctk.CTkSegmentedButton(
             head,
-            values=[self._SEG_CONTROL, self._SEG_LOG],
+            values=[self._t("seg_control"), self._t("seg_log")],
             command=self._on_segment,
             corner_radius=10,
             font=self._font_body_bold,
@@ -208,7 +371,7 @@ class MouseJigglerApp:
             text_color_disabled=("#64748b", "#64748b"),
         )
         self.segmented.grid(row=0, column=1, sticky="e")
-        self.segmented.set(self._SEG_CONTROL)
+        self.segmented.set(self._segment_text(self._segment_mode))
 
         self.progress = ctk.CTkProgressBar(
             main,
@@ -233,15 +396,16 @@ class MouseJigglerApp:
         self._fill_log_panel(self.frame_log)
         self.frame_log.grid_remove()
 
-        self._sync_sidebar_highlight(self._SEG_CONTROL)
+        self._sync_sidebar_highlight()
 
     def _fill_control_panel(self, card: ctk.CTkFrame) -> None:
         card.grid_columnconfigure(0, weight=1)
 
         pad = {"padx": 24, "pady": (16, 8)}
-        ctk.CTkLabel(card, text="間隔（分鐘）", font=self._font_body_bold, text_color=("#e2e8f0", "#e2e8f0")).grid(
-            row=0, column=0, sticky="w", **pad
+        self._lbl_interval = ctk.CTkLabel(
+            card, text=self._t("interval_label"), font=self._font_body_bold, text_color=("#e2e8f0", "#e2e8f0")
         )
+        self._lbl_interval.grid(row=0, column=0, sticky="w", **pad)
         row1 = ctk.CTkFrame(card, fg_color="transparent")
         row1.grid(row=1, column=0, sticky="ew", padx=24, pady=(0, 8))
         self.var_minutes = tk.StringVar(value=str(int(self.DEFAULT_MINUTES)))
@@ -256,13 +420,15 @@ class MouseJigglerApp:
             border_color=self._BTN_SECONDARY,
         )
         self.entry_minutes.pack(side="left")
-        ctk.CTkLabel(row1, text="≥ 0.1，可小數", font=self._font_body, text_color=self._MUTED_TEXT).pack(
-            side="left", padx=(12, 0)
+        self._lbl_interval_hint = ctk.CTkLabel(
+            row1, text=self._t("interval_hint"), font=self._font_body, text_color=self._MUTED_TEXT
         )
+        self._lbl_interval_hint.pack(side="left", padx=(12, 0))
 
-        ctk.CTkLabel(card, text="位移（像素）", font=self._font_body_bold, text_color=("#e2e8f0", "#e2e8f0")).grid(
-            row=2, column=0, sticky="w", padx=24, pady=(12, 8)
+        self._lbl_pixels = ctk.CTkLabel(
+            card, text=self._t("pixels_label"), font=self._font_body_bold, text_color=("#e2e8f0", "#e2e8f0")
         )
+        self._lbl_pixels.grid(row=2, column=0, sticky="w", padx=24, pady=(12, 8))
         row3 = ctk.CTkFrame(card, fg_color="transparent")
         row3.grid(row=3, column=0, sticky="ew", padx=24, pady=(0, 8))
         self.var_pixels = tk.StringVar(value=str(self.DEFAULT_PIXELS))
@@ -277,19 +443,20 @@ class MouseJigglerApp:
             border_color=self._BTN_SECONDARY,
         )
         self.entry_pixels.pack(side="left")
-        ctk.CTkLabel(
+        self._lbl_pixels_hint = ctk.CTkLabel(
             row3,
-            text=f"水平再還原 · {self.MIN_PIXELS}–{self.MAX_PIXELS}",
+            text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS),
             font=self._font_body,
             text_color=self._MUTED_TEXT,
-        ).pack(side="left", padx=(12, 0))
+        )
+        self._lbl_pixels_hint.pack(side="left", padx=(12, 0))
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
         btn_row.grid(row=4, column=0, sticky="w", padx=24, pady=(16, 8))
 
         self.btn_start = self._btn(
             btn_row,
-            text="開始",
+            text=self._t("btn_start"),
             width=120,
             fg_color=self._ACCENT,
             hover_color=self._ACCENT_HOVER,
@@ -300,7 +467,7 @@ class MouseJigglerApp:
 
         self.btn_stop = self._btn(
             btn_row,
-            text="停止",
+            text=self._t("btn_stop"),
             width=120,
             fg_color=self._BTN_SECONDARY,
             hover_color=self._BTN_SECONDARY_HOVER,
@@ -309,13 +476,13 @@ class MouseJigglerApp:
         )
         self.btn_stop.pack(side="left")
 
-        tray_label = "關閉視窗時縮到系統匣（排程繼續）"
+        tray = self._t("tray_checkbox")
         if not HAS_TRAY:
-            tray_label += "（未安裝 pystray）"
+            tray += self._t("tray_no_pystray")
         self.var_tray_close = tk.BooleanVar(value=False)
         self.chk_tray = ctk.CTkCheckBox(
             card,
-            text=tray_label,
+            text=tray,
             variable=self.var_tray_close,
             font=self._font_body,
             text_color=("#e2e8f0", "#e2e8f0"),
@@ -328,7 +495,7 @@ class MouseJigglerApp:
         if not HAS_TRAY:
             self.chk_tray.configure(state="disabled")
 
-        self.status = tk.StringVar(value="狀態：已停止")
+        self.status = tk.StringVar(value=self._t("status_stopped"))
         ctk.CTkLabel(
             card,
             textvariable=self.status,
@@ -341,12 +508,13 @@ class MouseJigglerApp:
         card.grid_columnconfigure(0, weight=1)
         card.grid_rowconfigure(1, weight=1)
 
-        ctk.CTkLabel(
+        self._lbl_log_title = ctk.CTkLabel(
             card,
-            text="活動紀錄",
+            text=self._t("log_title"),
             font=self._font_body_bold,
             text_color=("#e2e8f0", "#e2e8f0"),
-        ).grid(row=0, column=0, sticky="w", padx=24, pady=(20, 8))
+        )
+        self._lbl_log_title.grid(row=0, column=0, sticky="w", padx=24, pady=(20, 8))
 
         self.log_text = ctk.CTkTextbox(
             card,
@@ -361,24 +529,26 @@ class MouseJigglerApp:
         self.log_text.configure(state="disabled")
 
     def _on_segment(self, value: str) -> None:
-        self._apply_view(value)
-        self._sync_sidebar_highlight(value)
+        self._segment_mode = self._mode_from_segment_value(value)
+        self._apply_view()
+        self._sync_sidebar_highlight()
 
-    def _nav_to(self, value: str) -> None:
-        self.segmented.set(value)
-        self._apply_view(value)
-        self._sync_sidebar_highlight(value)
+    def _nav_to_mode(self, mode: Literal["control", "log"]) -> None:
+        self._segment_mode = mode
+        self.segmented.set(self._segment_text(mode))
+        self._apply_view()
+        self._sync_sidebar_highlight()
 
-    def _apply_view(self, value: str) -> None:
-        if value == self._SEG_CONTROL:
+    def _apply_view(self) -> None:
+        if self._segment_mode == "control":
             self.frame_control.grid(row=0, column=0, sticky="nsew")
             self.frame_log.grid_remove()
         else:
             self.frame_log.grid(row=0, column=0, sticky="nsew")
             self.frame_control.grid_remove()
 
-    def _sync_sidebar_highlight(self, value: str) -> None:
-        if value == self._SEG_CONTROL:
+    def _sync_sidebar_highlight(self) -> None:
+        if self._segment_mode == "control":
             self._sidebar_nav_control.configure(fg_color=self._ACCENT, hover_color=self._ACCENT_HOVER)
             self._sidebar_nav_log.configure(fg_color=self._BTN_SECONDARY, hover_color=self._BTN_SECONDARY_HOVER)
         else:
@@ -418,7 +588,7 @@ class MouseJigglerApp:
             countdown_str = f"{mm}:{ss:02d}"
 
         m = self._running_minutes
-        self.status.set(f"狀態：執行中 · 每 {m:g} 分鐘 · 下次約 {countdown_str}")
+        self.status.set(self._t("status_running", m=m, cd=countdown_str))
         self._countdown_after_id = self.root.after(500, self._countdown_tick)
 
     def _log(self, message: str) -> None:
@@ -472,20 +642,20 @@ class MouseJigglerApp:
         minutes = self._parse_minutes()
         if minutes is None:
             messagebox.showerror(
-                "輸入錯誤",
-                f"請輸入有效的分鐘數（數字，且 ≥ {self.MIN_MINUTES}）。",
+                self._t("err_title"),
+                self._t("err_minutes", min=self.MIN_MINUTES),
                 parent=self.root,
             )
-            self._log("開始失敗：間隔設定無效。")
+            self._log(self._t("log_start_fail_interval"))
             return
         pixels = self._parse_pixels()
         if pixels is None:
             messagebox.showerror(
-                "輸入錯誤",
-                f"請輸入有效的位移像素（整數，{self.MIN_PIXELS}–{self.MAX_PIXELS}）。",
+                self._t("err_title"),
+                self._t("err_pixels", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS),
                 parent=self.root,
             )
-            self._log("開始失敗：位移設定無效。")
+            self._log(self._t("log_start_fail_pixels"))
             return
         if self._worker is not None and self._worker.is_alive():
             return
@@ -507,10 +677,10 @@ class MouseJigglerApp:
         self.btn_stop.configure(state="normal")
         self.entry_minutes.configure(state="disabled")
         self.entry_pixels.configure(state="disabled")
-        self.status.set(f"狀態：執行中 · 每 {minutes:g} 分鐘 · 下次約 —")
+        self.status.set(self._t("status_running", m=minutes, cd="—"))
         self.progress.set(0)
         self._schedule_countdown_tick()
-        self._log(f"已開始，間隔 {minutes:g} 分鐘（約 {interval_sec:.0f} 秒）、位移 {pixels} px。")
+        self._log(self._t("log_started", m=minutes, sec=interval_sec, px=pixels))
 
     def _on_stop(self) -> None:
         self._stop.set()
@@ -521,8 +691,8 @@ class MouseJigglerApp:
         self.btn_stop.configure(state="disabled")
         self.entry_minutes.configure(state="normal")
         self.entry_pixels.configure(state="normal")
-        self.status.set("狀態：已停止")
-        self._log("已手動停止。")
+        self.status.set(self._t("status_stopped"))
+        self._log(self._t("log_stopped"))
 
     def _run_loop(self, interval_sec: float, pixels: int) -> None:
         while not self._stop.is_set():
@@ -532,11 +702,11 @@ class MouseJigglerApp:
             try:
                 jiggle_mouse(pixels)
                 if pixels > 0:
-                    self._log("已執行游標微動。")
+                    self._log(self._t("log_nudge"))
                 else:
-                    self._log("已觸發排程（位移 0，未移動游標）。")
+                    self._log(self._t("log_nudge_zero"))
             except OSError as e:
-                self._log(f"微動失敗：{e}")
+                self._log(self._t("log_nudge_fail", err=e))
 
     def _build_tray_image(self) -> Any:
         from PIL import Image, ImageDraw
@@ -558,10 +728,10 @@ class MouseJigglerApp:
 
         image = self._build_tray_image()
         menu = pystray.Menu(
-            pystray.MenuItem("顯示主視窗", self._tray_on_show, default=True),
-            pystray.MenuItem("結束程式", self._tray_on_quit),
+            pystray.MenuItem(self._t("tray_show"), self._tray_on_show, default=True),
+            pystray.MenuItem(self._t("tray_quit"), self._tray_on_quit),
         )
-        icon = pystray.Icon("try-working-hard", image, "滑鼠定時微動", menu)
+        icon = pystray.Icon("try-working-hard", image, self._t("window_title"), menu)
         self._tray_icon = icon
         try:
             icon.run()
@@ -625,7 +795,7 @@ class MouseJigglerApp:
 
     def _quit_from_tray(self) -> None:
         try:
-            self._log_ui("結束程式。")
+            self._log_ui(self._t("log_exit"))
         except tk.TclError:
             pass
         self._full_shutdown()
@@ -633,7 +803,7 @@ class MouseJigglerApp:
     def _on_close(self) -> None:
         if self.var_tray_close.get() and HAS_TRAY:
             try:
-                self._log_ui("已縮至系統匣（排程仍執行，可從圖示還原或結束）。")
+                self._log_ui(self._t("log_tray_minimize"))
             except tk.TclError:
                 pass
             self.root.withdraw()
@@ -641,7 +811,7 @@ class MouseJigglerApp:
             return
 
         try:
-            self._log_ui("結束程式。")
+            self._log_ui(self._t("log_exit"))
         except tk.TclError:
             pass
         self._full_shutdown()
