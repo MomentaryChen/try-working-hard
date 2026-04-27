@@ -51,7 +51,7 @@ uv run python -m mouse_jiggler
 
 ## 技術說明
 
-- GUI：**CustomTkinter**（深色 / `dark-blue`、側欄切換主要頁面；**首頁**內以分段切換 **控制面板 / 紀錄**）
+- GUI：**CustomTkinter**（淺色 / `blue` 主題：主畫面 **#F9FAFB**、側欄 **#F3F4F6**、白色卡片內容區帶淺邊框；**首頁**內以分段切換 **控制面板 / 紀錄**）
 - 滑鼠：**ctypes** 呼叫 `user32.GetCursorPos` / `SetCursorPos`
 - 系統匣：**pystray**、圖示繪製：**Pillow**（主視窗與匣區共用 PNG；重建 `.exe` 時另以 [`packaging/app.ico`](packaging/app.ico) 作為檔案圖示，見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)）
 

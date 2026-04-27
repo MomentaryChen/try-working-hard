@@ -51,7 +51,7 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 
 ## Technical notes
 
-- GUI: **CustomTkinter** (dark / `dark-blue` theme, sidebar for main pages; **Home** uses a segmented control for Control / Log)
+- GUI: **CustomTkinter** (light / `blue` theme: **#F9FAFB** app background, **#F3F4F6** sidebar, **#FFFFFF** card panels with a light border; **Home** uses a segmented control for Control / Log)
 - Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`
 - Tray: **pystray**; icon: **Pillow** (shared PNG for window, tray, and—when rebuilt—[`packaging/app.ico`](packaging/app.ico) for the `.exe`; see [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md))
 

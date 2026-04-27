@@ -25,6 +25,11 @@ from .win32_mouse import jiggle_mouse
 # Primary UI font (Inter). If missing, Tk picks a substitute.
 _FONT_INTER = "Inter"
 
+# Light UI: main surface, sidebar, cards, and radii (12–16px, modern rounded look).
+_R_MAIN = 14
+_R_CTL = 12
+_R_BTN = 14
+
 
 def _try_takefocus(widget: Any, value: int | bool) -> None:
     """Set takefocus on CTk/Tk widgets; ignore if unsupported (keyboard / screen-reader support)."""
@@ -93,41 +98,47 @@ class MouseJigglerApp:
     DEFAULT_MOTION_BURST = nudge_logic.DEFAULT_MOTION_BURST_SEC
     _LOG_TRIM_LINES = nudge_logic.LOG_TRIM_LINES
 
-    # Deep gray palette; accent = soft purple (Discord-like)
-    _MAIN_BG = "#1A1A1B"
-    _SIDEBAR_BG = "#141415"
-    _CARD_BG = "#2D2D2E"
-    _ENTRY_BG = "#252526"
-    _ACCENT = "#7289DA"
-    _ACCENT_HOVER = "#8EA0E8"
-    _BTN_SECONDARY = "#3F3F40"
-    _BTN_SECONDARY_HOVER = "#4A4A4B"
-    _BORDER = "#3F3F40"
-    _TEXT_TITLE = "#F5F5F5"
-    _TEXT_BODY = "#D1D1D1"
-    _TEXT_MUTED = "#8A8A8B"
-    _TEXT_DISABLED = "#6B6B6C"
-    _TEXT_LOG = "#C8C8C8"
-    _NAV_HOVER = "#3F3F40"
-    _NAV_SELECTED = "#7289DA"
+    # High-quality light mode (core surface + sidebar; cards = white w/ border)
+    _MAIN_BG = "#F9FAFB"
+    _SIDEBAR_BG = "#F3F4F6"
+    _CARD_BG = "#FFFFFF"
+    _CARD_BORDER = "#E5E7EB"
+    _ENTRY_BG = "#F9FAFB"
+    _ACCENT = "#3B82F6"
+    _ACCENT_HOVER = "#2563EB"
+    _TEXT_ON_ACCENT = "#FFFFFF"
+    # Segments / in-card chips (not the same as raised cards)
+    _SURFACE_SUBTLE = "#F3F4F6"
+    _SURFACE_SUBTLE_HOVER = "#E5E7EB"
+    _BORDER = "#E5E7EB"
+    # Labels: primary copy #111827; hints one step softer
+    _TEXT_TITLE = "#111827"
+    _TEXT_BODY = "#111827"
+    _TEXT_MUTED = "#6B7280"
+    _TEXT_DISABLED = "#9CA3AF"
+    _TEXT_LOG = "#111827"
+    _NAV_TEXT = "#6B7280"
+    _NAV_HOVER = "#E5E7EB"
+    _NAV_SELECTED = "#3B82F6"
+    _NAV_ON_SELECTED = "#FFFFFF"
     _SIDEBAR_WIDTH = 200
     _UI_PAD = 20
-    # Home status strip: background, border, and LED (bullet) by runtime state
-    _STATUS_STRIP_BG_STOP = "#2B2B2C"
-    _STATUS_STRIP_BORDER_STOP = "#3F3F40"
-    _STATUS_LED_STOP = "#7A7A7B"
-    _STATUS_STRIP_BG_RUN = "#1E2A22"
-    _STATUS_STRIP_BORDER_RUN = "#3D8F5C"
-    _STATUS_LED_RUN = "#43B581"
-    _STATUS_TEXT_RUN = "#C4E8D4"
-    _STATUS_STRIP_BG_BURST = "#2A2618"
-    _STATUS_STRIP_BORDER_BURST = "#B8942E"
-    _STATUS_LED_BURST = "#E8B84A"
-    _STATUS_TEXT_BURST = "#F0E0B8"
+    # Home status strip (light surfaces; semantic tints)
+    _STATUS_STRIP_BG_STOP = "#F3F4F6"
+    _STATUS_STRIP_BORDER_STOP = "#E5E7EB"
+    _STATUS_LED_STOP = "#9CA3AF"
+    _STATUS_STRIP_BG_RUN = "#ECFDF5"
+    _STATUS_STRIP_BORDER_RUN = "#6EE7B7"
+    _STATUS_LED_RUN = "#059669"
+    _STATUS_TEXT_RUN = "#065F46"
+    _STATUS_STRIP_BG_BURST = "#FFFBEB"
+    _STATUS_STRIP_BORDER_BURST = "#FCD34D"
+    _STATUS_LED_BURST = "#D97706"
+    _STATUS_TEXT_BURST = "#92400E"
 
     def __init__(self) -> None:
-        ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("dark-blue")
+        ctk.set_appearance_mode("light")
+        ctk.set_default_color_theme("blue")
 
         self._lang: Lang = "en"
         self._segment_mode: Literal["control", "log"] = "control"
@@ -135,9 +146,10 @@ class MouseJigglerApp:
 
         # CTkFont requires an existing Tk root or tkinter raises RuntimeError
         self.root = ctk.CTk()
-        self._font_title = ctk.CTkFont(family=_FONT_INTER, size=24, weight="bold")
-        self._font_body = ctk.CTkFont(family=_FONT_INTER, size=13)
-        self._font_body_bold = ctk.CTkFont(family=_FONT_INTER, size=13, weight="bold")
+        self._font_title = ctk.CTkFont(family=_FONT_INTER, size=28, weight="bold")
+        self._font_brand = ctk.CTkFont(family=_FONT_INTER, size=20, weight="bold")
+        self._font_body = ctk.CTkFont(family=_FONT_INTER, size=14)
+        self._font_body_bold = ctk.CTkFont(family=_FONT_INTER, size=14, weight="bold")
         self._font_hint = ctk.CTkFont(family=_FONT_INTER, size=12)
         self._font_mono = ctk.CTkFont(family="Consolas", size=13)
 
@@ -566,15 +578,15 @@ class MouseJigglerApp:
             self._lbl_status.configure(text_color=(self._STATUS_TEXT_BURST, self._STATUS_TEXT_BURST))
 
     def _btn(self, master: Any, **kwargs: Any) -> ctk.CTkButton:
-        """Rounded buttons (radius 10) with hover_color (solid hover approximates a gradient)."""
-        kw = dict(corner_radius=10, font=self._font_body, height=36)
+        """Primary/secondary style buttons (12–16px corner radius)."""
+        kw = dict(corner_radius=_R_BTN, font=self._font_body, height=40)
         kw.update(kwargs)
         kw.pop("takefocus", None)  # CTkButton rejects this in **kwargs
         w = ctk.CTkButton(master, **kw)
         return w
 
     def _build_nav_icons(self) -> dict[str, ctk.CTkImage]:
-        """PNG icons in ``assets/icons`` (Lucide-style line art); Pillow tints to theme."""
+        """Sidebar nav icons; tint matches unselected nav (gray on light)."""
         specs: list[tuple[str, str]] = [
             ("home", "house"),
             ("settings", "settings"),
@@ -584,17 +596,30 @@ class MouseJigglerApp:
         for key, stem in specs:
             im = _load_pkg_nav_png(stem)
             if im is not None:
-                im = _tint_rgba_image(im, self._TEXT_BODY)
+                im = _tint_rgba_image(im, self._NAV_TEXT)
                 out[key] = ctk.CTkImage(light_image=im, dark_image=im, size=(20, 20))
             else:
-                out[key] = self._nav_icon_fallback(key)
+                out[key] = self._nav_icon_fallback(key, self._NAV_TEXT, self._TEXT_MUTED)
         return out
 
-    def _nav_icon_fallback(self, key: str) -> ctk.CTkImage:
-        from PIL import Image, ImageDraw
+    def _one_nav_ctk_image(
+        self, key: str, body_hex: str, muted_hex: str
+    ) -> ctk.CTkImage:
+        """Single nav icon for the given key and two-tone glyph colors."""
+        stems = {
+            "home": "house",
+            "settings": "settings",
+            "analytics": "chart-column",
+        }
+        stem = stems[key]
+        im = _load_pkg_nav_png(stem)
+        if im is not None:
+            im = _tint_rgba_image(im, body_hex)
+            return ctk.CTkImage(light_image=im, dark_image=im, size=(20, 20))
+        return self._nav_icon_fallback(key, body_hex, muted_hex)
 
-        ic_body = self._TEXT_BODY
-        ic_muted = self._TEXT_MUTED
+    def _nav_icon_fallback(self, key: str, ic_body: str, ic_muted: str) -> ctk.CTkImage:
+        from PIL import Image, ImageDraw
 
         def _ic(draw_fn: Any) -> ctk.CTkImage:
             sz = 20
@@ -630,12 +655,12 @@ class MouseJigglerApp:
             image=icon,
             compound="left",
             anchor="w",
-            corner_radius=10,
-            height=40,
+            corner_radius=_R_CTL,
+            height=44,
             font=self._font_body,
             fg_color="transparent",
             hover_color=self._NAV_HOVER,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            text_color=(self._NAV_TEXT, self._NAV_TEXT),
             command=command,
         )
 
@@ -644,7 +669,7 @@ class MouseJigglerApp:
         sidebar = ctk.CTkFrame(
             self.root,
             width=self._SIDEBAR_WIDTH,
-            corner_radius=10,
+            corner_radius=_R_MAIN,
             fg_color=self._SIDEBAR_BG,
         )
         sidebar.grid(row=0, column=0, sticky="nsew", padx=(p, 0), pady=p)
@@ -653,7 +678,7 @@ class MouseJigglerApp:
         brand = ctk.CTkLabel(
             sidebar,
             text="try-working-hard",
-            font=self._font_title,
+            font=self._font_brand,
             text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
             anchor="w",
         )
@@ -663,7 +688,7 @@ class MouseJigglerApp:
             sidebar,
             text=self._t("app_subtitle"),
             font=self._font_body,
-            text_color=self._TEXT_MUTED,
+            text_color=self._TEXT_BODY,
             anchor="w",
         )
         self._lbl_subtitle.pack(anchor="w", padx=p, pady=(0, p))
@@ -707,24 +732,24 @@ class MouseJigglerApp:
 
     def _build_main(self) -> None:
         p = self._UI_PAD
-        main = ctk.CTkFrame(self.root, corner_radius=10, fg_color="transparent")
+        main = ctk.CTkFrame(self.root, corner_radius=_R_MAIN, fg_color="transparent")
         main.grid(row=0, column=1, sticky="nsew", padx=(0, p), pady=p)
         main.grid_columnconfigure(0, weight=1)
         main.grid_rowconfigure(0, weight=1)
 
-        self.pages_host = ctk.CTkFrame(main, corner_radius=10, fg_color="transparent")
+        self.pages_host = ctk.CTkFrame(main, corner_radius=_R_MAIN, fg_color="transparent")
         self.pages_host.grid(row=0, column=0, sticky="nsew")
         self.pages_host.grid_columnconfigure(0, weight=1)
         self.pages_host.grid_rowconfigure(0, weight=1)
 
-        self.page_home = ctk.CTkFrame(self.pages_host, corner_radius=10, fg_color="transparent")
+        self.page_home = ctk.CTkFrame(self.pages_host, corner_radius=_R_MAIN, fg_color="transparent")
         self.page_home.grid(row=0, column=0, sticky="nsew")
         self.page_home.grid_columnconfigure(0, weight=1)
         self.page_home.grid_rowconfigure(3, weight=1)
 
         self._status_strip = ctk.CTkFrame(
             self.page_home,
-            corner_radius=10,
+            corner_radius=_R_MAIN,
             fg_color=self._STATUS_STRIP_BG_STOP,
             border_width=1,
             border_color=self._STATUS_STRIP_BORDER_STOP,
@@ -768,15 +793,15 @@ class MouseJigglerApp:
             head,
             values=[self._t("seg_control"), self._t("seg_log")],
             command=self._on_segment,
-            corner_radius=10,
+            corner_radius=_R_CTL,
             font=self._font_body_bold,
-            height=36,
-            fg_color=self._CARD_BG,
+            height=38,
+            fg_color=self._SURFACE_SUBTLE,
             selected_color=self._ACCENT,
             selected_hover_color=self._ACCENT_HOVER,
-            unselected_color=self._BTN_SECONDARY,
-            unselected_hover_color=self._BTN_SECONDARY_HOVER,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            unselected_color=self._SURFACE_SUBTLE,
+            unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
             text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
         )
         _try_takefocus(self.segmented, 1)
@@ -788,18 +813,42 @@ class MouseJigglerApp:
         self.content_host.grid_columnconfigure(0, weight=1)
         self.content_host.grid_rowconfigure(0, weight=1)
 
-        self.frame_control = ctk.CTkFrame(self.content_host, fg_color=self._CARD_BG, corner_radius=10)
+        self.frame_control = ctk.CTkFrame(
+            self.content_host,
+            fg_color=self._CARD_BG,
+            corner_radius=_R_MAIN,
+            border_width=1,
+            border_color=self._CARD_BORDER,
+        )
         self.frame_control.grid(row=0, column=0, sticky="nsew")
         self._fill_control_panel(self.frame_control)
 
-        self.frame_log = ctk.CTkFrame(self.content_host, fg_color=self._CARD_BG, corner_radius=10)
+        self.frame_log = ctk.CTkFrame(
+            self.content_host,
+            fg_color=self._CARD_BG,
+            corner_radius=_R_MAIN,
+            border_width=1,
+            border_color=self._CARD_BORDER,
+        )
         self._fill_log_panel(self.frame_log)
         self.frame_log.grid_remove()
 
-        self.page_settings = ctk.CTkFrame(self.pages_host, corner_radius=10, fg_color=self._CARD_BG)
+        self.page_settings = ctk.CTkFrame(
+            self.pages_host,
+            corner_radius=_R_MAIN,
+            fg_color=self._CARD_BG,
+            border_width=1,
+            border_color=self._CARD_BORDER,
+        )
         self._fill_settings_panel(self.page_settings)
 
-        self.page_analytics = ctk.CTkFrame(self.pages_host, corner_radius=10, fg_color=self._CARD_BG)
+        self.page_analytics = ctk.CTkFrame(
+            self.pages_host,
+            corner_radius=_R_MAIN,
+            fg_color=self._CARD_BG,
+            border_width=1,
+            border_color=self._CARD_BORDER,
+        )
         self._fill_analytics_panel(self.page_analytics)
 
         self.page_settings.grid_remove()
@@ -827,9 +876,25 @@ class MouseJigglerApp:
             ("analytics", self._nav_analytics),
         ):
             if key == self._active_nav:
-                btn.configure(fg_color=self._NAV_SELECTED, hover_color=self._ACCENT_HOVER)
+                icon = self._one_nav_ctk_image(
+                    key, self._NAV_ON_SELECTED, "#E5E7EB"
+                )
+                btn.configure(
+                    image=icon,
+                    fg_color=self._NAV_SELECTED,
+                    hover_color=self._ACCENT_HOVER,
+                    text_color=(self._NAV_ON_SELECTED, self._NAV_ON_SELECTED),
+                )
             else:
-                btn.configure(fg_color="transparent", hover_color=self._NAV_HOVER)
+                icon = self._one_nav_ctk_image(
+                    key, self._NAV_TEXT, self._TEXT_MUTED
+                )
+                btn.configure(
+                    image=icon,
+                    fg_color="transparent",
+                    hover_color=self._NAV_HOVER,
+                    text_color=(self._NAV_TEXT, self._NAV_TEXT),
+                )
 
     def _fill_settings_panel(self, card: ctk.CTkFrame) -> None:
         p = self._UI_PAD
@@ -856,15 +921,15 @@ class MouseJigglerApp:
             card,
             values=["繁中", "English"],
             command=self._on_lang_switch,
-            corner_radius=10,
+            corner_radius=_R_CTL,
             font=self._font_body_bold,
-            height=32,
-            fg_color=self._MAIN_BG,
+            height=36,
+            fg_color=self._SURFACE_SUBTLE,
             selected_color=self._ACCENT,
             selected_hover_color=self._ACCENT_HOVER,
-            unselected_color=self._BTN_SECONDARY,
-            unselected_hover_color=self._BTN_SECONDARY_HOVER,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            unselected_color=self._SURFACE_SUBTLE,
+            unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
         )
         self._lang_seg.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
         self._lang_seg.set("English")
@@ -883,9 +948,9 @@ class MouseJigglerApp:
             card,
             text=self._t("btn_open_config_file"),
             command=self._on_open_config_file,
-            fg_color=self._BTN_SECONDARY,
-            hover_color=self._BTN_SECONDARY_HOVER,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            fg_color="transparent",
+            hover_color=self._NAV_HOVER,
+            text_color=(self._NAV_TEXT, self._NAV_TEXT),
             anchor="w",
         )
         self.btn_open_config.grid(row=4, column=0, sticky="w", padx=p, pady=(0, p))
@@ -912,10 +977,10 @@ class MouseJigglerApp:
             width=52,
             switch_width=40,
             switch_height=22,
-            fg_color=self._BTN_SECONDARY,
+            fg_color=self._BORDER,
             progress_color=self._ACCENT,
-            button_color=self._TEXT_TITLE,
-            button_hover_color=self._TEXT_BODY,
+            button_color="#FFFFFF",
+            button_hover_color="#F3F4F6",
             font=self._font_body,
         )
         self.swt_tray.grid(row=0, column=1, sticky="e", padx=(16, 0))
@@ -961,7 +1026,7 @@ class MouseJigglerApp:
 
         self.analytics_log = ctk.CTkTextbox(
             card,
-            corner_radius=10,
+            corner_radius=_R_CTL,
             font=self._font_mono,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_LOG, self._TEXT_LOG),
@@ -1002,8 +1067,8 @@ class MouseJigglerApp:
             row1,
             textvariable=self.var_minutes,
             width=120,
-            height=36,
-            corner_radius=10,
+            height=40,
+            corner_radius=_R_CTL,
             font=self._font_body,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
@@ -1016,15 +1081,15 @@ class MouseJigglerApp:
             row1,
             values=[self._t("interval_unit_min"), self._t("interval_unit_sec")],
             command=self._on_interval_unit_seg,
-            corner_radius=10,
+            corner_radius=_R_CTL,
             font=self._font_body,
-            height=36,
-            fg_color=self._CARD_BG,
+            height=38,
+            fg_color=self._SURFACE_SUBTLE,
             selected_color=self._ACCENT,
             selected_hover_color=self._ACCENT_HOVER,
-            unselected_color=self._BTN_SECONDARY,
-            unselected_hover_color=self._BTN_SECONDARY_HOVER,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            unselected_color=self._SURFACE_SUBTLE,
+            unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
             text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
         )
         _try_takefocus(self.seg_interval_unit, 1)
@@ -1051,8 +1116,8 @@ class MouseJigglerApp:
             row3,
             textvariable=self.var_pixels,
             width=120,
-            height=36,
-            corner_radius=10,
+            height=40,
+            corner_radius=_R_CTL,
             font=self._font_body,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
@@ -1084,8 +1149,8 @@ class MouseJigglerApp:
             row_motion,
             textvariable=self.var_motion_burst,
             width=120,
-            height=36,
-            corner_radius=10,
+            height=40,
+            corner_radius=_R_CTL,
             font=self._font_body,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
@@ -1112,6 +1177,7 @@ class MouseJigglerApp:
             width=120,
             fg_color=self._ACCENT,
             hover_color=self._ACCENT_HOVER,
+            text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
             font=self._font_body_bold,
             command=self._on_start,
         )
@@ -1121,8 +1187,9 @@ class MouseJigglerApp:
             btn_row,
             text=self._t("btn_stop"),
             width=120,
-            fg_color=self._BTN_SECONDARY,
-            hover_color=self._BTN_SECONDARY_HOVER,
+            fg_color="transparent",
+            hover_color=self._NAV_HOVER,
+            text_color=(self._NAV_TEXT, self._NAV_TEXT),
             state="disabled",
             command=self._on_stop,
         )
@@ -1143,7 +1210,7 @@ class MouseJigglerApp:
 
         self.log_text = ctk.CTkTextbox(
             card,
-            corner_radius=10,
+            corner_radius=_R_CTL,
             font=self._font_mono,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_LOG, self._TEXT_LOG),

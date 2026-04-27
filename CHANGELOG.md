@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **GUI (CustomTkinter)**: switched to a **light** appearance (`appearance_mode` **light** / built-in **blue** theme) with a **#F9FAFB** app surface, **#F3F4F6** sidebar, **#FFFFFF** content cards (1px **#E5E7EB** border), **#3B82F6** primary actions with white copy, and transparent **secondary** actions with gray text; titles use a larger **bold** type scale and radii in the **12–16** px range for a rounder layout.
+
 - **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual.
 
 - **Cursor command** `.cursor/commands/pr-to-develop.md`: added a **Before you submit** section describing how to confirm the branch has **no merge conflicts** with `origin/develop` before running `open-pr-to-develop.ps1`.
