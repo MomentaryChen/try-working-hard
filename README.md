@@ -39,14 +39,15 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 
 ## Usage
 
-1. Use the sidebar **繁中 / English** segmented control to switch the UI language.
-2. Enter the **interval in minutes** (decimals allowed, e.g. `0.5` ≈ 30 seconds; minimum **0.1** minutes).
-3. Set **nudge size in pixels** (integer, **0–500**): the cursor moves horizontally by this amount, then returns; **0** skips movement for that tick. Default is **100**.
-4. Set **active motion (seconds)** (**0–600**, decimals allowed): after each interval fires, the app repeats the nudge at a short cadence for this many seconds, then waits for the next interval. **0** means a single nudge per tick (legacy behavior). If nudge size is **0**, this duration is ignored.
-5. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
-6. While running, the **status area** at the top of Home shows the **countdown** (`mm:ss`, or `h:mm:ss` after one hour) with a **color cue** (green while waiting for the next nudge, amber during **active motion**). When stopped, the strip uses a neutral style.
-7. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
-8. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
+1. The main window **opens maximized**; use the title bar to restore or resize as needed.
+2. Use the sidebar **繁中 / English** segmented control to switch the UI language.
+3. Enter the **interval in minutes** (decimals allowed, e.g. `0.5` ≈ 30 seconds; minimum **0.1** minutes).
+4. Set **nudge size in pixels** (integer, **0–500**): the cursor moves horizontally by this amount, then returns; **0** skips movement for that tick. Default is **100**.
+5. Set **active motion (seconds)** (**0–600**, decimals allowed): after each interval fires, the app repeats the nudge at a short cadence for this many seconds, then waits for the next interval. **0** means a single nudge per tick (legacy behavior). If nudge size is **0**, this duration is ignored.
+6. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
+7. While running, the **status area** at the top of Home shows the **countdown** (`mm:ss`, or `h:mm:ss` after one hour) with a **color cue** (green while waiting for the next nudge, amber during **active motion**). When stopped, the strip uses a neutral style.
+8. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language).
+9. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
 
 ## Technical notes
 

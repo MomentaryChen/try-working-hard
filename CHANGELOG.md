@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual.
+
 - **Cursor command** `.cursor/commands/pr-to-develop.md`: added a **Before you submit** section describing how to confirm the branch has **no merge conflicts** with `origin/develop` before running `open-pr-to-develop.ps1`.
 
 - **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
