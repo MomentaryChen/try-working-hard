@@ -1,0 +1,14 @@
+[project]
+name = "mouse-jiggler"
+version = "0.1.0"
+description = "定時輕微移動滑鼠（Windows GUI）"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+mouse-jiggler = "mouse_jiggler:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
