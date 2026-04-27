@@ -1,14 +1,23 @@
 [project]
-name = "mouse-jiggler"
+name = "try-working-hard"
 version = "0.1.0"
-description = "定時輕微移動滑鼠（Windows GUI）"
+description = "try-working-hard：定時輕微移動滑鼠（Windows GUI）"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "pystray>=0.19.5",
+    "pillow>=10.0.0",
+]
 
 [project.scripts]
-mouse-jiggler = "mouse_jiggler:main"
+try-working-hard = "mouse_jiggler:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+# 專案名稱為 try-working-hard 時，hatchling 預設會找 try_working_hard 目錄；
+# 實際套件目錄為 mouse_jiggler，須明確指定。
+[tool.hatch.build.targets.wheel]
+packages = ["mouse_jiggler"]

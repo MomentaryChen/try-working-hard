@@ -1,41 +1,59 @@
-# mouse-jiggler
+# try-working-hard
 
-定時讓滑鼠做極小位移再移回，可用 GUI 設定間隔（分鐘）。僅供個人合法用途（例如避免簡報或閱讀時螢幕休眠），請遵守公司與服務條款。
+**Languages:** English (this file) · [正體中文](README.zh-TW.md)
 
-## 環境需求
+Periodically nudges the mouse by one pixel and restores it, with a GUI to set the interval (minutes). For **lawful personal use only** (for example, keeping the screen awake during a presentation or reading). You must comply with applicable laws, employer or school policies, and service terms.
 
-- **Windows**（使用 Win32 API 移動游標）
-- **Python** 3.10 或以上
-- 建議使用 **[uv](https://docs.astral.sh/uv/)** 管理環境與執行
+## Requirements
 
-## 安裝與執行
+- **Windows** (cursor movement uses the Win32 API)
+- **Python** 3.10 or newer
+- **[uv](https://docs.astral.sh/uv/)** is recommended to manage the environment and run the app
 
-在專案根目錄：
+## Install and run
+
+From the project root:
 
 ```powershell
 uv sync
-uv run mouse-jiggler
+uv run try-working-hard
 ```
 
-或使用模組方式：
+Or as a module:
 
 ```powershell
 uv run python -m mouse_jiggler
 ```
 
-## 使用方式
+## Usage
 
-1. 在「間隔（分鐘）」輸入數字（可為小數，例如 `0.5` 表示約 30 秒；最小 **0.1** 分鐘）。
-2. 按 **開始** 啟動定時微動；**停止** 可結束。
-3. 關閉視窗會一併停止背景執行。
+1. Enter the **interval in minutes** (decimals allowed, e.g. `0.5` ≈ 30 seconds; minimum **0.1** minutes).
+2. Set **nudge size in pixels** (integer, **1–50**): the cursor moves horizontally by this amount, then returns. Default is **1** (minimal).
+3. Click **Start** to begin the schedule; **Stop** ends it.
+4. While running, the status line shows a **countdown to the next nudge** (`mm:ss`, or `h:mm:ss` after one hour).
+5. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit**.
 
-## 技術說明
+## Technical notes
 
-- GUI：**tkinter**（Python 標準庫）
-- 滑鼠：**ctypes** 呼叫 `user32.GetCursorPos` / `SetCursorPos`
-- 無額外 PyPI 依賴
+- GUI: **tkinter** (standard library)
+- Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`
+- Tray: **pystray**; icon: **Pillow**
 
-## 限制與注意
+## Limitations
 
-- 螢幕鎖定或部分遠端桌面環境下，行為可能與本機不同。
-- 請勿用於規避應有的安全、監控或合規要求。
+- Behavior may differ when the screen is locked or in some remote-desktop setups.
+- Do not use this tool to bypass security, monitoring, or compliance controls you are required to follow.
+
+## Disclaimer
+
+This software is provided **“as is”**, **without warranty of any kind**, whether express or implied (including but not limited to merchantability, fitness for a particular purpose, or non‑infringement). You **choose to use** it **at your own risk**.
+
+In no event shall the authors or contributors be liable for **any direct, indirect, incidental, special, consequential, or punitive damages** arising out of or related to use or inability to use this software (including but not limited to loss of data, business interruption, hardware damage, or consequences of violating employer rules or laws)—**even if advised of the possibility** of such damages.
+
+You agree to use this software only in a manner that **complies with applicable laws** and with employer, school, contractual, and service obligations. You **must not** use it to circumvent security controls, labor or attendance monitoring, audits, license checks, or for any unlawful or improper purpose. **You bear sole responsibility** for any legal or financial liability arising from your use.
+
+## License
+
+This project is licensed under the **MIT License**. See the [`LICENSE`](LICENSE) file in the repository root for the full text.
+
+In short: you may use, modify, distribute, and sublicense the software subject to retaining the copyright and permission notice; the software is still provided **as-is, without warranty**, consistent with the disclaimer above and the full `LICENSE`.
