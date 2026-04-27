@@ -22,3 +22,12 @@ build-backend = "hatchling.build"
 # 實際套件目錄為 mouse_jiggler，須明確指定。
 [tool.hatch.build.targets.wheel]
 packages = ["mouse_jiggler"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
