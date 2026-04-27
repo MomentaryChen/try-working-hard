@@ -27,6 +27,7 @@ def _defaults() -> dict[str, Any]:
     return {
         "version": CONFIG_VERSION,
         "lang": "en",
+        "ui_theme": "dark",
         "interval_text": str(int(nudge_logic.DEFAULT_MINUTES)),
         "interval_unit": "min",
         "interval_jitter_text": "0",
@@ -40,6 +41,12 @@ def _defaults() -> dict[str, Any]:
 
 def _sanitize_lang(raw: object) -> Lang | None:
     if raw in ("zh", "en"):
+        return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_ui_theme(raw: object) -> str | None:
+    if raw in ("dark", "light"):
         return raw  # type: ignore[return-value]
     return None
 
@@ -130,6 +137,10 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     if lang is not None:
         out["lang"] = lang
 
+    ut = _sanitize_ui_theme(raw.get("ui_theme"))
+    if ut is not None:
+        out["ui_theme"] = ut
+
     u = _sanitize_interval_unit(raw.get("interval_unit"))
     if u is not None:
         out["interval_unit"] = u
@@ -185,6 +196,7 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     payload = {
         "version": CONFIG_VERSION,
         "lang": _sanitize_lang(data.get("lang")) or base["lang"],
+        "ui_theme": _sanitize_ui_theme(data.get("ui_theme")) or base["ui_theme"],
         "interval_text": _sanitize_interval_text(
             data.get("interval_text"), unit, fallback=base["interval_text"]
         ),

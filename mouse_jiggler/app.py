@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import threading
@@ -26,8 +27,85 @@ from .win32_mouse import jiggle_mouse
 # Primary UI font (Inter). If missing, Tk picks a substitute.
 _FONT_INTER = "Inter"
 
-# Pro dark UI: unified corner radius and breathing-room padding (see class _UI_PAD).
+# Pro dark / light: unified corner radius; padding in class (see _UI_PAD).
 _R = 12
+_R_BTN = _R  # primary / secondary button radius (used by _btn)
+
+UiTheme = Literal["dark", "light"]
+_UI_PALETTES: dict[UiTheme, dict[str, str]] = {
+    "dark": {
+        "MAIN_BG": "#0D1117",
+        "SIDEBAR_BG": "#010409",
+        "CARD_BG": "#161B22",
+        "CARD_BORDER": "#30363D",
+        "ENTRY_BG": "#0D1117",
+        "ENTRY_BORDER": "#30363D",
+        "ACCENT": "#2F81F7",
+        "ACCENT_HOVER": "#58A6FF",
+        "TEXT_ON_ACCENT": "#FFFFFF",
+        "SURFACE_SUBTLE": "#0D1117",
+        "SURFACE_SUBTLE_HOVER": "#21262D",
+        "BORDER": "#30363D",
+        "TEXT_TITLE": "#FFFFFF",
+        "TEXT_BODY": "#C9D1D9",
+        "TEXT_MUTED": "#8B949E",
+        "TEXT_DISABLED": "#484F58",
+        "TEXT_LOG": "#C9D1D9",
+        "NAV_TEXT": "#8B949E",
+        "NAV_HOVER": "#21262D",
+        "NAV_SELECTED": "#2F81F7",
+        "NAV_ON_SELECTED": "#FFFFFF",
+        "BTN_SECONDARY": "#21262D",
+        "BTN_SECONDARY_HOVER": "#30363D",
+        "STATUS_STRIP_BG_STOP": "#161B22",
+        "STATUS_STRIP_BORDER_STOP": "#30363D",
+        "STATUS_LED_STOP": "#6E7681",
+        "STATUS_STRIP_BG_RUN": "#0D1B12",
+        "STATUS_STRIP_BORDER_RUN": "#238636",
+        "STATUS_LED_RUN": "#3FB950",
+        "STATUS_TEXT_RUN": "#7EE787",
+        "STATUS_STRIP_BG_BURST": "#1C1008",
+        "STATUS_STRIP_BORDER_BURST": "#D29922",
+        "STATUS_LED_BURST": "#E3B341",
+        "STATUS_TEXT_BURST": "#D4A72C",
+    },
+    "light": {
+        "MAIN_BG": "#F9FAFB",
+        "SIDEBAR_BG": "#F3F4F6",
+        "CARD_BG": "#FFFFFF",
+        "CARD_BORDER": "#E5E7EB",
+        "ENTRY_BG": "#F9FAFB",
+        "ENTRY_BORDER": "#E5E7EB",
+        "ACCENT": "#3B82F6",
+        "ACCENT_HOVER": "#2563EB",
+        "TEXT_ON_ACCENT": "#FFFFFF",
+        "SURFACE_SUBTLE": "#F3F4F6",
+        "SURFACE_SUBTLE_HOVER": "#E5E7EB",
+        "BORDER": "#E5E7EB",
+        "TEXT_TITLE": "#111827",
+        "TEXT_BODY": "#111827",
+        "TEXT_MUTED": "#6B7280",
+        "TEXT_DISABLED": "#9CA3AF",
+        "TEXT_LOG": "#111827",
+        "NAV_TEXT": "#6B7280",
+        "NAV_HOVER": "#E5E7EB",
+        "NAV_SELECTED": "#3B82F6",
+        "NAV_ON_SELECTED": "#FFFFFF",
+        "BTN_SECONDARY": "#E5E7EB",
+        "BTN_SECONDARY_HOVER": "#D1D5DB",
+        "STATUS_STRIP_BG_STOP": "#F3F4F6",
+        "STATUS_STRIP_BORDER_STOP": "#E5E7EB",
+        "STATUS_LED_STOP": "#9CA3AF",
+        "STATUS_STRIP_BG_RUN": "#ECFDF5",
+        "STATUS_STRIP_BORDER_RUN": "#6EE7B7",
+        "STATUS_LED_RUN": "#059669",
+        "STATUS_TEXT_RUN": "#065F46",
+        "STATUS_STRIP_BG_BURST": "#FFFBEB",
+        "STATUS_STRIP_BORDER_BURST": "#FCD34D",
+        "STATUS_LED_BURST": "#D97706",
+        "STATUS_TEXT_BURST": "#92400E",
+    },
+}
 
 
 def _try_takefocus(widget: Any, value: int | bool) -> None:
@@ -90,6 +168,62 @@ def _load_pkg_nav_png(stem: str) -> Any | None:
     return None
 
 
+# HKCU\Software\Microsoft\Windows\CurrentVersion\Run (optional boot entry).
+_WIN_RUN_REGKEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+_WIN_RUN_VALUE_NAME = "TryWorkingHardMouseNudge"
+
+
+def _windows_autostart_command() -> str:
+    """Command line to relaunch the app in tray (matches registry value)."""
+    exe = str(Path(sys.executable).resolve())
+    if getattr(sys, "frozen", False):
+        return f'"{exe}" --start-in-tray'
+    return f'"{exe}" -m mouse_jiggler --start-in-tray'
+
+
+def _windows_run_autostart_read() -> str | None:
+    if sys.platform != "win32":
+        return None
+    import winreg
+
+    try:
+        with winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, _WIN_RUN_REGKEY, 0, winreg.KEY_READ
+        ) as key:
+            val, _ = winreg.QueryValueEx(key, _WIN_RUN_VALUE_NAME)
+        return str(val) if val else None
+    except OSError:
+        return None
+
+
+def _windows_run_autoset(enabled: bool) -> None:
+    if sys.platform != "win32":
+        return
+    import winreg
+
+    if enabled:
+        cmd = _windows_autostart_command()
+        with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, _WIN_RUN_REGKEY) as k:
+            winreg.SetValueEx(
+                k, _WIN_RUN_VALUE_NAME, 0, winreg.REG_SZ, cmd
+            )
+    else:
+        try:
+            with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER, _WIN_RUN_REGKEY, 0, winreg.KEY_SET_VALUE
+            ) as k:
+                winreg.DeleteValue(k, _WIN_RUN_VALUE_NAME)
+        except OSError:
+            pass
+
+
+def _windows_run_autostart_active() -> bool:
+    if sys.platform != "win32":
+        return False
+    cur = _windows_run_autostart_read()
+    return bool(cur) and cur.strip() == _windows_autostart_command().strip()
+
+
 class MouseJigglerApp:
     MIN_MINUTES = nudge_logic.MIN_MINUTES
     DEFAULT_MINUTES = nudge_logic.DEFAULT_MINUTES
@@ -101,48 +235,267 @@ class MouseJigglerApp:
     DEFAULT_PATH_SPEED = nudge_logic.DEFAULT_PATH_SPEED
     MAX_INTERVAL_JITTER_SEC = int(nudge_logic.MAX_INTERVAL_JITTER_SEC)
     _LOG_TRIM_LINES = nudge_logic.LOG_TRIM_LINES
-
-    # High-quality light mode (core surface + sidebar; cards = white w/ border)
-    _MAIN_BG = "#F9FAFB"
-    _SIDEBAR_BG = "#F3F4F6"
-    _CARD_BG = "#FFFFFF"
-    _CARD_BORDER = "#E5E7EB"
-    _ENTRY_BG = "#F9FAFB"
-    _ACCENT = "#3B82F6"
-    _ACCENT_HOVER = "#2563EB"
-    _TEXT_ON_ACCENT = "#FFFFFF"
-    # Segments / in-card chips (not the same as raised cards)
-    _SURFACE_SUBTLE = "#F3F4F6"
-    _SURFACE_SUBTLE_HOVER = "#E5E7EB"
-    _BORDER = "#E5E7EB"
-    # Labels: primary copy #111827; hints one step softer
-    _TEXT_TITLE = "#111827"
-    _TEXT_BODY = "#111827"
-    _TEXT_MUTED = "#6B7280"
-    _TEXT_DISABLED = "#9CA3AF"
-    _TEXT_LOG = "#111827"
-    _NAV_TEXT = "#6B7280"
-    _NAV_HOVER = "#E5E7EB"
-    _NAV_SELECTED = "#3B82F6"
-    _NAV_ON_SELECTED = "#FFFFFF"
     _SIDEBAR_WIDTH = 200
-    _UI_PAD = 20
-    # Home status strip (light surfaces; semantic tints)
-    _STATUS_STRIP_BG_STOP = "#F3F4F6"
-    _STATUS_STRIP_BORDER_STOP = "#E5E7EB"
-    _STATUS_LED_STOP = "#9CA3AF"
-    _STATUS_STRIP_BG_RUN = "#ECFDF5"
-    _STATUS_STRIP_BORDER_RUN = "#6EE7B7"
-    _STATUS_LED_RUN = "#059669"
-    _STATUS_TEXT_RUN = "#065F46"
-    _STATUS_STRIP_BG_BURST = "#FFFBEB"
-    _STATUS_STRIP_BORDER_BURST = "#FCD34D"
-    _STATUS_LED_BURST = "#D97706"
-    _STATUS_TEXT_BURST = "#92400E"
+    _UI_PAD = 26
 
-    def __init__(self) -> None:
-        ctk.set_appearance_mode("light")
-        ctk.set_default_color_theme("blue")
+    def _apply_theme_palette(self, name: UiTheme) -> None:
+        for key, value in _UI_PALETTES[name].items():
+            setattr(self, f"_{key}", value)
+
+    def _set_ctk_builtin_theme(self, name: UiTheme) -> None:
+        if name == "dark":
+            ctk.set_appearance_mode("dark")
+            ctk.set_default_color_theme("dark-blue")
+        else:
+            ctk.set_appearance_mode("light")
+            ctk.set_default_color_theme("blue")
+
+    def _theme_footer_text(self) -> str:
+        return self._t(
+            "theme_status_dark" if self._ui_theme == "dark" else "theme_status_light"
+        )
+
+    def _sync_ui_theme_seg(self) -> None:
+        if not hasattr(self, "_seg_ui_theme"):
+            return
+        d = self._t("theme_appearance_dark")
+        l = self._t("theme_appearance_light")
+        self._seg_ui_theme.set(d if self._ui_theme == "dark" else l)
+
+    def _on_ui_theme_seg(self, value: str) -> None:
+        dark = self._t("theme_appearance_dark")
+        new: UiTheme = "dark" if value == dark else "light"
+        if new == self._ui_theme:
+            return
+        self._ui_theme = new
+        self._apply_theme_palette(self._ui_theme)
+        self._set_ctk_builtin_theme(self._ui_theme)
+        self._reapply_theme_to_widgets()
+        self._apply_language()
+        self._schedule_save_config()
+
+    def _reapply_theme_to_widgets(self) -> None:
+        """Re-apply palette tokens to all widgets after dark/light switch."""
+        self.root.configure(fg_color=self._MAIN_BG)
+        if hasattr(self, "_sidebar"):
+            self._sidebar.configure(fg_color=self._SIDEBAR_BG)
+        if hasattr(self, "_brand"):
+            self._brand.configure(text_color=(self._TEXT_TITLE, self._TEXT_TITLE))
+        if hasattr(self, "_lbl_subtitle"):
+            self._lbl_subtitle.configure(text_color=self._TEXT_BODY)
+        if hasattr(self, "_hint"):
+            self._hint.configure(
+                text=self._theme_footer_text(), text_color=self._TEXT_MUTED
+            )
+        if hasattr(self, "_hint_appearance"):
+            self._hint_appearance.configure(
+                text=self._theme_footer_text(), text_color=self._TEXT_MUTED
+            )
+
+        self._nav_icons = self._build_nav_icons()
+        self._sync_nav_highlight()
+
+        if hasattr(self, "_lbl_dashboard"):
+            self._lbl_dashboard.configure(text_color=(self._TEXT_TITLE, self._TEXT_TITLE))
+        if hasattr(self, "segmented"):
+            self.segmented.configure(
+                fg_color=self._SURFACE_SUBTLE,
+                selected_color=self._ACCENT,
+                selected_hover_color=self._ACCENT_HOVER,
+                unselected_color=self._SURFACE_SUBTLE,
+                unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
+                text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
+            )
+        if hasattr(self, "frame_control"):
+            self.frame_control.configure(
+                fg_color=self._CARD_BG,
+                border_color=self._CARD_BORDER,
+                scrollbar_button_color=self._BTN_SECONDARY,
+                scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
+            )
+        if hasattr(self, "frame_log"):
+            self.frame_log.configure(
+                fg_color=self._CARD_BG,
+                border_color=self._CARD_BORDER,
+            )
+        if hasattr(self, "page_settings"):
+            self.page_settings.configure(
+                fg_color=self._CARD_BG,
+                border_color=self._CARD_BORDER,
+            )
+        if hasattr(self, "page_analytics"):
+            self.page_analytics.configure(
+                fg_color=self._CARD_BG,
+                border_color=self._CARD_BORDER,
+            )
+
+        for w in ("entry_minutes", "entry_pixels", "entry_path_speed"):
+            if hasattr(self, w):
+                getattr(self, w).configure(
+                    fg_color=self._ENTRY_BG,
+                    text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                    border_color=self._ENTRY_BORDER,
+                )
+        if hasattr(self, "seg_interval_unit"):
+            self.seg_interval_unit.configure(
+                fg_color=self._SURFACE_SUBTLE,
+                selected_color=self._ACCENT,
+                selected_hover_color=self._ACCENT_HOVER,
+                unselected_color=self._SURFACE_SUBTLE,
+                unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
+                text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
+            )
+        if hasattr(self, "seg_motion_pattern"):
+            self.seg_motion_pattern.configure(
+                fg_color=self._SURFACE_SUBTLE,
+                selected_color=self._ACCENT,
+                selected_hover_color=self._ACCENT_HOVER,
+                unselected_color=self._BTN_SECONDARY,
+                unselected_hover_color=self._BTN_SECONDARY_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
+            )
+        if hasattr(self, "_seg_ui_theme"):
+            self._seg_ui_theme.configure(
+                fg_color=self._SURFACE_SUBTLE,
+                selected_color=self._ACCENT,
+                selected_hover_color=self._ACCENT_HOVER,
+                unselected_color=self._SURFACE_SUBTLE,
+                unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
+            )
+        if hasattr(self, "_lang_seg"):
+            self._lang_seg.configure(
+                fg_color=self._SURFACE_SUBTLE,
+                selected_color=self._ACCENT,
+                selected_hover_color=self._ACCENT_HOVER,
+                unselected_color=self._SURFACE_SUBTLE,
+                unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
+            )
+
+        if hasattr(self, "btn_start"):
+            self.btn_start.configure(
+                fg_color=self._ACCENT,
+                hover_color=self._ACCENT_HOVER,
+                text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+            )
+        if hasattr(self, "btn_stop"):
+            self.btn_stop.configure(
+                fg_color="transparent",
+                hover_color=self._NAV_HOVER,
+                text_color=(self._NAV_TEXT, self._NAV_TEXT),
+            )
+        if hasattr(self, "btn_open_config"):
+            self.btn_open_config.configure(
+                fg_color="transparent",
+                hover_color=self._NAV_HOVER,
+                text_color=(self._NAV_TEXT, self._NAV_TEXT),
+            )
+        if hasattr(self, "swt_tray"):
+            if self._ui_theme == "dark":
+                self.swt_tray.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#C9D1D9",
+                    button_hover_color="#8B949E",
+                )
+            else:
+                self.swt_tray.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#FFFFFF",
+                    button_hover_color="#F3F4F6",
+                )
+        if hasattr(self, "swt_autostart"):
+            if self._ui_theme == "dark":
+                self.swt_autostart.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#C9D1D9",
+                    button_hover_color="#8B949E",
+                )
+            else:
+                self.swt_autostart.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#FFFFFF",
+                    button_hover_color="#F3F4F6",
+                )
+        if hasattr(self, "_interval_preset_btns"):
+            for b in self._interval_preset_btns:
+                b.configure(
+                    fg_color=self._SURFACE_SUBTLE,
+                    hover_color=self._SURFACE_SUBTLE_HOVER,
+                    text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                )
+
+        for name in (
+            "_lbl_settings_title",
+            "_lbl_analytics_title",
+            "_lbl_interval",
+            "_lbl_interval_presets",
+            "_lbl_pixels",
+            "_lbl_path_speed",
+            "_lbl_motion_pattern",
+            "_lbl_lang",
+            "_lbl_appearance",
+            "_lbl_log_title",
+            "_lbl_tray_sw",
+            "_lbl_autostart_sw",
+        ):
+            if hasattr(self, name):
+                w = getattr(self, name)
+                if name in ("_lbl_settings_title", "_lbl_analytics_title"):
+                    w.configure(text_color=(self._TEXT_TITLE, self._TEXT_TITLE))
+                else:
+                    w.configure(text_color=(self._TEXT_BODY, self._TEXT_BODY))
+
+        for name in (
+            "_lbl_pixels_hint",
+            "_lbl_path_speed_hint",
+            "_hint_tray",
+            "_hint_autostart",
+        ):
+            if hasattr(self, name):
+                getattr(self, name).configure(text_color=self._TEXT_MUTED)
+        if hasattr(self, "_lbl_interval_hint"):
+            self._lbl_interval_hint.configure(text_color=self._TEXT_MUTED)
+        if hasattr(self, "_lbl_analytics_sub"):
+            self._lbl_analytics_sub.configure(text_color=self._TEXT_MUTED)
+        if hasattr(self, "_lbl_interval_presets"):
+            self._lbl_interval_presets.configure(
+                text_color=(self._TEXT_MUTED, self._TEXT_MUTED)
+            )
+
+        if hasattr(self, "log_text"):
+            self.log_text.configure(
+                fg_color=self._ENTRY_BG,
+                text_color=(self._TEXT_LOG, self._TEXT_LOG),
+                border_color=self._ENTRY_BORDER,
+            )
+        if hasattr(self, "analytics_log"):
+            self.analytics_log.configure(
+                fg_color=self._ENTRY_BG,
+                text_color=(self._TEXT_LOG, self._TEXT_LOG),
+                border_color=self._ENTRY_BORDER,
+            )
+
+        if self._stop.is_set() or not (self._worker and self._worker.is_alive()):
+            self._apply_status_chrome("stopped")
+        else:
+            self._refresh_running_status_from_countdown()
+
+    def __init__(self, start_in_tray: bool = False) -> None:
+        self._start_in_tray = bool(start_in_tray) and bool(HAS_TRAY)
+
+        _cfg0 = local_config.load_config()
+        _ut = _cfg0.get("ui_theme")
+        self._ui_theme: UiTheme = _ut if _ut in ("dark", "light") else "light"
+        self._apply_theme_palette(self._ui_theme)
+        self._set_ctk_builtin_theme(self._ui_theme)
 
         self._lang: Lang = "en"
         self._segment_mode: Literal["control", "log"] = "control"
@@ -194,20 +547,34 @@ class MouseJigglerApp:
 
         self._config_loading = True
         try:
-            self._apply_loaded_config(local_config.load_config())
+            self._apply_loaded_config(_cfg0)
         finally:
             self._config_loading = False
         self._register_config_persistence()
 
         self._log(self._t("log_ready"))
         self._setup_a11y()
-        self.root.after(250, self._maybe_show_first_intro)
+        if not self._start_in_tray:
+            self.root.after(250, self._maybe_show_first_intro)
         # CTk can re-apply geometry after the first layout pass; schedule re-maximize after it.
-        self.root.after(0, self._reapply_start_maximized)
-        self.root.after(150, self._reapply_start_maximized)
+        if not self._start_in_tray:
+            self.root.after(0, self._reapply_start_maximized)
+            self.root.after(150, self._reapply_start_maximized)
+        if self._start_in_tray:
+            self.root.after(120, self._bootstrap_tray_start)
+
+    def _bootstrap_tray_start(self) -> None:
+        if self._shutting_down or not HAS_TRAY:
+            return
+        try:
+            self._log_ui(self._t("log_tray_start_hidden"))
+        except tk.TclError:
+            pass
+        self.root.withdraw()
+        self._start_tray()
 
     def _reapply_start_maximized(self) -> None:
-        if self._shutting_down:
+        if self._shutting_down or self._start_in_tray:
             return
         _apply_start_maximized(self.root)
 
@@ -397,6 +764,31 @@ class MouseJigglerApp:
         self._set_interval_hint()
         self._schedule_save_config()
 
+    def _apply_interval_preset(self, value: str, unit: nudge_logic.IntervalUnit) -> None:
+        if self._shutting_down:
+            return
+        self._interval_unit = unit
+        self.var_minutes.set(value)
+        self._sync_interval_unit_seg()
+        self._set_interval_hint()
+        self._schedule_save_config()
+
+    def _on_autostart_win_committed(self) -> None:
+        if self._shutting_down or self._config_loading:
+            return
+        if sys.platform != "win32" or not HAS_TRAY:
+            return
+        _windows_run_autoset(bool(self.var_autostart_win.get()))
+
+    def _set_interval_preset_widgets_state(self, st: str) -> None:
+        if not hasattr(self, "_interval_preset_btns"):
+            return
+        for b in self._interval_preset_btns:
+            try:
+                b.configure(state=st)
+            except (tk.TclError, AttributeError):
+                pass
+
     def _seg_value_for_motion_pattern(self, p: MotionPattern) -> str:
         if p == "horizontal":
             return self._t("motion_pattern_line")
@@ -461,11 +853,23 @@ class MouseJigglerApp:
         self.var_tray_close.set(bool(cfg.get("close_to_tray", False)))
         self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
         self._lang_seg.set("繁中" if self._lang == "zh" else "English")
+
+        ut = cfg.get("ui_theme")
+        if ut in ("dark", "light") and ut != self._ui_theme:
+            self._ui_theme = ut  # type: ignore[assignment]
+            self._apply_theme_palette(self._ui_theme)
+            self._set_ctk_builtin_theme(self._ui_theme)
+            self._reapply_theme_to_widgets()
+        elif ut in ("dark", "light"):
+            self._ui_theme = ut  # type: ignore[assignment]
+        self._sync_ui_theme_seg()
+
         self._apply_language()
 
     def _config_snapshot(self) -> dict[str, Any]:
         return {
             "lang": self._lang,
+            "ui_theme": self._ui_theme,
             "interval_text": self.var_minutes.get(),
             "interval_unit": self._interval_unit,
             "interval_jitter_text": self.var_interval_jitter.get(),
@@ -478,6 +882,8 @@ class MouseJigglerApp:
 
     def _maybe_show_first_intro(self) -> None:
         if self._shutting_down:
+            return
+        if self._start_in_tray:
             return
         if self._intro_acknowledged:
             return
@@ -557,11 +963,16 @@ class MouseJigglerApp:
     def _apply_language(self) -> None:
         self.root.title(self._t("window_title"))
         self._lbl_subtitle.configure(text=self._t("app_subtitle"))
+        if hasattr(self, "_lbl_appearance"):
+            self._lbl_appearance.configure(text=self._t("theme_appearance"))
         self._lbl_lang.configure(text=self._t("lang_ui"))
-        self._hint.configure(text=self._t("theme_hint"))
-        self._hint_settings.configure(text=self._t("theme_hint"))
+        self._hint.configure(text=self._theme_footer_text())
+        if hasattr(self, "_hint_appearance"):
+            self._hint_appearance.configure(text=self._theme_footer_text())
         self._lbl_dashboard.configure(text=self._t("dashboard"))
         self._lbl_interval.configure(text=self._t("interval_label"))
+        if hasattr(self, "_lbl_interval_presets"):
+            self._lbl_interval_presets.configure(text=self._t("interval_presets_caption"))
         if hasattr(self, "seg_interval_unit"):
             self._sync_interval_unit_seg()
         self._set_interval_hint()
@@ -570,6 +981,9 @@ class MouseJigglerApp:
             self._lbl_interval_jitter_hint.configure(
                 text=self._t("interval_jitter_hint", max=self.MAX_INTERVAL_JITTER_SEC)
             )
+        if hasattr(self, "_interval_preset_btns") and hasattr(self, "_interval_preset_specs"):
+            for b, spec in zip(self._interval_preset_btns, self._interval_preset_specs, strict=True):
+                b.configure(text=self._t(spec))
         if hasattr(self, "_lbl_motion_pattern"):
             self._lbl_motion_pattern.configure(text=self._t("motion_pattern_label"))
         self._sync_motion_pattern_seg()
@@ -593,6 +1007,15 @@ class MouseJigglerApp:
         if not HAS_TRAY:
             tray_hint += self._t("tray_no_pystray")
         self._hint_tray.configure(text=tray_hint)
+        if hasattr(self, "_lbl_autostart_sw"):
+            self._lbl_autostart_sw.configure(text=self._t("autostart_switch_title"))
+        if hasattr(self, "_hint_autostart"):
+            a_start = self._t("autostart_switch_hint")
+            if sys.platform != "win32":
+                a_start += self._t("autostart_not_windows")
+            elif not HAS_TRAY:
+                a_start += self._t("autostart_requires_tray")
+            self._hint_autostart.configure(text=a_start)
         self._lbl_log_title.configure(text=self._t("log_title"))
         self._lbl_settings_title.configure(text=self._t("settings_title"))
         if hasattr(self, "btn_open_config"):
@@ -606,6 +1029,14 @@ class MouseJigglerApp:
 
         self.segmented.configure(values=[self._t("seg_control"), self._t("seg_log")])
         self.segmented.set(self._segment_text(self._segment_mode))
+        if hasattr(self, "_seg_ui_theme"):
+            self._seg_ui_theme.configure(
+                values=[
+                    self._t("theme_appearance_dark"),
+                    self._t("theme_appearance_light"),
+                ]
+            )
+        self._sync_ui_theme_seg()
         self._sync_nav_highlight()
 
         if self._stop.is_set() or not (self._worker and self._worker.is_alive()):
@@ -728,7 +1159,7 @@ class MouseJigglerApp:
             image=icon,
             compound="left",
             anchor="w",
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             height=44,
             font=self._font_body,
             fg_color="transparent",
@@ -739,23 +1170,24 @@ class MouseJigglerApp:
 
     def _build_sidebar(self) -> None:
         p = self._UI_PAD
-        sidebar = ctk.CTkFrame(
+        self._sidebar = ctk.CTkFrame(
             self.root,
             width=self._SIDEBAR_WIDTH,
-            corner_radius=_R_MAIN,
+            corner_radius=_R,
             fg_color=self._SIDEBAR_BG,
         )
-        sidebar.grid(row=0, column=0, sticky="nsew", padx=(p, 0), pady=p)
-        sidebar.grid_propagate(False)
+        self._sidebar.grid(row=0, column=0, sticky="nsew", padx=(p, 0), pady=p)
+        self._sidebar.grid_propagate(False)
+        sidebar = self._sidebar
 
-        brand = ctk.CTkLabel(
+        self._brand = ctk.CTkLabel(
             sidebar,
             text="try-working-hard",
             font=self._font_brand,
             text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
             anchor="w",
         )
-        brand.pack(anchor="w", padx=p, pady=(p, 4))
+        self._brand.pack(anchor="w", padx=p, pady=(p, 4))
 
         self._lbl_subtitle = ctk.CTkLabel(
             sidebar,
@@ -796,7 +1228,7 @@ class MouseJigglerApp:
 
         self._hint = ctk.CTkLabel(
             sidebar,
-            text=self._t("theme_hint"),
+            text=self._theme_footer_text(),
             font=ctk.CTkFont(family=_FONT_INTER, size=11),
             text_color=self._TEXT_MUTED,
         )
@@ -805,24 +1237,24 @@ class MouseJigglerApp:
 
     def _build_main(self) -> None:
         p = self._UI_PAD
-        main = ctk.CTkFrame(self.root, corner_radius=_R_MAIN, fg_color="transparent")
+        main = ctk.CTkFrame(self.root, corner_radius=_R, fg_color="transparent")
         main.grid(row=0, column=1, sticky="nsew", padx=(0, p), pady=p)
         main.grid_columnconfigure(0, weight=1)
         main.grid_rowconfigure(0, weight=1)
 
-        self.pages_host = ctk.CTkFrame(main, corner_radius=_R_MAIN, fg_color="transparent")
+        self.pages_host = ctk.CTkFrame(main, corner_radius=_R, fg_color="transparent")
         self.pages_host.grid(row=0, column=0, sticky="nsew")
         self.pages_host.grid_columnconfigure(0, weight=1)
         self.pages_host.grid_rowconfigure(0, weight=1)
 
-        self.page_home = ctk.CTkFrame(self.pages_host, corner_radius=_R_MAIN, fg_color="transparent")
+        self.page_home = ctk.CTkFrame(self.pages_host, corner_radius=_R, fg_color="transparent")
         self.page_home.grid(row=0, column=0, sticky="nsew")
         self.page_home.grid_columnconfigure(0, weight=1)
         self.page_home.grid_rowconfigure(3, weight=1)
 
         self._status_strip = ctk.CTkFrame(
             self.page_home,
-            corner_radius=_R_MAIN,
+            corner_radius=_R,
             fg_color=self._STATUS_STRIP_BG_STOP,
             border_width=1,
             border_color=self._STATUS_STRIP_BORDER_STOP,
@@ -866,7 +1298,7 @@ class MouseJigglerApp:
             head,
             values=[self._t("seg_control"), self._t("seg_log")],
             command=self._on_segment,
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             font=self._font_body_bold,
             height=38,
             fg_color=self._SURFACE_SUBTLE,
@@ -889,7 +1321,7 @@ class MouseJigglerApp:
         self.frame_control = ctk.CTkScrollableFrame(
             self.content_host,
             fg_color=self._CARD_BG,
-            corner_radius=_R_MAIN,
+            corner_radius=_R,
             border_width=1,
             border_color=self._CARD_BORDER,
             scrollbar_button_color=self._BTN_SECONDARY,
@@ -902,7 +1334,7 @@ class MouseJigglerApp:
         self.frame_log = ctk.CTkFrame(
             self.content_host,
             fg_color=self._CARD_BG,
-            corner_radius=_R_MAIN,
+            corner_radius=_R,
             border_width=1,
             border_color=self._CARD_BORDER,
         )
@@ -911,7 +1343,7 @@ class MouseJigglerApp:
 
         self.page_settings = ctk.CTkFrame(
             self.pages_host,
-            corner_radius=_R_MAIN,
+            corner_radius=_R,
             fg_color=self._CARD_BG,
             border_width=1,
             border_color=self._CARD_BORDER,
@@ -920,7 +1352,7 @@ class MouseJigglerApp:
 
         self.page_analytics = ctk.CTkFrame(
             self.pages_host,
-            corner_radius=_R_MAIN,
+            corner_radius=_R,
             fg_color=self._CARD_BG,
             border_width=1,
             border_color=self._CARD_BORDER,
@@ -953,7 +1385,7 @@ class MouseJigglerApp:
         ):
             if key == self._active_nav:
                 icon = self._one_nav_ctk_image(
-                    key, self._NAV_ON_SELECTED, "#E5E7EB"
+                    key, self._NAV_ON_SELECTED, self._TEXT_BODY
                 )
                 btn.configure(
                     image=icon,
@@ -984,20 +1416,23 @@ class MouseJigglerApp:
         )
         self._lbl_settings_title.grid(row=0, column=0, sticky="w", padx=p, pady=(p, p))
 
-        self._lbl_lang = ctk.CTkLabel(
+        self._lbl_appearance = ctk.CTkLabel(
             card,
-            text=self._t("lang_ui"),
+            text=self._t("theme_appearance"),
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_lang.grid(row=1, column=0, sticky="w", padx=p, pady=(0, p))
+        self._lbl_appearance.grid(row=1, column=0, sticky="w", padx=p, pady=(0, p))
 
-        self._lang_seg = ctk.CTkSegmentedButton(
+        self._seg_ui_theme = ctk.CTkSegmentedButton(
             card,
-            values=["繁中", "English"],
-            command=self._on_lang_switch,
-            corner_radius=_R_CTL,
+            values=[
+                self._t("theme_appearance_dark"),
+                self._t("theme_appearance_light"),
+            ],
+            command=self._on_ui_theme_seg,
+            corner_radius=_R,
             font=self._font_body_bold,
             height=36,
             fg_color=self._SURFACE_SUBTLE,
@@ -1007,18 +1442,45 @@ class MouseJigglerApp:
             unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
             text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
         )
-        self._lang_seg.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
-        self._lang_seg.set("English")
-        _try_takefocus(self._lang_seg, 1)
+        self._seg_ui_theme.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._sync_ui_theme_seg()
+        _try_takefocus(self._seg_ui_theme, 1)
 
-        self._hint_settings = ctk.CTkLabel(
+        self._hint_appearance = ctk.CTkLabel(
             card,
-            text=self._t("theme_hint"),
+            text=self._theme_footer_text(),
             font=ctk.CTkFont(family=_FONT_INTER, size=11),
             text_color=self._TEXT_MUTED,
             anchor="w",
         )
-        self._hint_settings.grid(row=3, column=0, sticky="w", padx=p, pady=(p, p))
+        self._hint_appearance.grid(row=3, column=0, sticky="w", padx=p, pady=(p, p))
+
+        self._lbl_lang = ctk.CTkLabel(
+            card,
+            text=self._t("lang_ui"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_lang.grid(row=4, column=0, sticky="w", padx=p, pady=(0, p))
+
+        self._lang_seg = ctk.CTkSegmentedButton(
+            card,
+            values=["繁中", "English"],
+            command=self._on_lang_switch,
+            corner_radius=_R,
+            font=self._font_body_bold,
+            height=36,
+            fg_color=self._SURFACE_SUBTLE,
+            selected_color=self._ACCENT,
+            selected_hover_color=self._ACCENT_HOVER,
+            unselected_color=self._SURFACE_SUBTLE,
+            unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
+        )
+        self._lang_seg.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._lang_seg.set("English")
+        _try_takefocus(self._lang_seg, 1)
 
         self.btn_open_config = self._btn(
             card,
@@ -1029,12 +1491,12 @@ class MouseJigglerApp:
             text_color=(self._NAV_TEXT, self._NAV_TEXT),
             anchor="w",
         )
-        self.btn_open_config.grid(row=4, column=0, sticky="w", padx=p, pady=(0, p))
+        self.btn_open_config.grid(row=6, column=0, sticky="w", padx=p, pady=(0, p))
         _try_takefocus(self.btn_open_config, 1)
 
         self.var_tray_close = tk.BooleanVar(value=False)
         tray_row = ctk.CTkFrame(card, fg_color="transparent")
-        tray_row.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, 8))
+        tray_row.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, 8))
         tray_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_tray_sw = ctk.CTkLabel(
@@ -1074,9 +1536,61 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_tray.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_tray.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
         if not HAS_TRAY:
             self.swt_tray.configure(state="disabled")
+
+        can_autowin = sys.platform == "win32" and HAS_TRAY
+        self.var_autostart_win = tk.BooleanVar(
+            value=bool(can_autowin and _windows_run_autostart_active())
+        )
+        autostart_row = ctk.CTkFrame(card, fg_color="transparent")
+        autostart_row.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
+        autostart_row.grid_columnconfigure(0, weight=1)
+
+        self._lbl_autostart_sw = ctk.CTkLabel(
+            autostart_row,
+            text=self._t("autostart_switch_title"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_autostart_sw.grid(row=0, column=0, sticky="w")
+
+        self.swt_autostart = ctk.CTkSwitch(
+            autostart_row,
+            text="",
+            variable=self.var_autostart_win,
+            width=52,
+            switch_width=40,
+            switch_height=22,
+            fg_color=self._BORDER,
+            progress_color=self._ACCENT,
+            button_color="#FFFFFF",
+            button_hover_color="#F3F4F6",
+            font=self._font_body,
+            command=self._on_autostart_win_committed,
+        )
+        self.swt_autostart.grid(row=0, column=1, sticky="e", padx=(16, 0))
+        _try_takefocus(self.swt_autostart, 1)
+
+        a_hint = self._t("autostart_switch_hint")
+        if sys.platform != "win32":
+            a_hint += self._t("autostart_not_windows")
+        elif not HAS_TRAY:
+            a_hint += self._t("autostart_requires_tray")
+        self._hint_autostart = ctk.CTkLabel(
+            card,
+            text=a_hint,
+            font=self._font_hint,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+            justify="left",
+            wraplength=520,
+        )
+        self._hint_autostart.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
+        if not can_autowin:
+            self.swt_autostart.configure(state="disabled")
 
     def _fill_analytics_panel(self, card: ctk.CTkFrame) -> None:
         p = self._UI_PAD
@@ -1102,12 +1616,12 @@ class MouseJigglerApp:
 
         self.analytics_log = ctk.CTkTextbox(
             card,
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             font=self._font_mono,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_LOG, self._TEXT_LOG),
             border_width=1,
-            border_color=self._BORDER,
+            border_color=self._ENTRY_BORDER,
         )
         self.analytics_log.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
         self.analytics_log.configure(state="disabled")
@@ -1144,12 +1658,12 @@ class MouseJigglerApp:
             textvariable=self.var_minutes,
             width=120,
             height=40,
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             font=self._font_body,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             border_width=1,
-            border_color=self._BORDER,
+            border_color=self._ENTRY_BORDER,
         )
         self.entry_minutes.pack(side="left")
         _try_takefocus(self.entry_minutes, 1)
@@ -1157,7 +1671,7 @@ class MouseJigglerApp:
             row1,
             values=[self._t("interval_unit_min"), self._t("interval_unit_sec")],
             command=self._on_interval_unit_seg,
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             font=self._font_body,
             height=38,
             fg_color=self._SURFACE_SUBTLE,
@@ -1178,27 +1692,63 @@ class MouseJigglerApp:
         self._set_interval_hint()
         self._a11y_label_focus_entry(self._lbl_interval, self.entry_minutes)
 
+        self._lbl_interval_presets = ctk.CTkLabel(
+            card,
+            text=self._t("interval_presets_caption"),
+            font=self._font_body,
+            text_color=(self._TEXT_MUTED, self._TEXT_MUTED),
+            anchor="w",
+        )
+        self._lbl_interval_presets.grid(row=2, column=0, sticky="w", padx=p, pady=(0, 2))
+        preset_row = ctk.CTkFrame(card, fg_color="transparent")
+        preset_row.grid(row=3, column=0, sticky="w", padx=p, pady=(0, p))
+        self._interval_preset_specs = [
+            "interval_preset_30s",
+            "interval_preset_1m",
+            "interval_preset_5m",
+            "interval_preset_10m",
+        ]
+        self._interval_preset_btns = []
+        for spec, (pv, punit) in zip(
+            self._interval_preset_specs,
+            (("30", "sec"), ("1", "min"), ("5", "min"), ("10", "min")),
+            strict=True,
+        ):
+            b = self._btn(
+                preset_row,
+                text=self._t(spec),
+                width=60,
+                height=34,
+                font=self._font_body,
+                fg_color=self._SURFACE_SUBTLE,
+                hover_color=self._SURFACE_SUBTLE_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                command=lambda v=pv, u=punit: self._apply_interval_preset(v, u),
+            )
+            b.pack(side="left", padx=(0, 6))
+            self._interval_preset_btns.append(b)
+
         self._lbl_interval_jitter = ctk.CTkLabel(
             card,
             text=self._t("interval_jitter_label"),
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_interval_jitter.grid(row=2, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_interval_jitter.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
         row_jitter = ctk.CTkFrame(card, fg_color="transparent")
-        row_jitter.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_jitter.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_interval_jitter = tk.StringVar(value="0")
         self.entry_interval_jitter = ctk.CTkEntry(
             row_jitter,
             textvariable=self.var_interval_jitter,
             width=120,
             height=40,
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             font=self._font_body,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             border_width=1,
-            border_color=self._BORDER,
+            border_color=self._ENTRY_BORDER,
         )
         self.entry_interval_jitter.pack(side="left")
         _try_takefocus(self.entry_interval_jitter, 1)
@@ -1217,21 +1767,21 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_pixels.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_pixels.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
         row3 = ctk.CTkFrame(card, fg_color="transparent")
-        row3.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        row3.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_pixels = tk.StringVar(value=str(self.DEFAULT_PIXELS))
         self.entry_pixels = ctk.CTkEntry(
             row3,
             textvariable=self.var_pixels,
             width=120,
             height=40,
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             font=self._font_body,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             border_width=1,
-            border_color=self._BORDER,
+            border_color=self._ENTRY_BORDER,
         )
         self.entry_pixels.pack(side="left")
         _try_takefocus(self.entry_pixels, 1)
@@ -1250,21 +1800,21 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_path_speed.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_path_speed.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
         row_path_speed = ctk.CTkFrame(card, fg_color="transparent")
-        row_path_speed.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_path_speed.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_path_speed = tk.StringVar(value=str(int(self.DEFAULT_PATH_SPEED)))
         self.entry_path_speed = ctk.CTkEntry(
             row_path_speed,
             textvariable=self.var_path_speed,
             width=120,
             height=40,
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             font=self._font_body,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             border_width=1,
-            border_color=self._BORDER,
+            border_color=self._ENTRY_BORDER,
         )
         self.entry_path_speed.pack(side="left")
         _try_takefocus(self.entry_path_speed, 1)
@@ -1287,9 +1837,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_motion_pattern.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_motion_pattern.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
         row_pattern = ctk.CTkFrame(card, fg_color="transparent")
-        row_pattern.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_pattern.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, p))
         self.seg_motion_pattern = ctk.CTkSegmentedButton(
             row_pattern,
             values=[
@@ -1301,7 +1851,7 @@ class MouseJigglerApp:
             corner_radius=10,
             font=self._font_body,
             height=36,
-            fg_color=self._CARD_BG,
+            fg_color=self._SURFACE_SUBTLE,
             selected_color=self._ACCENT,
             selected_hover_color=self._ACCENT_HOVER,
             unselected_color=self._BTN_SECONDARY,
@@ -1315,7 +1865,7 @@ class MouseJigglerApp:
         self._a11y_label_focus_entry(self._lbl_motion_pattern, self.seg_motion_pattern)
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        btn_row.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
+        btn_row.grid(row=12, column=0, sticky="w", padx=p, pady=(p, p))
 
         self.btn_start = self._btn(
             btn_row,
@@ -1356,12 +1906,12 @@ class MouseJigglerApp:
 
         self.log_text = ctk.CTkTextbox(
             card,
-            corner_radius=_R_CTL,
+            corner_radius=_R,
             font=self._font_mono,
             fg_color=self._ENTRY_BG,
             text_color=(self._TEXT_LOG, self._TEXT_LOG),
             border_width=1,
-            border_color=self._BORDER,
+            border_color=self._ENTRY_BORDER,
         )
         self.log_text.grid(row=1, column=0, sticky="nsew", padx=p, pady=(0, p))
         self.log_text.configure(state="disabled")
@@ -1560,6 +2110,7 @@ class MouseJigglerApp:
         self.entry_pixels.configure(state="disabled")
         self.entry_path_speed.configure(state="disabled")
         self.entry_interval_jitter.configure(state="disabled")
+        self._set_interval_preset_widgets_state("disabled")
         try:
             self.seg_interval_unit.configure(state="disabled")
         except (tk.TclError, AttributeError):
@@ -1629,6 +2180,7 @@ class MouseJigglerApp:
         self.entry_pixels.configure(state="normal")
         self.entry_path_speed.configure(state="normal")
         self.entry_interval_jitter.configure(state="normal")
+        self._set_interval_preset_widgets_state("normal")
         try:
             self.seg_interval_unit.configure(state="normal")
         except (tk.TclError, AttributeError):
@@ -1735,4 +2287,14 @@ class MouseJigglerApp:
 
 
 def main() -> None:
-    MouseJigglerApp().run()
+    p = argparse.ArgumentParser(
+        prog="mouse_jiggler",
+        description="Mouse nudge on a schedule (CustomTkinter UI).",
+    )
+    p.add_argument(
+        "--start-in-tray",
+        action="store_true",
+        help="Start with the main window in the system tray (requires pystray).",
+    )
+    a = p.parse_args()
+    MouseJigglerApp(start_in_tray=bool(a.start_in_tray)).run()

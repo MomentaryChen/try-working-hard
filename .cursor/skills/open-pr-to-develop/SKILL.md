@@ -16,7 +16,6 @@ Create a **GitHub PR** with **base `develop`**, after **pushing** the current br
 ## Preconditions
 
 - Current branch is **not** `develop`, `master`, or `main`.
-- **No unresolved merge conflicts with the PR base**: after `git fetch origin develop`, run `git merge --no-commit --no-ff origin/develop`; if conflicts appear, resolve (or rebase onto `origin/develop`) before opening the PR; if the test merge is clean and only a check was needed, `git merge --abort`. See `.cursor/commands/pr-to-develop.md` **Before you submit**.
 - At least **one commit** exists that is **not** in `origin/develop` (agent should suggest `git fetch origin develop` if needed).
 - **`gh`** is installed and authenticated (`gh auth login`).
 - Prefer a **clean** working tree for the PR to match “this change”; if there are uncommitted files, the script warns—the user should commit first if they want everything included.
