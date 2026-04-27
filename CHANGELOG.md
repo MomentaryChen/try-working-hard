@@ -6,14 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Schedule (Windows)**: nudges run only after the **interval** elapses with **no keyboard or mouse input**, using `GetLastInputInfo` (not a fixed wall-clock timer). Repeats while you stay idle require at least one full interval between nudges so synthetic cursor motion does not immediately re-trigger if the OS does not count it as user input.
+
 ### Added
 
 - **Dark / light UI**: **Settings → Appearance** toggles **Dark** or **Light**; the choice is stored in `config.json` as **`ui_theme`** (`"dark"` or `"light"`, default **`"light"`**). Dark mode uses a GitHub-style dark surface; light mode matches the **#F9FAFB** / card layout.
 - **Windows: Start with Windows** (Settings, when `pystray` is available): optional entry under **HKCU\Software\Microsoft\Windows\CurrentVersion\Run** so the app starts at sign-in; it passes **`--start-in-tray`** to open with the main window in the system tray.
 - **Home → Control:** quick interval buttons **30s / 1m / 5m / 10m** next to the interval field (they set the unit and value together).
 - **CLI:** `python -m mouse_jiggler --start-in-tray` to launch with the main window hidden and the tray only (pystray required; same as autostart when enabled from Settings).
-- **Interval jitter (± sec)** on Home → Control: optional per-wait randomization so each delay is `interval ± N` seconds (uniform), clamped to the same minimum as the main interval. Stored as `interval_jitter_text` in `config.json` (0–3600; `0` disables).
-
+- **Home → Control → Work hours (09:00–18:00)**: optional **schedule window** so nudges run only on **Mon–Fri** between **09:00 and 18:00** (local time); **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long-running background schedules. Persisted in `config.json` as `schedule_window`.
+- **Interval jitter (± sec)** on Home → Control: optional per-wait randomization of the **idle-required** interval so each spacing is `interval ± N` seconds (uniform), clamped to the same minimum as the main interval. Stored as `interval_jitter_text` in `config.json` (0–3600; `0` disables).
 - **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
 
 ### Changed
@@ -25,7 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Cursor command** `.cursor/commands/pr-to-develop.md`: removed the **Before you submit** block (local pre-merge conflict check); **open-pr-to-develop** skill preconditions updated to match.
 - **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
 - **Home status**: the schedule state is shown in a **bordered strip** at the **top** of Home with a **colored indicator** and tint (muted when stopped, green while counting down to the next nudge, amber reserved for an active-motion phase if enabled in the future). The **progress bar** was removed in favor of the status text alone.
-- **Home → Control**: control card is **scrollable** so short windows still show Start, Stop, and fields; field order is interval (with quick presets) → interval jitter → nudge size → path speed → motion path.
+- **Home → Control**: control card is **scrollable** so short windows still show Start, Stop, and fields; field order is interval (with quick presets) → interval jitter → nudge size → path speed → motion path → optional work-hours switch.
 - **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.
 - **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
 - **docs/ACCESSIBILITY.md**: keyboard and reduced-motion notes updated for the Home status line (progress bar removed).

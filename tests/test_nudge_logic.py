@@ -160,6 +160,29 @@ def test_log_lines_to_delete_from_top(total: int, max_lines: int, drop: int) -> 
     assert nudge_logic.log_lines_to_delete_from_top(total, max_lines) == drop
 
 
+def test_eta_seconds_until_idle_nudge_first_nudge_only_idle_matters() -> None:
+    """No prior nudge: ETA is time until idle reaches interval."""
+    eta = nudge_logic.eta_seconds_until_idle_nudge(
+        60.0, 10.0, now=100.0, last_nudge_monotonic=None
+    )
+    assert eta == 50.0
+
+
+def test_eta_seconds_until_idle_nudge_cooldown_after_nudge() -> None:
+    """After a nudge, spacing can extend ETA even if already idle long enough."""
+    eta = nudge_logic.eta_seconds_until_idle_nudge(
+        60.0, 300.0, now=100.0, last_nudge_monotonic=95.0
+    )
+    assert eta == 55.0
+
+
+def test_eta_seconds_until_idle_nudge_max_of_idle_and_gap() -> None:
+    eta = nudge_logic.eta_seconds_until_idle_nudge(
+        60.0, 50.0, now=200.0, last_nudge_monotonic=150.0
+    )
+    assert eta == 10.0
+
+
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
