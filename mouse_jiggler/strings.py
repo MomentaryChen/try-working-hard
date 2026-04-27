@@ -20,6 +20,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "interval_unit_sec": "秒",
         "interval_hint_min": "≥ 0.1，可小數",
         "interval_hint_sec": "≥ 6，可小數",
+        "interval_jitter_label": "間隔隨機（± 秒）",
+        "interval_jitter_hint": "0 ＝ 關閉；每次等待為間隔 ± 此值（秒）· 0–{max}",
         "motion_pattern_label": "移動路徑",
         "motion_pattern_line": "直線",
         "motion_pattern_circle": "圓形",
@@ -45,7 +47,9 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "log_start_fail_interval": "開始失敗：間隔設定無效。",
         "log_start_fail_pixels": "開始失敗：位移設定無效。",
         "log_started_min": "已開始，間隔 {v:g} 分鐘（約 {sec:.0f} 秒）、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
+        "log_started_min_jitter": "已開始，間隔 {v:g} 分鐘（約 {sec:.0f} 秒）、±{j:g} 秒隨機、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
         "log_started_sec": "已開始，間隔 {v:g} 秒、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
+        "log_started_sec_jitter": "已開始，間隔 {v:g} 秒、±{j:g} 秒隨機、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
         "log_stopped": "已手動停止。",
         "log_nudge": "已執行游標微動。",
         "log_nudge_zero": "已觸發排程（位移 0，未移動游標）。",
@@ -55,6 +59,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "err_title": "輸入錯誤",
         "err_minutes": "請輸入有效的分鐘數（數字，且 ≥ {min}）。",
         "err_seconds": "請輸入有效的秒數（數字，且 ≥ {min}）。",
+        "err_jitter": "請輸入有效的隨機秒數（數字，0–{max}）。",
+        "log_start_fail_jitter": "開始失敗：間隔隨機設定無效。",
         "err_pixels": "請輸入有效的位移像素（整數，{lo}–{hi}）。",
         "tray_show": "顯示主視窗",
         "tray_quit": "結束程式",
@@ -85,7 +91,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5 停止\n"
         "· Enter 開始、Esc 停止（僅主視窗顯示時；條件同 F5／Shift+F5）\n"
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
-        "可點擊「間隔」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」。\n\n"
+        "可點擊「間隔」「間隔隨機」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
     },
     "en": {
@@ -101,6 +107,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "interval_unit_sec": "sec",
         "interval_hint_min": "≥ 0.1, decimals allowed",
         "interval_hint_sec": "≥ 6, decimals (same minimum as 0.1 min)",
+        "interval_jitter_label": "Interval jitter (± sec)",
+        "interval_jitter_hint": "0 = off; each wait is interval ± this many seconds · 0–{max}",
         "motion_pattern_label": "Path",
         "motion_pattern_line": "Line",
         "motion_pattern_circle": "Circle",
@@ -126,7 +134,9 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "log_start_fail_interval": "Start failed: invalid interval.",
         "log_start_fail_pixels": "Start failed: invalid nudge size.",
         "log_started_min": "Started: every {v:g} min (~{sec:.0f} s), path {pat}, nudge {px} px, path speed {ps}.",
+        "log_started_min_jitter": "Started: every {v:g} min (~{sec:.0f} s), ±{j:g} s jitter, path {pat}, nudge {px} px, path speed {ps}.",
         "log_started_sec": "Started: every {v:g} s, path {pat}, nudge {px} px, path speed {ps}.",
+        "log_started_sec_jitter": "Started: every {v:g} s, ±{j:g} s jitter, path {pat}, nudge {px} px, path speed {ps}.",
         "log_stopped": "Stopped manually.",
         "log_nudge": "Cursor nudge executed.",
         "log_nudge_zero": "Tick fired (0 px — cursor not moved).",
@@ -136,6 +146,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "err_title": "Invalid input",
         "err_minutes": "Enter a valid interval in minutes (number, ≥ {min}).",
         "err_seconds": "Enter a valid interval in seconds (number, ≥ {min}).",
+        "err_jitter": "Enter a valid jitter in seconds (number, 0–{max}).",
+        "log_start_fail_jitter": "Start failed: invalid interval jitter.",
         "err_pixels": "Enter a valid nudge size (integer, {lo}–{hi}).",
         "tray_show": "Show window",
         "tray_quit": "Quit",
@@ -166,7 +178,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5  Stop\n"
         "· Enter / Esc  Start / Stop (main window visible only; same rules as F5 / Shift+F5)\n"
         "· F6  Home: toggle Control / Log\n\n"
-        "Click the Interval, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval unit.\n\n"
+        "Click the Interval, Interval jitter, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval unit.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
         "Tab / Shift+Tab move focus; tooltips are not used for the canvas controls.",
     },

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import random
 from typing import Literal
 
 MIN_MINUTES = 0.1
@@ -17,6 +18,8 @@ MIN_PATH_SPEED = 1
 MAX_PATH_SPEED = 10
 DEFAULT_PATH_SPEED = 5
 LOG_TRIM_LINES = 48
+# Upper bound for ± jitter (seconds) in the UI and config.
+MAX_INTERVAL_JITTER_SEC = 3600.0
 
 
 def parse_minutes_string(raw: str, *, min_minutes: float = MIN_MINUTES) -> float | None:
@@ -115,3 +118,37 @@ def log_lines_to_delete_from_top(total_lines: int, max_lines: int) -> int:
     """How many lines to remove from the head so at most ``max_lines`` remain."""
     excess = total_lines - max_lines
     return excess if excess > 0 else 0
+
+
+def parse_interval_jitter_seconds_string(
+    raw: str,
+    *,
+    max_jitter: float = MAX_INTERVAL_JITTER_SEC,
+) -> float | None:
+    """Parse non-negative jitter in seconds; ``None`` if out of range or invalid."""
+    s = raw.strip().replace(",", ".")
+    try:
+        v = float(s)
+    except ValueError:
+        return None
+    if not math.isfinite(v) or v < 0.0 or v > max_jitter:
+        return None
+    return v
+
+
+def next_wait_seconds(base_sec: float, jitter_sec: float) -> float:
+    """
+    Draw the next sleep duration: uniform in ``[base - j, base + j]``, floored at
+    ``MIN_SECONDS``. When ``jitter_sec`` is zero or negative, returns ``base_sec``
+    (caller should already enforce ``base_sec >= MIN_SECONDS``).
+    """
+    if not math.isfinite(base_sec):
+        return MIN_SECONDS
+    base = max(MIN_SECONDS, base_sec)
+    if jitter_sec <= 0.0 or not math.isfinite(jitter_sec):
+        return base
+    j = min(max(0.0, jitter_sec), MAX_INTERVAL_JITTER_SEC)
+    low = base - j
+    high = base + j
+    w = random.uniform(low, high)
+    return max(MIN_SECONDS, w)
