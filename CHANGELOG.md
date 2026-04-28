@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **GUI responsiveness**: the status strip and LED skip redundant color updates when the run state is unchanged (fewer CustomTkinter repaints while the countdown updates). **Analytics** Matplotlib canvases use **deferred draws** (`draw_idle`) and **cache chart font setup** per UI language so periodic refreshes do less work on the main thread.
+
 ### Fixed
 
 - **Analytics (Matplotlib)**: empty-state and axis labels no longer render as **garbled or tofu blocks** when the UI language is **Chinese**; plots use a **CJK-capable** system font on Windows (Microsoft JhengHei / YaHei via explicit `FontProperties`) and disable problematic Unicode minus handling.

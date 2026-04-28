@@ -284,6 +284,7 @@ class MouseJigglerApp:
 
     def _reapply_theme_to_widgets(self) -> None:
         """Re-apply palette tokens to all widgets after dark/light switch."""
+        self._status_chrome_kind_applied = None
         self.root.configure(fg_color=self._MAIN_BG)
         if hasattr(self, "_sidebar"):
             self._sidebar.configure(fg_color=self._SIDEBAR_BG)
@@ -590,6 +591,11 @@ class MouseJigglerApp:
         self._analytics_trigger_mode: Literal["today", "week"] = "today"
         self._analytics_runtime_anchor = 0.0
         self._analytics_runtime_after_id: str | None = None
+        self._status_chrome_kind_applied: (
+            Literal["stopped", "interval", "burst", "schedule"] | None
+        ) = None
+        self._analytics_chart_font_lang: Lang | None = None
+        self._analytics_chart_fp: Any = None
 
         self.root.grid_columnconfigure(1, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
@@ -1025,6 +1031,7 @@ class MouseJigglerApp:
             )
 
     def _apply_language(self) -> None:
+        self._analytics_chart_font_lang = None
         self.root.title(self._t("window_title"))
         self._lbl_subtitle.configure(text=self._t("app_subtitle"))
         if hasattr(self, "_lbl_appearance"):
@@ -1146,6 +1153,9 @@ class MouseJigglerApp:
         self, kind: Literal["stopped", "interval", "burst", "schedule"]
     ) -> None:
         """Update status strip colors and LED to match schedule state."""
+        if kind == self._status_chrome_kind_applied:
+            return
+        self._status_chrome_kind_applied = kind
         if kind == "stopped":
             self._status_strip.configure(
                 fg_color=self._STATUS_STRIP_BG_STOP,
@@ -1844,7 +1854,10 @@ class MouseJigglerApp:
             days_map = {}
         today_key = date.today().isoformat()
         palette = self._palette_for_charts()
-        fp = analytics_charts.prepare_chart_font(self._lang)
+        if self._analytics_chart_font_lang != self._lang:
+            self._analytics_chart_fp = analytics_charts.prepare_chart_font(self._lang)
+            self._analytics_chart_font_lang = self._lang
+        fp = self._analytics_chart_fp
         mode = self._analytics_trigger_mode
         analytics_charts.render_trigger_figure(
             self._fig_trigger,
@@ -1858,7 +1871,7 @@ class MouseJigglerApp:
             xlabel_week=self._t("analytics_axis_day"),
             ylabel=self._t("analytics_axis_count"),
         )
-        self._mpl_canvas_trigger.draw()
+        self._mpl_canvas_trigger.draw_idle()
         analytics_charts.render_runtime_figure(
             self._fig_runtime,
             fp=fp,
@@ -1870,7 +1883,7 @@ class MouseJigglerApp:
             ylabel_min=self._t("analytics_axis_runtime_min"),
             bar_days=14,
         )
-        self._mpl_canvas_runtime.draw()
+        self._mpl_canvas_runtime.draw_idle()
         labels = (
             self._t("motion_pattern_line"),
             self._t("motion_pattern_circle"),
@@ -1884,7 +1897,7 @@ class MouseJigglerApp:
             labels=labels,
             empty_msg=self._t("analytics_empty"),
         )
-        self._mpl_canvas_patterns.draw()
+        self._mpl_canvas_patterns.draw_idle()
 
     def _tick_analytics_charts_loop(self) -> None:
         if self._shutting_down:
