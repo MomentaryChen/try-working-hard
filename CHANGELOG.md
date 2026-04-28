@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - **Window and sidebar branding**: the UI window title, tray tooltip, and sidebar header now use the project name **`try-working-hard`** instead of the old generic nudge phrase (e.g. Chinese **滑鼠定時微動** / English **Mouse nudge**). The optional subtitle line stays hidden unless `app_subtitle` is set in strings.
+- **GitHub Actions (`setup-uv`)**: release/CI setup no longer fails when `uv.lock` is absent; cache dependency lookup now keys from `pyproject.toml` instead of requiring a lockfile.
 
 ### Added
 
@@ -16,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Reusable UI components**: added `StatCard`, `CustomTable`, `SidebarButton`, `Toast`, and `OneTimeReminderDialog` to support richer dashboards and in-app feedback.
 - **Page-level structure**: added dedicated page modules under `views/` and icon assets under `assets/icons/` for sidebar navigation and page framing.
 - **Startup usage reminder**: added a product-level compliance reminder dialog on each normal app launch (non-tray startup) to clarify lawful and policy-compliant use before interaction.
+- **Advanced schedule engine**: schedule parsing now supports multi-segment windows (e.g. `09:00-12:00,13:00-18:00,21:00-23:00`), optional weekend inclusion, and cron-like 5-field rules (`schedule_cron_text`, `;`-separated) in addition to legacy start/end fields.
 
 ### Changed
 
@@ -23,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Styling system**: added and tuned `styles/styles.qss` for a consistent modern visual system across cards, sidebar navigation, and page sections.
 - **Project metadata**: refined `pyproject.toml` package metadata and English project description for publishing consistency.
 - **Documentation coverage**: refreshed `README.md`, `README.zh-TW.md`, and this changelog to better capture feature behavior and recent UI/settings updates.
+- **Work-hours runtime behavior**: schedule waiting and resume logic now evaluates a unified schedule spec (windows + weekends + cron-like rules) while keeping the existing Settings UI backward-compatible with previous `schedule_window_start_text` / `schedule_window_end_text`.
 
 ### Removed
 

@@ -601,6 +601,9 @@ class MouseJigglerApp:
         self._run_schedule_window = False
         self._schedule_ws = schedule_window.DEFAULT_WORK_START
         self._schedule_we = schedule_window.DEFAULT_WORK_END
+        self._schedule_segments_text = "09:00-18:00"
+        self._schedule_include_weekends = False
+        self._schedule_cron_text = ""
 
         self._tray = TrayController()
         self._shutting_down = False
@@ -934,6 +937,14 @@ class MouseJigglerApp:
             str(cfg.get("schedule_window_start_text", "09:00"))
         )
         self.var_schedule_end.set(str(cfg.get("schedule_window_end_text", "18:00")))
+        self._schedule_segments_text = str(
+            cfg.get(
+                "schedule_window_segments_text",
+                f"{self.var_schedule_start.get()}-{self.var_schedule_end.get()}",
+            )
+        )
+        self._schedule_include_weekends = bool(cfg.get("schedule_include_weekends", False))
+        self._schedule_cron_text = str(cfg.get("schedule_cron_text", ""))
         self._sync_schedule_times_from_vars()
         self._run_schedule_window = bool(self.var_schedule_window.get())
         self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
@@ -966,6 +977,9 @@ class MouseJigglerApp:
             "schedule_window": bool(self.var_schedule_window.get()),
             "schedule_window_start_text": self.var_schedule_start.get(),
             "schedule_window_end_text": self.var_schedule_end.get(),
+            "schedule_window_segments_text": self._schedule_segments_text,
+            "schedule_include_weekends": self._schedule_include_weekends,
+            "schedule_cron_text": self._schedule_cron_text,
             "intro_acknowledged": self._intro_acknowledged,
         }
 
@@ -1637,6 +1651,17 @@ class MouseJigglerApp:
 
     def _sync_schedule_times_from_vars(self) -> None:
         self._schedule_ws, self._schedule_we = self._effective_schedule_bounds()
+        self._schedule_segments_text = (
+            f"{self.var_schedule_start.get().strip()}-{self.var_schedule_end.get().strip()}"
+        )
+
+    def _build_schedule_spec(self) -> schedule_window.ScheduleSpec | None:
+        return schedule_window.build_schedule_spec(
+            window_segments_text=self._schedule_segments_text,
+            include_weekends=self._schedule_include_weekends,
+            cron_text=self._schedule_cron_text,
+            weekday_text="mon-fri",
+        )
 
     def _refresh_schedule_banner(self) -> None:
         if not hasattr(self, "_lbl_schedule_banner"):
@@ -1646,17 +1671,25 @@ class MouseJigglerApp:
             return
         p = self._parsed_schedule_bounds_raw()
         self._sync_schedule_times_from_vars()
-        if p is None or p[0] >= p[1]:
+        spec = self._build_schedule_spec()
+        if spec is None:
             self._lbl_schedule_banner.configure(
                 text=self._t("schedule_banner_need_valid_times"),
             )
         else:
-            ws, we = p
+            ws, we = p if p is not None and p[0] < p[1] else (
+                schedule_window.DEFAULT_WORK_START,
+                schedule_window.DEFAULT_WORK_END,
+            )
+            weekend_text = self._t("schedule_weekend_on") if self._schedule_include_weekends else self._t("schedule_weekend_off")
+            cron_text = self._schedule_cron_text.strip() or self._t("schedule_cron_off")
             self._lbl_schedule_banner.configure(
                 text=self._t(
                     "schedule_banner_active",
                     start=schedule_window.format_hhmm(ws),
                     end=schedule_window.format_hhmm(we),
+                    weekend=weekend_text,
+                    cron=cron_text,
                 ),
             )
         self._lbl_schedule_banner.grid(row=1, column=0, sticky="ew", pady=(6, 0))
@@ -2622,13 +2655,15 @@ class MouseJigglerApp:
         waited = False
         while not self._stop.is_set():
             now = datetime.now()
-            ws, we = self._effective_schedule_bounds()
-            if schedule_window.is_within_work_window(now, ws, we):
+            spec = self._build_schedule_spec()
+            if spec is None:
+                return False
+            if schedule_window.is_within_schedule(now, spec):
                 if waited:
                     self.root.after(0, lambda: self._log(self._t("log_schedule_resumed")))
                 return not self._stop.is_set()
             waited = True
-            resume_at = schedule_window.next_window_start(now, ws, we)
+            resume_at = schedule_window.next_schedule_start(now, spec)
             self.root.after(0, lambda ra=resume_at: self._ui_schedule_wait_begin(ra))
             end_mono = time.monotonic() + max(0.0, (resume_at - now).total_seconds())
             while time.monotonic() < end_mono and not self._stop.is_set():
@@ -2691,8 +2726,8 @@ class MouseJigglerApp:
             return
 
         if bool(self.var_schedule_window.get()):
-            psched = self._parsed_schedule_bounds_raw()
-            if psched is None or psched[0] >= psched[1]:
+            psched = self._build_schedule_spec()
+            if psched is None:
                 messagebox.showerror(
                     self._t("err_title"),
                     self._t("err_schedule_bounds"),
@@ -2806,6 +2841,12 @@ class MouseJigglerApp:
                     "log_start_schedule",
                     start=schedule_window.format_hhmm(ws),
                     end=schedule_window.format_hhmm(we),
+                    weekend=(
+                        self._t("schedule_weekend_on")
+                        if self._schedule_include_weekends
+                        else self._t("schedule_weekend_off")
+                    ),
+                    cron=self._schedule_cron_text.strip() or self._t("schedule_cron_off"),
                 )
             )
 
