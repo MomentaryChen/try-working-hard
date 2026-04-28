@@ -16,7 +16,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+<<<<<<< HEAD
+- **Settings → About and updates**: added **Contact us**, a visible **app version** line, and a **Check for updates** action that compares the installed version with the latest GitHub release and offers to open the release page when a newer version exists.
+- **Update preference**: new local config key **`auto_check_updates`** (default `true`) to run a background release check shortly after startup.
+- **Update UX**: when a newer version is detected, the app now shows a **non-blocking top drop-down notice** in Home with **Download now** / **Later**, instead of a modal dialog.
+- **PySide6 dashboard scaffold**: added a modern desktop UI prototype with MVVM-style navigation, sidebar routing (Dashboard / Tasks / Settings), reusable components (`StatCard`, `SidebarButton`, styled task table), centralized `styles/styles.qss`, and a fade transition for page switches.
+- **PySide6 dashboard polish**: sidebar now uses bundled SVG Material-style icons, active page indicator includes a smooth animated bar transition, and Dashboard includes a real `QtCharts` line chart instead of a static placeholder.
+- **PySide6 chart interactivity**: Dashboard chart upgraded to `pyqtgraph` with crosshair tracking and hover tooltip details for each day, improving runtime performance and inspection UX.
+- **PySide6 chart UX**: pyqtgraph tooltip now supports viewport edge-avoidance positioning and a subtle fade-in animation to prevent clipping near chart borders and improve readability.
+- **PySide6 chart micro-interactions**: tooltip now fades out when leaving the plot area, and hovered day points receive explicit marker highlights for both Revenue and Target series.
+- **PySide6 productivity UX**: added one-time shortcut reminder persistence (`QSettings`) with reset action in Settings, global toast notifications, and keyboard shortcuts (`Ctrl+1/2/3`, `Ctrl+N`, `Delete`, `?`) for faster navigation and task actions.
+- **Dark / light UI**: **Settings → Appearance** toggles **Dark** or **Light**; the choice is stored in `config.json` as **`ui_theme`** (`"dark"` or `"light"`, default **`"light"`**). Dark mode uses a GitHub-style dark surface; light mode matches the **#F9FAFB** / card layout.
+- **Windows: Start with Windows** (Settings, when `pystray` is available): optional entry under **HKCU\Software\Microsoft\Windows\CurrentVersion\Run** so the app starts at sign-in; it passes **`--start-in-tray`** to open with the main window in the system tray.
+- **Home → Control:** quick interval buttons **30s / 1m / 5m / 10m** next to the interval field (they set the unit and value together).
+- **CLI:** `python -m mouse_jiggler --start-in-tray` to launch with the main window hidden and the tray only (pystray required; same as autostart when enabled from Settings).
+- **Schedule window (Mon–Fri 09:00–18:00)**: optional **work-hours** limit so nudges run only in that **local-time** band; **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long background runs. Config key `schedule_window`; toggle UI on **Settings** (not Home → Control). **`schedule_window_start_text`** / **`schedule_window_end_text`** (24h **HH:MM**) set the window on the same **Settings** card as other preferences; when the limit is on, **Home** shows a **short line under the status strip** with the active window (or a fix-times prompt if invalid).
+- **Interval jitter (± sec)** on Home → Control: optional per-wait randomization of the **idle-required** interval so each spacing is `interval ± N` seconds (uniform), clamped to the same minimum as the main interval. Stored as `interval_jitter_text` in `config.json` (0–3600; `0` disables).
+- **Analytics** (sidebar): **Matplotlib** charts for nudge counts (today by hour or last 7 days), **scheduled uptime** per day (minutes, last 14 days), and **path usage** pie (totals). Data is stored next to `config.json` as **`analytics.json`** (same folder: `%APPDATA%\try-working-hard\` on Windows). The activity log area still mirrors **Home → Log**.
+- **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
+
+### Changed
+
+- **GUI (CustomTkinter)**: **light** mode uses `appearance_mode` **light** with the built-in **blue** theme; surfaces stay **#F9FAFB** (app), **#F3F4F6** (sidebar), **#FFFFFF** cards, **#3B82F6** primary actions. **Dark** mode uses `appearance_mode` **dark** with **dark-blue** and a Pro Dark–inspired palette. Titles use a larger **bold** type scale; radii stay in the **12–16** px range.
+
+- **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual. Maximize is **re-applied** after the first layout tick and after the first-run **intro** dialog so CustomTkinter / modals do not leave the window at the default size.
+
+- **Cursor command** `.cursor/commands/pr-to-develop.md`: removed the **Before you submit** block (local pre-merge conflict check); **open-pr-to-develop** skill preconditions updated to match.
+- **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
+- **Home status**: the schedule state is shown in a **bordered strip** at the **top** of Home with a **colored indicator** and tint (muted when stopped, green while counting down to the next nudge, amber reserved for an active-motion phase if enabled in the future). The **progress bar** was removed in favor of the status text alone.
+- **Home → Control**: control card is **scrollable** so short windows still show Start, Stop, and fields; field order is interval (with quick presets) → interval jitter → nudge size → path speed → motion path.
+- **Cursor skill** `dev-branch-auto`: documented that the topic branch must **upstream-track `origin/<branch>`** (not `develop`), including first push with **`git push -u`**, **`git branch -u`**, and verification with **`@{upstream}`**.
+- **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.
+- **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
+- **Cursor skill** `release-tag-pr-to-master`: expanded with **PEP 621 / build output** guidance—`pyproject.toml` `[project] version` is the only source for **`dist/`** sdist and wheel names; optional `__version__` metadata fallbacks should match the release. Checklist updated accordingly.
+- **docs/ACCESSIBILITY.md**: keyboard and reduced-motion notes updated for the Home status line (progress bar removed).
+=======
 - **PR-time CI safety net**: added `.github/workflows/ci.yml` to run pytest on `pull_request` to `develop` and on pushes to `develop` / topic branches (`dev/**`, `feature/**`, `fix/**`).
+>>>>>>> origin/develop
 
 ### Added
 
