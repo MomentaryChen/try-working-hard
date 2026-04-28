@@ -1485,7 +1485,16 @@ class MouseJigglerApp:
             border_color=self._CARD_BORDER,
         )
         self.page_settings.grid_columnconfigure(0, weight=1)
-        self.page_settings.grid_rowconfigure(0, weight=1)
+        self.page_settings.grid_rowconfigure(1, weight=1)
+
+        _ps = self._UI_PAD
+        self._lbl_settings_title = ctk.CTkLabel(
+            self.page_settings,
+            text=self._t("settings_title"),
+            font=self._font_title,
+            text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
+        )
+        self._lbl_settings_title.grid(row=0, column=0, sticky="w", padx=_ps, pady=(_ps, _ps))
 
         self._settings_scroll = ctk.CTkScrollableFrame(
             self.page_settings,
@@ -1495,7 +1504,7 @@ class MouseJigglerApp:
             scrollbar_button_color=self._BTN_SECONDARY,
             scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
         )
-        self._settings_scroll.grid(row=0, column=0, sticky="nsew")
+        self._settings_scroll.grid(row=1, column=0, sticky="nsew")
         self._settings_scroll.grid_columnconfigure(0, weight=1)
         self._fill_settings_panel(self._settings_scroll)
 
@@ -1627,17 +1636,9 @@ class MouseJigglerApp:
             )
         self._lbl_schedule_banner.grid(row=1, column=0, sticky="ew", pady=(6, 0))
 
-    def _fill_settings_panel(self, card: ctk.CTkFrame | ctk.CTkScrollableFrame) -> None:
+    def _fill_settings_panel(self, card: ctk.CTkScrollableFrame) -> None:
         p = self._UI_PAD
         card.grid_columnconfigure(0, weight=1)
-
-        self._lbl_settings_title = ctk.CTkLabel(
-            card,
-            text=self._t("settings_title"),
-            font=self._font_title,
-            text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
-        )
-        self._lbl_settings_title.grid(row=0, column=0, sticky="w", padx=p, pady=(p, p))
 
         self._lbl_appearance = ctk.CTkLabel(
             card,
@@ -1646,7 +1647,7 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_appearance.grid(row=1, column=0, sticky="w", padx=p, pady=(0, p))
+        self._lbl_appearance.grid(row=0, column=0, sticky="w", padx=p, pady=(0, p))
 
         self._seg_ui_theme = ctk.CTkSegmentedButton(
             card,
@@ -1665,7 +1666,7 @@ class MouseJigglerApp:
             unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
             text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
         )
-        self._seg_ui_theme.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._seg_ui_theme.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
         self._sync_ui_theme_seg()
         _try_takefocus(self._seg_ui_theme, 1)
 
@@ -1676,7 +1677,7 @@ class MouseJigglerApp:
             text_color=self._TEXT_MUTED,
             anchor="w",
         )
-        self._hint_appearance.grid(row=3, column=0, sticky="w", padx=p, pady=(p, p))
+        self._hint_appearance.grid(row=2, column=0, sticky="w", padx=p, pady=(p, p))
 
         self._lbl_lang = ctk.CTkLabel(
             card,
@@ -1685,7 +1686,7 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_lang.grid(row=4, column=0, sticky="w", padx=p, pady=(0, p))
+        self._lbl_lang.grid(row=3, column=0, sticky="w", padx=p, pady=(0, p))
 
         self._lang_seg = ctk.CTkSegmentedButton(
             card,
@@ -1701,7 +1702,7 @@ class MouseJigglerApp:
             unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
             text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
         )
-        self._lang_seg.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._lang_seg.grid(row=4, column=0, sticky="ew", padx=p, pady=(0, p))
         self._lang_seg.set("English")
         _try_takefocus(self._lang_seg, 1)
 
@@ -1714,7 +1715,7 @@ class MouseJigglerApp:
             text_color=(self._NAV_TEXT, self._NAV_TEXT),
             anchor="w",
         )
-        self.btn_open_config.grid(row=6, column=0, sticky="w", padx=p, pady=(0, p))
+        self.btn_open_config.grid(row=5, column=0, sticky="w", padx=p, pady=(0, p))
         _try_takefocus(self.btn_open_config, 1)
 
         self.var_schedule_window = tk.BooleanVar(value=False)
@@ -1722,7 +1723,7 @@ class MouseJigglerApp:
         self.var_schedule_end = tk.StringVar(value="18:00")
 
         schedule_row = ctk.CTkFrame(card, fg_color="transparent")
-        schedule_row.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, 8))
+        schedule_row.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, 8))
         schedule_row.grid_columnconfigure(0, weight=1)
         self._lbl_schedule_sw = ctk.CTkLabel(
             schedule_row,
@@ -1749,7 +1750,7 @@ class MouseJigglerApp:
         _try_takefocus(self.swt_schedule, 1)
 
         schedule_time_row = ctk.CTkFrame(card, fg_color="transparent")
-        schedule_time_row.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
+        schedule_time_row.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
         self._lbl_schedule_time_start = ctk.CTkLabel(
             schedule_time_row,
             text=self._t("schedule_window_start_label"),
@@ -1802,11 +1803,11 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_schedule.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_schedule.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self.var_tray_close = tk.BooleanVar(value=False)
         tray_row = ctk.CTkFrame(card, fg_color="transparent")
-        tray_row.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, 8))
+        tray_row.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
         tray_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_tray_sw = ctk.CTkLabel(
@@ -1846,7 +1847,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_tray.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_tray.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
         if not HAS_TRAY:
             self.swt_tray.configure(state="disabled")
 
@@ -1855,7 +1856,7 @@ class MouseJigglerApp:
             value=bool(can_autowin and _windows_run_autostart_active())
         )
         autostart_row = ctk.CTkFrame(card, fg_color="transparent")
-        autostart_row.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, 8))
+        autostart_row.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, 8))
         autostart_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_autostart_sw = ctk.CTkLabel(
@@ -1898,7 +1899,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_autostart.grid(row=13, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_autostart.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
         if not can_autowin:
             self.swt_autostart.configure(state="disabled")
 
