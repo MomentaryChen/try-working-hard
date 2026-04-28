@@ -19,8 +19,19 @@ description: Provisions a local git development branch from origin/develop with 
 | Local branch prefix | `dev/` for generic work, `feature/` for user-facing features, `fix/` for bugfix |
 | Name body | kebab-case, short; include issue id if user gives one, e.g. `dev/JIRA-123-slider-interval` → prefer `dev/jira-123-slider-interval` (ASCII, lowercase) |
 | Worktree parent (this project) | `D:\projects\worktree` (**required** — do not skip) |
+| **Upstream** | Topic branch must track **`origin/<name>`** (same `<name>` as the branch), not `origin/develop`. Set on first push with `-u` or via `branch -u` (see **Upstream tracking**). |
 
 If the user provides an exact branch name, use it (after basic sanity: no spaces; replace spaces with `-`).
+
+## Upstream tracking (required)
+
+Branching **from** `origin/develop` is only the starting point — the checked-out topic branch **`$name`** should **track its own remote branch** `origin/$name`, not `develop`.
+
+- **First push from the worktree** (`$path`): use **`git push -u origin $name`** (or `git push -u origin HEAD` while on `$name`). That creates `origin/$name` if missing and sets `branch.$name.merge` / `branch.$name.remote` to track **`origin/$name`**.
+- **If upstream was set incorrectly** (e.g. still tracking `develop`): from `$path`, run **`git branch -u origin/$name`** after `origin/$name` exists, or fix with **`git branch --unset-upstream`** then **`git push -u origin $name`**.
+- **Do not** leave the topic branch configured to track **`origin/develop`** — `git pull` / sync should refer to **`origin/$name`**, except when intentionally merging/rebasing from `develop`.
+
+When reporting after setup, if push is part of the same task, remind the user (or perform) **`git push -u origin <name>`** from the new worktree so tracking matches the branch name.
 
 ## Steps (run from this repository’s Git root)
 
@@ -89,6 +100,7 @@ Run these from whichever checkout is the user’s **current workspace** (main cl
 
    - `git worktree list`, `git status -sb` and `git log -1 --oneline` **from `$path`** (the new worktree directory).
    - Report: branch name, full path `$path`, and base tip if useful.
+   - After a push with `-u`, optionally verify upstream: **`git rev-parse --abbrev-ref $name@{upstream}`** should resolve to **`origin/$name`**, not `origin/develop`.
 
 7. **Continue in the new worktree (agent)**
 
@@ -120,6 +132,7 @@ git worktree remove <path>
 
 ## Anti-patterns
 
+- Do not configure or leave the topic branch **tracking `origin/develop`** — use **`git push -u origin $name`** (or **`-u origin/$name`** after the remote branch exists) so **upstream is `origin/$name`**.
 - Do not skip the worktree step or create the topic branch only in the main clone when this skill applies.
 - Do not force-push or reset `--hard` without explicit user request.
 - Do not delete the remote or default branch.
