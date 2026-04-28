@@ -72,6 +72,7 @@ def test_status_schedule_wait_template(lang: str) -> None:
 def test_path_speed_templates(lang: str) -> None:
     assert STRINGS[lang]["err_path_speed"].format(lo=1, hi=10)
     assert STRINGS[lang]["path_speed_hint"].format(lo=1, hi=10)
+    assert STRINGS[lang]["path_speed_hint_natural"].format(lo=1, hi=10)
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])

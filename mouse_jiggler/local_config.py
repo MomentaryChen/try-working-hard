@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from . import nudge_logic, schedule_window
-from .cursor_nudge import MotionPattern
+from .cursor_nudge import ActivityStyle, MotionPattern
 
 Lang = Literal["zh", "en"]
 
@@ -34,6 +34,9 @@ def _defaults() -> dict[str, Any]:
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
         "path_speed_text": str(nudge_logic.DEFAULT_PATH_SPEED),
         "motion_pattern": "horizontal",
+        "activity_style": "pattern",
+        "natural_rare_click": False,
+        "natural_rare_scroll": False,
         "close_to_tray": False,
         "intro_acknowledged": False,
         "schedule_window": False,
@@ -98,6 +101,18 @@ def _sanitize_pixels_text(raw: object, *, fallback: str) -> str:
 def _sanitize_motion_pattern(raw: object) -> MotionPattern | None:
     if raw in ("horizontal", "circle", "square"):
         return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_activity_style(raw: object) -> ActivityStyle | None:
+    if raw in ("pattern", "natural"):
+        return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_natural_flag(raw: object) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
     return None
 
 
@@ -220,6 +235,16 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     if mp is not None:
         out["motion_pattern"] = mp
 
+    ast = _sanitize_activity_style(raw.get("activity_style"))
+    if ast is not None:
+        out["activity_style"] = ast
+    nrc = _sanitize_natural_flag(raw.get("natural_rare_click"))
+    if nrc is not None:
+        out["natural_rare_click"] = nrc
+    nrs = _sanitize_natural_flag(raw.get("natural_rare_scroll"))
+    if nrs is not None:
+        out["natural_rare_scroll"] = nrs
+
     ctt = _sanitize_close_to_tray(raw.get("close_to_tray"))
     if ctt is not None:
         out["close_to_tray"] = ctt
@@ -264,6 +289,8 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     ctt = _sanitize_close_to_tray(data.get("close_to_tray"))
     ia = _sanitize_intro_acknowledged(data.get("intro_acknowledged"))
     sw = _sanitize_schedule_window(data.get("schedule_window"))
+    nrc = _sanitize_natural_flag(data.get("natural_rare_click"))
+    nrs = _sanitize_natural_flag(data.get("natural_rare_scroll"))
     unit = _sanitize_interval_unit(data.get("interval_unit")) or base["interval_unit"]
     fb_start = base["schedule_window_start_text"]
     fb_end = base["schedule_window_end_text"]
@@ -289,6 +316,10 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         ),
         "motion_pattern": _sanitize_motion_pattern(data.get("motion_pattern"))
         or base["motion_pattern"],
+        "activity_style": _sanitize_activity_style(data.get("activity_style"))
+        or base["activity_style"],
+        "natural_rare_click": nrc if nrc is not None else base["natural_rare_click"],
+        "natural_rare_scroll": nrs if nrs is not None else base["natural_rare_scroll"],
         "close_to_tray": ctt if ctt is not None else base["close_to_tray"],
         "intro_acknowledged": ia if ia is not None else base["intro_acknowledged"],
         "schedule_window": sw if sw is not None else base["schedule_window"],

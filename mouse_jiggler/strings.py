@@ -37,13 +37,23 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "interval_jitter_label": "間隔隨機（± 秒）",
         "interval_jitter_hint": "0 ＝ 關閉；每次閒置間隔為基準 ± 此值（秒）· 0–{max}",
         "motion_pattern_label": "移動路徑",
+        "motion_pattern_label_when_natural": "移動路徑（僅路徑模式）",
         "motion_pattern_line": "直線",
         "motion_pattern_circle": "圓形",
         "motion_pattern_square": "方形",
+        "activity_style_label": "活動模式",
+        "activity_style_pattern": "路徑模式",
+        "activity_style_natural": "自然模式",
+        "natural_rare_click": "偶發左鍵點擊（低機率）",
+        "natural_rare_scroll": "偶發滾輪捲動（低機率）",
+        "natural_opts_hint": "僅在自然模式下套用；每次觸發至多一種額外動作，機率低。",
+        "motion_pattern_log_natural": "自然",
         "pixels_label": "位移（像素）",
-        "pixels_hint": "直線＝左右再還原；圓＝半徑；方＝邊長 · {lo}–{hi}",
+        "pixels_hint": "路徑模式：直線＝左右還原；圓＝半徑；方＝邊長。自然模式：游標偏離起點的最大距離 · {lo}–{hi}",
         "path_speed_label": "路徑速度",
         "path_speed_hint": "幾何路徑繪製快慢 · {lo}–{hi}（數字愈大愈快）",
+        "path_speed_label_natural": "微動速度",
+        "path_speed_hint_natural": "自然模式各微動步驟的間隔快慢 · {lo}–{hi}（數字愈大愈快）",
         "log_start_fail_path_speed": "開始失敗：路徑速度無效。",
         "err_path_speed": "請輸入有效路徑速度（整數，{lo}–{hi}）。",
         "status_motion_burst": "狀態：執行中 · 持續微動 · 約 {cd}",
@@ -120,7 +130,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "motion_pattern_log_circle": "圓形",
         "motion_pattern_log_square": "方形",
         "intro_body": "try-working-hard {version}\n\n"
-        "本程式會在鍵盤與滑鼠皆無輸入達您設定的時間後，以直線、圓形或方形路徑微量移動游標再還原，可用於簡報或閱讀時避免螢幕休眠（Windows 以系統閒置時間為準）。\n\n"
+        "本程式會在鍵盤與滑鼠皆無輸入達您設定的時間後微動游標再還原：可選路徑模式（直線、圓形、方形）或自然模式（不規則微移，可選低機率點擊／捲動），可用於簡報或閱讀時避免螢幕休眠（Windows 以系統閒置時間為準）。\n\n"
         "請僅在合法、符合公司／學校規定與服務條款的前提下使用；勿用於規避安全或監控機制。\n\n"
         "按 F1 可開啟鍵盤與無障礙說明。您的偏好設定會儲存在本機，下次開啟時自動載入。\n\n"
         "點選「確定」後不會再顯示本視窗（除非刪除設定檔）。",
@@ -133,7 +143,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5 停止\n"
         "· Enter 開始、Esc 停止（僅主視窗顯示時；條件同 F5／Shift+F5）\n"
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
-        "可點擊「間隔」「間隔隨機」「位移」「路徑速度」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」；「間隔」指鍵盤與滑鼠皆無輸入需累積的時間（與主控台狀態列、Windows 系統閒置時間一致）。欄位下方有 30s／1m／5m／10m 快速按鈕。\n\n"
+        "可點擊「間隔」「間隔隨機」「位移」「路徑速度」「活動模式」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」；「間隔」指鍵盤與滑鼠皆無輸入需累積的時間（與主控台狀態列、Windows 系統閒置時間一致）。欄位下方有 30s／1m／5m／10m 快速按鈕。自然模式以非幾何軌跡微移游標，可選低機率點擊或捲動。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
     },
     "en": {
@@ -166,13 +176,23 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "interval_jitter_label": "Interval jitter (± sec)",
         "interval_jitter_hint": "0 = off; each idle spacing is base interval ± this many seconds · 0–{max}",
         "motion_pattern_label": "Path",
+        "motion_pattern_label_when_natural": "Path shape (Pattern mode only)",
         "motion_pattern_line": "Line",
         "motion_pattern_circle": "Circle",
         "motion_pattern_square": "Square",
+        "activity_style_label": "Activity",
+        "activity_style_pattern": "Pattern",
+        "activity_style_natural": "Natural",
+        "natural_rare_click": "Occasional left click (low rate)",
+        "natural_rare_scroll": "Occasional wheel scroll (low rate)",
+        "natural_opts_hint": "Natural mode only; at most one extra action per nudge, low probability.",
+        "motion_pattern_log_natural": "natural",
         "pixels_label": "Nudge (pixels)",
-        "pixels_hint": "Line: horizontal; circle: radius; square: edge · {lo}–{hi}",
+        "pixels_hint": "Pattern: line/circle/square as before; Natural: max wander from start · {lo}–{hi}",
         "path_speed_label": "Path speed",
         "path_speed_hint": "How fast to trace the path · {lo}–{hi} (higher = faster)",
+        "path_speed_label_natural": "Motion speed",
+        "path_speed_hint_natural": "Delay between natural micro-move steps · {lo}–{hi} (higher = faster)",
         "log_start_fail_path_speed": "Start failed: invalid path speed.",
         "err_path_speed": "Enter a valid path speed (integer, {lo}–{hi}).",
         "status_motion_burst": "Status: running · active motion · ~{cd} left",
@@ -249,7 +269,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "motion_pattern_log_circle": "circle",
         "motion_pattern_log_square": "square",
         "intro_body": "try-working-hard {version}\n\n"
-        "This app nudges the cursor only after the interval elapses with no keyboard or mouse input, along a line, circle, or square path, then restores it—useful to keep the screen awake while presenting or reading (on Windows, idle time uses the system last-input time).\n\n"
+        "This app nudges the cursor only after the interval elapses with no keyboard or mouse input, then restores it. Choose Pattern mode (line, circle, or square) or Natural mode (irregular micro-moves with optional low-rate click or scroll)—useful to keep the screen awake while presenting or reading (on Windows, idle time uses the system last-input time).\n\n"
         "Use it only in lawful ways that comply with employer, school, and service rules; do not use it to bypass security or monitoring.\n\n"
         "Press F1 for keyboard and accessibility help. Your preferences are saved locally and loaded next time.\n\n"
         "You will not see this dialog again after you click OK (unless you delete the config file).",
@@ -262,7 +282,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5  Stop\n"
         "· Enter / Esc  Start / Stop (main window visible only; same rules as F5 / Shift+F5)\n"
         "· F6  Home: toggle Control / Log\n\n"
-        "Click the Interval, Interval jitter, Nudge (pixels), Path speed, or Path label to move focus to that field. Choose min or sec for the interval: Interval is the required idle time with no keyboard or mouse input before a nudge (status line uses the same idle time as Windows GetLastInputInfo). Use 30s / 1m / 5m / 10m under the field for a quick set.\n\n"
+        "Click the Interval, Interval jitter, Nudge (pixels), Path speed, Activity, or Path label to move focus to that field. Choose min or sec for the interval: Interval is the required idle time with no keyboard or mouse input before a nudge (status line uses the same idle time as Windows GetLastInputInfo). Use 30s / 1m / 5m / 10m under the field for a quick set. Natural mode uses non-geometric micro-moves; optional click and scroll fire rarely.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
         "Tab / Shift+Tab move focus; tooltips are not used for the canvas controls.",
     },
