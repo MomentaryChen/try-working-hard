@@ -6,7 +6,7 @@ import json
 import threading
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from . import local_config
 from .cursor_nudge import MotionPattern
@@ -15,7 +15,25 @@ ANALYTICS_VERSION = 1
 _KEEP_DAYS = 120
 _FILE_LOCK = threading.RLock()
 
-_PATTERN_KEYS: tuple[MotionPattern, ...] = ("horizontal", "circle", "square")
+AnalyticsPatternKey = MotionPattern | Literal["natural"]
+
+_PATTERN_KEYS: tuple[AnalyticsPatternKey, ...] = (
+    "horizontal",
+    "circle",
+    "square",
+    "natural",
+)
+
+
+def _normalize_pattern_dict(pat: object) -> dict[str, int]:
+    out = {"horizontal": 0, "circle": 0, "square": 0, "natural": 0}
+    if isinstance(pat, dict):
+        for k in _PATTERN_KEYS:
+            try:
+                out[str(k)] = int(pat.get(k, 0) or 0)
+            except (TypeError, ValueError):
+                out[str(k)] = 0
+    return out
 
 
 def default_analytics_path() -> Path:
@@ -26,7 +44,7 @@ def _empty_day() -> dict[str, Any]:
     return {
         "hourly_nudges": [0] * 24,
         "runtime_sec": 0.0,
-        "pattern": {"horizontal": 0, "circle": 0, "square": 0},
+        "pattern": {"horizontal": 0, "circle": 0, "square": 0, "natural": 0},
     }
 
 
@@ -74,12 +92,13 @@ def _save(data: dict[str, Any], path: Path | None = None) -> None:
         pass
 
 
-def record_nudge(pattern: MotionPattern, at: datetime | None = None) -> None:
+def record_nudge(pattern: AnalyticsPatternKey, at: datetime | None = None) -> None:
     """Record one nudge event (including 0 px ticks). Thread-safe."""
     when = at or datetime.now()
     dk = when.date().isoformat()
     hour = when.hour
-    if pattern not in _PATTERN_KEYS:
+    pk = pattern if pattern in _PATTERN_KEYS else None
+    if pk is None:
         return
     with _FILE_LOCK:
         doc = _load_raw()
@@ -89,11 +108,12 @@ def record_nudge(pattern: MotionPattern, at: datetime | None = None) -> None:
         hrs = day.get("hourly_nudges")
         if not isinstance(hrs, list) or len(hrs) != 24:
             day["hourly_nudges"] = [0] * 24
-        pat = day.setdefault("pattern", {"horizontal": 0, "circle": 0, "square": 0})
-        for key in _PATTERN_KEYS:
-            pat.setdefault(key, 0)
+        pat = day.setdefault("pattern", {})
+        norm = _normalize_pattern_dict(pat)
+        day["pattern"] = norm
         day["hourly_nudges"][hour] = int(day["hourly_nudges"][hour]) + 1
-        pat[pattern] = int(pat[pattern]) + 1
+        k = str(pk)
+        norm[k] = int(norm[k]) + 1
         _save(doc)
 
 

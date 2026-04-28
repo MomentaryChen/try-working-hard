@@ -2,7 +2,7 @@
 
 **Languages:** English (this file) · [正體中文](README.zh-TW.md)
 
-Nudges the mouse along a small path (line, circle, or square) and restores it **only after** the chosen interval elapses with **no keyboard or mouse input** (Windows `GetLastInputInfo`), with a GUI for the interval and options. For **lawful personal use only** (for example, keeping the screen awake during a presentation or reading). You must comply with applicable laws, employer or school policies, and service terms.
+Nudges the mouse **only after** the chosen interval elapses with **no keyboard or mouse input** (Windows `GetLastInputInfo`). You can choose **Pattern** mode (line, circle, or square) or **Natural** mode (irregular micro-moves, with optional rare click or scroll), then the cursor is restored. GUI for interval and options. For **lawful personal use only** (for example, keeping the screen awake during a presentation or reading). You must comply with applicable laws, employer or school policies, and service terms.
 
 ## Requirements
 
@@ -60,7 +60,7 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 
 ### Keyboard and accessibility
 
-- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **Enter** / **Esc** do the same while the **main window is visible** (they do nothing when the app is only in the **system tray**). **F6** toggles Control / Log. You can **click the interval, interval jitter, nudge, path speed, and path labels** to focus the matching field; **30s / 1m / 5m / 10m** under the interval field apply a quick preset. **Tab / Shift+Tab** moves between controls.
+- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **Enter** / **Esc** do the same while the **main window is visible** (they do nothing when the app is only in the **system tray**). **F6** toggles Control / Log. You can **click the interval, interval jitter, nudge, path speed, activity, and path labels** to focus the matching field; **30s / 1m / 5m / 10m** under the interval field apply a quick preset. **Tab / Shift+Tab** moves between controls.
 - CustomTkinter draws many controls on a **canvas**, so **screen reader** coverage is not the same as for fully native Win32 UIs. Details: [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 
 ## Usage
@@ -69,20 +69,20 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 2. On **Settings**, the page title stays fixed while options are shown in a bordered card; **scroll inside the card** when the window is short to reach every control. Choose **Appearance** (**Dark** or **Light** -> `ui_theme`, default **light**) and language (**繁中** / English). Optionally enable the **weekday schedule window**: set **Start** / **End** in **HH:MM** (24-hour, Mon-Fri local time only; **end** is exclusive). Stored as `schedule_window`, `schedule_window_start_text`, and `schedule_window_end_text` (defaults **09:00** / **18:00**). On **Windows** with the tray, you may use **Start with Windows** and **Minimize to the system tray when closing** as described later. When the schedule window is on, **Home** shows an extra **summary line beneath the status strip** describing the rule (or asking you to fix invalid times).
 3. Enter the **interval** (minimum **idle** time with no keyboard/mouse input before a nudge); use **min** or **sec** to pick units (minutes allow decimals, e.g. `0.5` ≈ 30 seconds, minimum **0.1** min; seconds follow the same minimum in seconds as **0.1** min). Under the field, use **30s / 1m / 5m / 10m** for a quick set.
 4. Optionally set **Interval jitter (± sec)** (`0` = fixed spacing): each idle-required spacing is drawn uniformly in `[interval − N, interval + N]` seconds (floored at the same minimum as the main interval). Range **0–3600**; saved as `interval_jitter_text`.
-5. Set **nudge size in pixels** (integer, **0–500**). Meaning depends on the path: line = horizontal distance; circle = radius; square = edge length. **0** skips movement for that tick. Default is **100**.
-6. Set **path speed** (integer, **1–10**): how quickly the app traces the line, circle, or square (higher = faster). Default is **5**. Stored in `config.json` as `path_speed_text`.
-7. Choose **motion path**: **Line**, **Circle**, or **Square**—this matches how the nudge size is applied. Saved in `config.json` as `motion_pattern`. The home control area **scrolls** if the window is short.
+5. Set **nudge size in pixels** (integer, **0–500**). For **Pattern** mode: line = horizontal distance; circle = radius; square = edge. For **Natural** mode: maximum wander distance from the starting point. **0** skips movement for that tick. Default is **100**.
+6. Set **path speed** (integer, **1–10**): how quickly each nudge runs (higher = faster). Default is **5**. Stored in `config.json` as `path_speed_text`.
+7. Choose **Activity**: **Pattern** uses **Line**, **Circle**, or **Square** (`motion_pattern`). **Natural** uses irregular micro-motions; you can enable optional **occasional left click** and **occasional wheel scroll** (low probability per nudge, at the restored position). Stored as `activity_style` (`pattern` | `natural`), `natural_rare_click`, and `natural_rare_scroll`.
 8. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
 9. While running, the **status strip** at the top of Home shows the **countdown** to the next possible nudge (`mm:ss`, or `h:mm:ss` after one hour), based on idle time and spacing (at least one full interval between nudges while you stay idle), and a color cue—or a pause countdown when the work-hours limit applies; when stopped, the strip is neutral.
 10. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language). Advanced: `uv run python -m mouse_jiggler --start-in-tray` (or the same flag on a frozen **.exe`) starts in the tray only, without showing the main window at first.
 11. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
-12. **Analytics** (sidebar) shows **Matplotlib** charts (nudge counts, daily scheduled uptime, path mix) and mirrors the **Home** log in a read-only text area. Usage stats are persisted as **`analytics.json`** in the **same folder** as `config.json`.
+12. **Analytics** (sidebar) shows **Matplotlib** charts (nudge counts, daily scheduled uptime, path mix including **Natural**) and mirrors the **Home** log in a read-only text area. Usage stats are persisted as **`analytics.json`** in the **same folder** as `config.json`.
 
 ## Technical notes
 
 - GUI: **CustomTkinter** — **light** mode: built-in `blue` theme, **#F9FAFB** app background, **#F3F4F6** sidebar, **#FFFFFF** card panels. **Dark** mode: `dark` + `dark-blue` with a dark surface palette. **Home** uses a segmented control for Control / Log.
 - **Analytics**: **Matplotlib** figures embedded via **TkAgg**; persisted aggregates in **`analytics.json`** next to **`config.json`**.
-- Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`; schedule uses `user32.GetLastInputInfo` with `kernel32.GetTickCount` for idle time
+- Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`; **Natural** mode may also call `mouse_event` for rare left clicks and wheel deltas. Schedule uses `user32.GetLastInputInfo` with `kernel32.GetTickCount` for idle time
 - Tray: **pystray**; icon: **Pillow** (shared PNG for window, tray, and—when rebuilt—[`packaging/app.ico`](packaging/app.ico) for the `.exe`; see [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md))
 
 ## Limitations

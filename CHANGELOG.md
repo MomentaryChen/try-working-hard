@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Natural activity mode** (Home → Control): choose **Pattern** (line / circle / square, unchanged) or **Natural** for irregular micro-moves within the nudge radius, with optional **low-rate** left click and wheel scroll after the cursor is restored. Preferences: `activity_style` (`pattern` | `natural`), `natural_rare_click`, `natural_rare_scroll`. Analytics path pie includes **Natural** as a fourth slice.
 - **PySide6 UI workspace**: introduced a modern multi-page desktop shell with `Dashboard`, `Tasks`, and `Settings` views, plus supporting window bootstrapping in `main.py`.
 - **Reusable UI components**: added `StatCard`, `CustomTable`, `SidebarButton`, `Toast`, and `OneTimeReminderDialog` to support richer dashboards and in-app feedback.
 - **Page-level structure**: added dedicated page modules under `views/` and icon assets under `assets/icons/` for sidebar navigation and page framing.
