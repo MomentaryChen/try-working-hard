@@ -17,7 +17,14 @@ from typing import Any, Literal
 
 import customtkinter as ctk
 
-from . import analytics_charts, analytics_store, local_config, nudge_logic, schedule_window
+from . import (
+    analytics_charts,
+    analytics_store,
+    contact_info,
+    local_config,
+    nudge_logic,
+    schedule_window,
+)
 from .app_icon import load_app_icon_rgba
 from .cursor_nudge import MotionPattern
 from .strings import Lang, STRINGS
@@ -263,6 +270,10 @@ class MouseJigglerApp:
             "theme_status_dark" if self._ui_theme == "dark" else "theme_status_light"
         )
 
+    def _contact_line(self) -> str:
+        name, email = contact_info.maintainer_contact()
+        return self._t("contact_body", name=name, email=email)
+
     def _sync_ui_theme_seg(self) -> None:
         if not hasattr(self, "_seg_ui_theme"):
             return
@@ -479,6 +490,7 @@ class MouseJigglerApp:
             "_lbl_tray_sw",
             "_lbl_autostart_sw",
             "_lbl_schedule_sw",
+            "_lbl_contact_title",
         ):
             if hasattr(self, name):
                 w = getattr(self, name)
@@ -493,6 +505,7 @@ class MouseJigglerApp:
             "_hint_tray",
             "_hint_autostart",
             "_hint_schedule",
+            "_lbl_contact_detail",
         ):
             if hasattr(self, name):
                 getattr(self, name).configure(text_color=self._TEXT_MUTED)
@@ -1080,6 +1093,10 @@ class MouseJigglerApp:
             elif not HAS_TRAY:
                 a_start += self._t("autostart_requires_tray")
             self._hint_autostart.configure(text=a_start)
+        if hasattr(self, "_lbl_contact_title"):
+            self._lbl_contact_title.configure(text=self._t("contact_title"))
+        if hasattr(self, "_lbl_contact_detail"):
+            self._lbl_contact_detail.configure(text=self._contact_line())
         self._lbl_schedule_sw.configure(text=self._t("schedule_window_title"))
         self._hint_schedule.configure(text=self._t("schedule_window_hint"))
         self._lbl_log_title.configure(text=self._t("log_title"))
@@ -1690,6 +1707,26 @@ class MouseJigglerApp:
         self._hint_autostart.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
         if not can_autowin:
             self.swt_autostart.configure(state="disabled")
+
+        self._lbl_contact_title = ctk.CTkLabel(
+            card,
+            text=self._t("contact_title"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_contact_title.grid(row=11, column=0, sticky="w", padx=p, pady=(p, 4))
+
+        self._lbl_contact_detail = ctk.CTkLabel(
+            card,
+            text=self._contact_line(),
+            font=self._font_hint,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+            justify="left",
+            wraplength=520,
+        )
+        self._lbl_contact_detail.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
 
     def _fill_analytics_panel(self, card: ctk.CTkFrame) -> None:
         from matplotlib.figure import Figure

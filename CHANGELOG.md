@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Settings → Contact**: shows maintainer **name** and **email** (`git config user.name` / `user.email` when running from source; otherwise bundled defaults for frozen builds).
 - **Dark / light UI**: **Settings → Appearance** toggles **Dark** or **Light**; the choice is stored in `config.json` as **`ui_theme`** (`"dark"` or `"light"`, default **`"light"`**). Dark mode uses a GitHub-style dark surface; light mode matches the **#F9FAFB** / card layout.
 - **Windows: Start with Windows** (Settings, when `pystray` is available): optional entry under **HKCU\Software\Microsoft\Windows\CurrentVersion\Run** so the app starts at sign-in; it passes **`--start-in-tray`** to open with the main window in the system tray.
 - **Home → Control:** quick interval buttons **30s / 1m / 5m / 10m** next to the interval field (they set the unit and value together).
