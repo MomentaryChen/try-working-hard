@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 import tkinter as tk
-from datetime import datetime, time as dtime
+from datetime import date, datetime, time as dtime
 from importlib.metadata import version as pkg_version
 from importlib.resources import files
 from pathlib import Path
@@ -17,7 +17,7 @@ from typing import Any, Literal
 
 import customtkinter as ctk
 
-from . import local_config, nudge_logic, schedule_window
+from . import analytics_charts, analytics_store, local_config, nudge_logic, schedule_window
 from .app_icon import load_app_icon_rgba
 from .cursor_nudge import MotionPattern
 from .strings import Lang, STRINGS
@@ -339,6 +339,13 @@ class MouseJigglerApp:
                 scrollbar_button_color=self._BTN_SECONDARY,
                 scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
             )
+        if hasattr(self, "analytics_scroll"):
+            self.analytics_scroll.configure(
+                fg_color=self._CARD_BG,
+                border_color=self._CARD_BORDER,
+                scrollbar_button_color=self._BTN_SECONDARY,
+                scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
+            )
 
         for w in (
             "entry_minutes",
@@ -472,6 +479,9 @@ class MouseJigglerApp:
             "_lbl_pixels",
             "_lbl_path_speed",
             "_lbl_motion_pattern",
+            "_lbl_chart_triggers",
+            "_lbl_chart_runtime",
+            "_lbl_chart_patterns",
             "_lbl_lang",
             "_lbl_appearance",
             "_lbl_log_title",
@@ -523,6 +533,19 @@ class MouseJigglerApp:
                 text_color=(self._TEXT_LOG, self._TEXT_LOG),
                 border_color=self._ENTRY_BORDER,
             )
+
+        if hasattr(self, "_seg_analytics_range"):
+            self._seg_analytics_range.configure(
+                fg_color=self._SURFACE_SUBTLE,
+                selected_color=self._ACCENT,
+                selected_hover_color=self._ACCENT_HOVER,
+                unselected_color=self._SURFACE_SUBTLE,
+                unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
+            )
+
+        if hasattr(self, "_fig_trigger"):
+            self._refresh_analytics_charts()
 
         if self._stop.is_set() or not (self._worker and self._worker.is_alive()):
             self._apply_status_chrome("stopped")
@@ -582,6 +605,10 @@ class MouseJigglerApp:
         self._intro_acknowledged = True
         self._motion_pattern: MotionPattern = "horizontal"
 
+        self._analytics_trigger_mode: Literal["today", "week"] = "today"
+        self._analytics_runtime_anchor = 0.0
+        self._analytics_runtime_after_id: str | None = None
+
         self.root.grid_columnconfigure(1, weight=1)
         self.root.grid_rowconfigure(0, weight=1)
 
@@ -607,6 +634,8 @@ class MouseJigglerApp:
             self.root.after(150, self._reapply_start_maximized)
         if self._start_in_tray:
             self.root.after(120, self._bootstrap_tray_start)
+
+        self.root.after(4500, self._tick_analytics_charts_loop)
 
     def _bootstrap_tray_start(self) -> None:
         if self._shutting_down or not HAS_TRAY:
@@ -1096,6 +1125,16 @@ class MouseJigglerApp:
             self.btn_open_config.configure(text=self._t("btn_open_config_file"))
         self._lbl_analytics_title.configure(text=self._t("analytics_title"))
         self._lbl_analytics_sub.configure(text=self._t("analytics_subtitle"))
+        if hasattr(self, "_lbl_chart_triggers"):
+            self._lbl_chart_triggers.configure(text=self._t("analytics_chart_triggers"))
+            self._lbl_chart_runtime.configure(text=self._t("analytics_chart_runtime"))
+            self._lbl_chart_patterns.configure(text=self._t("analytics_chart_patterns"))
+        if hasattr(self, "_seg_analytics_range"):
+            vt = self._t("analytics_range_today")
+            vw = self._t("analytics_range_week")
+            self._seg_analytics_range.configure(values=[vt, vw])
+            cur = vt if self._analytics_trigger_mode == "today" else vw
+            self._seg_analytics_range.set(cur)
 
         self._nav_home.configure(text=f"  {self._t('nav_home')}")
         self._nav_settings.configure(text=f"  {self._t('nav_settings')}")
@@ -1119,6 +1158,9 @@ class MouseJigglerApp:
             self._apply_status_chrome("stopped")
         else:
             self._refresh_running_status_from_countdown()
+
+        if hasattr(self, "_fig_trigger"):
+            self._refresh_analytics_charts()
 
     def _refresh_running_status_from_countdown(self) -> None:
         if self._current_interval_sec <= 0:
@@ -1500,6 +1542,7 @@ class MouseJigglerApp:
         else:
             self.page_analytics.grid(row=0, column=0, sticky="nsew")
             self._sync_analytics_log_from_main()
+            self._refresh_analytics_charts()
 
     def _sync_nav_highlight(self) -> None:
         for key, btn in (
@@ -1854,6 +1897,8 @@ class MouseJigglerApp:
             self.swt_autostart.configure(state="disabled")
 
     def _fill_analytics_panel(self, card: ctk.CTkFrame) -> None:
+        from matplotlib.figure import Figure
+
         p = self._UI_PAD
         card.grid_columnconfigure(0, weight=1)
         card.grid_rowconfigure(2, weight=1)
@@ -1875,6 +1920,87 @@ class MouseJigglerApp:
         )
         self._lbl_analytics_sub.grid(row=1, column=0, sticky="w", padx=p, pady=(0, p))
 
+        self.analytics_scroll = ctk.CTkScrollableFrame(
+            card,
+            fg_color=self._CARD_BG,
+            corner_radius=_R,
+            border_width=1,
+            border_color=self._CARD_BORDER,
+            scrollbar_button_color=self._BTN_SECONDARY,
+            scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
+        )
+        self.analytics_scroll.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
+        self.analytics_scroll.grid_columnconfigure(0, weight=1)
+
+        self._analytics_trigger_mode = "today"
+
+        self._lbl_chart_triggers = ctk.CTkLabel(
+            self.analytics_scroll,
+            text=self._t("analytics_chart_triggers"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_chart_triggers.grid(row=0, column=0, sticky="w", padx=p, pady=(p, 4))
+
+        seg_row = ctk.CTkFrame(self.analytics_scroll, fg_color="transparent")
+        seg_row.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
+        vt = self._t("analytics_range_today")
+        vw = self._t("analytics_range_week")
+        self._seg_analytics_range = ctk.CTkSegmentedButton(
+            seg_row,
+            values=[vt, vw],
+            command=self._on_analytics_trigger_range,
+            corner_radius=_R,
+            font=self._font_body,
+            height=34,
+            fg_color=self._SURFACE_SUBTLE,
+            selected_color=self._ACCENT,
+            selected_hover_color=self._ACCENT_HOVER,
+            unselected_color=self._SURFACE_SUBTLE,
+            unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
+        )
+        self._seg_analytics_range.pack(side="left")
+        self._seg_analytics_range.set(vt)
+        _try_takefocus(self._seg_analytics_range, 1)
+
+        trig_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
+        trig_host.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
+
+        self._fig_trigger = Figure(figsize=(6.5, 2.85), dpi=100)
+        self._mpl_canvas_trigger = analytics_charts.attach_canvas(self._fig_trigger, trig_host)
+
+        self._lbl_chart_runtime = ctk.CTkLabel(
+            self.analytics_scroll,
+            text=self._t("analytics_chart_runtime"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_chart_runtime.grid(row=3, column=0, sticky="w", padx=p, pady=(p, 4))
+
+        run_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
+        run_host.grid(row=4, column=0, sticky="ew", padx=p, pady=(0, p))
+
+        self._fig_runtime = Figure(figsize=(6.5, 2.85), dpi=100)
+        self._mpl_canvas_runtime = analytics_charts.attach_canvas(self._fig_runtime, run_host)
+
+        self._lbl_chart_patterns = ctk.CTkLabel(
+            self.analytics_scroll,
+            text=self._t("analytics_chart_patterns"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_chart_patterns.grid(row=5, column=0, sticky="w", padx=p, pady=(p, 4))
+
+        pie_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
+        pie_host.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, p))
+
+        self._fig_patterns = Figure(figsize=(6.5, 2.95), dpi=100)
+        self._mpl_canvas_patterns = analytics_charts.attach_canvas(self._fig_patterns, pie_host)
+
         self.analytics_log = ctk.CTkTextbox(
             card,
             corner_radius=_R,
@@ -1883,10 +2009,13 @@ class MouseJigglerApp:
             text_color=(self._TEXT_LOG, self._TEXT_LOG),
             border_width=1,
             border_color=self._ENTRY_BORDER,
+            height=150,
         )
-        self.analytics_log.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
+        self.analytics_log.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
         self.analytics_log.configure(state="disabled")
         _try_takefocus(self.analytics_log, 1)
+
+        self._refresh_analytics_charts()
 
     def _sync_analytics_log_from_main(self) -> None:
         try:
@@ -1899,6 +2028,119 @@ class MouseJigglerApp:
             self.analytics_log.insert("0.0", body)
         self.analytics_log.configure(state="disabled")
         self.analytics_log.see("end")
+
+    def _palette_for_charts(self) -> analytics_charts.ChartPalette:
+        return analytics_charts.ChartPalette(
+            fig_face=self._CARD_BG,
+            ax_face=self._ENTRY_BG,
+            text=self._TEXT_BODY,
+            muted=self._TEXT_MUTED,
+            accent=self._ACCENT,
+            grid=self._BORDER,
+            tick=self._TEXT_MUTED,
+        )
+
+    def _refresh_analytics_charts(self) -> None:
+        if not hasattr(self, "_fig_trigger"):
+            return
+        try:
+            days_map = analytics_store.load_days_copy()
+        except OSError:
+            days_map = {}
+        today_key = date.today().isoformat()
+        palette = self._palette_for_charts()
+        fp = analytics_charts.prepare_chart_font(self._lang)
+        mode = self._analytics_trigger_mode
+        analytics_charts.render_trigger_figure(
+            self._fig_trigger,
+            fp=fp,
+            palette=palette,
+            mode=mode,
+            days_map=days_map,
+            today_key=today_key,
+            empty_msg=self._t("analytics_empty"),
+            xlabel_today=self._t("analytics_axis_hour"),
+            xlabel_week=self._t("analytics_axis_day"),
+            ylabel=self._t("analytics_axis_count"),
+        )
+        self._mpl_canvas_trigger.draw()
+        analytics_charts.render_runtime_figure(
+            self._fig_runtime,
+            fp=fp,
+            palette=palette,
+            days_map=days_map,
+            today_key=today_key,
+            empty_msg=self._t("analytics_empty"),
+            xlabel=self._t("analytics_axis_day"),
+            ylabel_min=self._t("analytics_axis_runtime_min"),
+            bar_days=14,
+        )
+        self._mpl_canvas_runtime.draw()
+        labels = (
+            self._t("motion_pattern_line"),
+            self._t("motion_pattern_circle"),
+            self._t("motion_pattern_square"),
+        )
+        analytics_charts.render_patterns_figure(
+            self._fig_patterns,
+            fp=fp,
+            palette=palette,
+            days_map=days_map,
+            labels=labels,
+            empty_msg=self._t("analytics_empty"),
+        )
+        self._mpl_canvas_patterns.draw()
+
+    def _tick_analytics_charts_loop(self) -> None:
+        if self._shutting_down:
+            return
+        if self._active_nav == "analytics":
+            try:
+                self._refresh_analytics_charts()
+            except Exception:
+                pass
+        self.root.after(5000, self._tick_analytics_charts_loop)
+
+    def _on_analytics_trigger_range(self, value: str) -> None:
+        vt = self._t("analytics_range_today")
+        self._analytics_trigger_mode = "today" if value == vt else "week"
+        self._refresh_analytics_charts()
+
+    def _cancel_analytics_runtime_flush(self) -> None:
+        if self._analytics_runtime_after_id is not None:
+            try:
+                self.root.after_cancel(self._analytics_runtime_after_id)
+            except (tk.TclError, ValueError):
+                pass
+            self._analytics_runtime_after_id = None
+
+    def _schedule_next_runtime_flush(self) -> None:
+        self._cancel_analytics_runtime_flush()
+        self._analytics_runtime_after_id = self.root.after(
+            60000, self._analytics_runtime_flush_tick
+        )
+
+    def _analytics_runtime_flush_tick(self) -> None:
+        self._analytics_runtime_after_id = None
+        if self._shutting_down:
+            return
+        if self._worker is None or not self._worker.is_alive() or self._stop.is_set():
+            return
+        now = time.monotonic()
+        delta = max(0.0, now - self._analytics_runtime_anchor)
+        self._analytics_runtime_anchor = now
+        if delta > 0:
+            analytics_store.add_runtime_seconds(delta)
+        self._schedule_next_runtime_flush()
+
+    def _flush_runtime_segment(self) -> None:
+        if self._analytics_runtime_anchor <= 0:
+            return
+        now = time.monotonic()
+        delta = max(0.0, now - self._analytics_runtime_anchor)
+        self._analytics_runtime_anchor = 0.0
+        if delta > 0:
+            analytics_store.add_runtime_seconds(delta)
 
     def _fill_control_panel(self, card: ctk.CTkFrame | ctk.CTkScrollableFrame) -> None:
         card.grid_columnconfigure(0, weight=1)
@@ -2303,6 +2545,7 @@ class MouseJigglerApp:
             jiggle_mouse(pixels, pattern, path_speed=path_speed)
             if not log_success:
                 return
+            analytics_store.record_nudge(pattern)
             if pixels > 0:
                 self._log(self._t("log_nudge"))
             else:
@@ -2442,6 +2685,9 @@ class MouseJigglerApp:
         )
         self._worker.start()
 
+        self._analytics_runtime_anchor = time.monotonic()
+        self._schedule_next_runtime_flush()
+
         self.btn_start.configure(state="disabled")
         self.btn_stop.configure(state="normal")
         self.entry_minutes.configure(state="disabled")
@@ -2532,6 +2778,8 @@ class MouseJigglerApp:
             )
 
     def _on_stop(self) -> None:
+        self._flush_runtime_segment()
+        self._cancel_analytics_runtime_flush()
         self._stop.set()
         self._cancel_countdown_tick()
         self._current_interval_sec = 0.0
@@ -2615,6 +2863,9 @@ class MouseJigglerApp:
             return
         self._save_config_now()
         self._shutting_down = True
+
+        self._cancel_analytics_runtime_flush()
+        self._flush_runtime_segment()
 
         self._stop.set()
         self._cancel_countdown_tick()

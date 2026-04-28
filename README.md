@@ -50,10 +50,12 @@ Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.
 9. While running, the **status strip** at the top of Home shows the **countdown** to the next possible nudge (`mm:ss`, or `h:mm:ss` after one hour), based on idle time and spacing (at least one full interval between nudges while you stay idle), and a color cue—or a pause countdown when the work-hours limit applies; when stopped, the strip is neutral.
 10. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language). Advanced: `uv run python -m mouse_jiggler --start-in-tray` (or the same flag on a frozen **.exe`) starts in the tray only, without showing the main window at first.
 11. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
+12. **Analytics** (sidebar) shows **Matplotlib** charts (nudge counts, daily scheduled uptime, path mix) and mirrors the **Home** log in a read-only text area. Usage stats are persisted as **`analytics.json`** in the **same folder** as `config.json`.
 
 ## Technical notes
 
 - GUI: **CustomTkinter** — **light** mode: built-in `blue` theme, **#F9FAFB** app background, **#F3F4F6** sidebar, **#FFFFFF** card panels. **Dark** mode: `dark` + `dark-blue` with a dark surface palette. **Home** uses a segmented control for Control / Log.
+- **Analytics**: **Matplotlib** figures embedded via **TkAgg**; persisted aggregates in **`analytics.json`** next to **`config.json`**.
 - Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`; schedule uses `user32.GetLastInputInfo` with `kernel32.GetTickCount` for idle time
 - Tray: **pystray**; icon: **Pillow** (shared PNG for window, tray, and—when rebuilt—[`packaging/app.ico`](packaging/app.ico) for the `.exe`; see [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md))
 

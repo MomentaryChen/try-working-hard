@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Analytics (Matplotlib)**: empty-state and axis labels no longer render as **garbled or tofu blocks** when the UI language is **Chinese**; plots use a **CJK-capable** system font on Windows (Microsoft JhengHei / YaHei via explicit `FontProperties`) and disable problematic Unicode minus handling.
+
 ### Changed
 
 - **Settings → Work hours (09:00–18:00)**: the **schedule window** toggle moved from Home → Control into **Settings** (above tray / autostart). This removes a grid overlap that hid parts of Path speed when both were shown.
@@ -19,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **CLI:** `python -m mouse_jiggler --start-in-tray` to launch with the main window hidden and the tray only (pystray required; same as autostart when enabled from Settings).
 - **Schedule window (Mon–Fri 09:00–18:00)**: optional **work-hours** limit so nudges run only in that **local-time** band; **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long background runs. Config key `schedule_window`; toggle UI on **Settings** (not Home → Control). **`schedule_window_start_text`** / **`schedule_window_end_text`** (24h **HH:MM**) customize the window on the same Settings card; **Settings** content is in a **scrollable** frame; when the limit is on, **Home** shows a **short line under the status strip** with the active window (or a fix-times prompt if invalid).
 - **Interval jitter (± sec)** on Home → Control: optional per-wait randomization of the **idle-required** interval so each spacing is `interval ± N` seconds (uniform), clamped to the same minimum as the main interval. Stored as `interval_jitter_text` in `config.json` (0–3600; `0` disables).
+- **Analytics** (sidebar): **Matplotlib** charts for nudge counts (today by hour or last 7 days), **scheduled uptime** per day (minutes, last 14 days), and **path usage** pie (totals). Data is stored next to `config.json` as **`analytics.json`** (same folder: `%APPDATA%\try-working-hard\` on Windows). The activity log area still mirrors **Home → Log**.
 - **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
 
 ### Changed
@@ -31,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
 - **Home status**: the schedule state is shown in a **bordered strip** at the **top** of Home with a **colored indicator** and tint (muted when stopped, green while counting down to the next nudge, amber reserved for an active-motion phase if enabled in the future). The **progress bar** was removed in favor of the status text alone.
 - **Home → Control**: control card is **scrollable** so short windows still show Start, Stop, and fields; field order is interval (with quick presets) → interval jitter → nudge size → path speed → motion path.
+- **Cursor skill** `dev-branch-auto`: documented that the topic branch must **upstream-track `origin/<branch>`** (not `develop`), including first push with **`git push -u`**, **`git branch -u`**, and verification with **`@{upstream}`**.
 - **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.
 - **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
 - **Cursor skill** `release-tag-pr-to-master`: expanded with **PEP 621 / build output** guidance—`pyproject.toml` `[project] version` is the only source for **`dist/`** sdist and wheel names; optional `__version__` metadata fallbacks should match the release. Checklist updated accordingly.
