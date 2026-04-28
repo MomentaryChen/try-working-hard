@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Settings → Work hours (09:00–18:00)**: the **schedule window** toggle moved from Home → Control into **Settings** (above tray / autostart). This removes a grid overlap that hid parts of Path speed when both were shown.
 - **Schedule (Windows)**: nudges run only after the **interval** elapses with **no keyboard or mouse input**, using `GetLastInputInfo` (not a fixed wall-clock timer). Repeats while you stay idle require at least one full interval between nudges so synthetic cursor motion does not immediately re-trigger if the OS does not count it as user input.
-- **Settings** page uses the same **sidebar page pattern** as **Analytics**: one **bordered card** fills the content area (**not** a nested `CTkScrollableFrame` around the whole form).
+- **Settings** uses the same **sidebar page shell** as **Analytics** (one **bordered card**); the **form body** is a **`CTkScrollableFrame`** inside that card so long option lists still scroll when the window is short.
 
 ### Added
 
