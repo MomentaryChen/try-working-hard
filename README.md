@@ -25,6 +25,32 @@ Or as a module:
 uv run python -m mouse_jiggler
 ```
 
+### PySide6 dashboard prototype
+
+This repository also includes a modular PySide6 desktop dashboard scaffold with a modern dark theme and MVVM-style page routing:
+
+```powershell
+uv run python main.py
+```
+
+Structure overview:
+
+- `main.py` entry point
+- `ui/` window shell and navigation view model
+- `views/` page-level widgets (Dashboard, Tasks, Settings)
+- `components/` reusable UI widgets (cards, sidebar button, table)
+- `styles/styles.qss` centralized theme styling
+- `assets/icons/` SVG Material-style sidebar icons
+
+Included UX enhancements:
+
+- Animated active-page indicator bar in the sidebar
+- Real `pyqtgraph` integration on the dashboard (sample trend lines with hover crosshair/tooltip)
+- SVG icon rendering per navigation button
+- One-time productivity reminder with "do not show again" and reset in Settings
+- Global toast notifications for lightweight user feedback
+- Keyboard shortcuts: `Ctrl+1/2/3`, `Ctrl+N`, `Delete`, `?`
+
 ### Windows executable (no Python)
 
 Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.exe` (PyInstaller, one-file, no console). Download it from the **Releases** page for the version you want (for example `v1.0.0`) and run the file.

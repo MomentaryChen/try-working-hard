@@ -25,6 +25,32 @@ uv run try-working-hard
 uv run python -m mouse_jiggler
 ```
 
+### PySide6 儀表板原型
+
+此倉庫也包含一個模組化的 PySide6 桌面儀表板範例，提供現代深色主題與 MVVM 風格頁面切換：
+
+```powershell
+uv run python main.py
+```
+
+結構概要：
+
+- `main.py` 啟動點
+- `ui/` 主視窗框架與導覽 ViewModel
+- `views/` 頁面元件（Dashboard、Tasks、Settings）
+- `components/` 可重用 UI 元件（卡片、側欄按鈕、表格）
+- `styles/styles.qss` 集中式主題樣式
+- `assets/icons/` SVG Material 風格側欄圖示
+
+已包含的 UI 強化：
+
+- 側欄 active 頁面指示條動畫
+- Dashboard 已整合真實 `pyqtgraph` 趨勢圖（含 hover 十字線與 tooltip）
+- 每個導覽按鈕以 SVG icon 渲染
+- 一次性快捷鍵提醒（可勾選不再顯示，並可在 Settings 重設）
+- 全域 toast 通知（非阻塞提示）
+- 快捷鍵：`Ctrl+1/2/3`、`Ctrl+N`、`Delete`、`?`
+
 ### Windows 單檔執行檔（不需安裝 Python）
 
 在 **GitHub Releases** 可下載 **單一** `try-working-hard.exe`（PyInstaller 打包、無主控台視窗）。請到對應版本（例如 `v1.0.0`）的 **Assets** 下載後直接執行。
