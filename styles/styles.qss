@@ -1,0 +1,226 @@
+* {
+    font-family: "Segoe UI", "Inter", sans-serif;
+    color: #cdd6f4;
+}
+
+QMainWindow, QWidget {
+    background: #1e1e2e;
+}
+
+#sidebar {
+    background: #181825;
+    border-right: 1px solid #313244;
+}
+
+#sidebarNavContainer {
+    background: transparent;
+}
+
+#sidebarIndicator {
+    background: #89b4fa;
+    border-radius: 2px;
+}
+
+#brandLabel {
+    font-size: 20px;
+    font-weight: 700;
+    padding: 8px 10px;
+    color: #f5f7ff;
+}
+
+#sidebarButton {
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 14px;
+    icon-size: 18px;
+}
+
+#sidebarButton:hover {
+    background: rgba(137, 180, 250, 0.14);
+}
+
+#sidebarButton:pressed {
+    background: rgba(137, 180, 250, 0.22);
+}
+
+#sidebarButton:checked {
+    background: rgba(137, 180, 250, 0.24);
+    color: #89b4fa;
+    font-weight: 600;
+}
+
+#sidebarButton:checked:!hover {
+    border-left: 1px solid rgba(137, 180, 250, 0.35);
+}
+
+#header {
+    border: 1px solid #313244;
+    border-radius: 12px;
+    background: #222436;
+}
+
+#pageTitle {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f5f7ff;
+}
+
+#avatarButton {
+    border: 1px solid #45475a;
+    border-radius: 14px;
+    min-width: 28px;
+    min-height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    background: #313244;
+    font-weight: 700;
+}
+
+#avatarButton:hover {
+    background: #3a3d52;
+}
+
+#pageRoot {
+    background: transparent;
+}
+
+#statCard, #chartPlaceholder, #settingsPanel {
+    background: #222436;
+    border-radius: 14px;
+    border: 1px solid #313244;
+}
+
+#realChart {
+    background: transparent;
+    border: none;
+}
+
+#toast {
+    background: rgba(24, 24, 37, 0.96);
+    border: 1px solid #45475a;
+    border-radius: 10px;
+}
+
+#toastLabel {
+    color: #f5f7ff;
+    font-size: 12px;
+}
+
+#reminderText {
+    color: #cdd6f4;
+    font-size: 13px;
+}
+
+#statCardTitle {
+    color: #a6adc8;
+    font-size: 12px;
+}
+
+#statCardValue {
+    color: #f5f7ff;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+#statCardSubtitle {
+    color: #89b4fa;
+    font-size: 12px;
+}
+
+#sectionTitle {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f5f7ff;
+}
+
+#mutedText {
+    color: #a6adc8;
+}
+
+QLineEdit {
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    background: #2a2d42;
+    padding: 7px 9px;
+    selection-background-color: #89b4fa;
+}
+
+QLineEdit:focus {
+    border: 1px solid #89b4fa;
+}
+
+#primaryButton, #secondaryButton {
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-weight: 600;
+}
+
+#primaryButton {
+    background: #89b4fa;
+    color: #1e1e2e;
+    border: none;
+}
+
+#primaryButton:hover {
+    background: #9bc0fb;
+}
+
+#primaryButton:pressed {
+    background: #78a8f7;
+}
+
+#secondaryButton {
+    background: #313244;
+    border: 1px solid #45475a;
+    color: #cdd6f4;
+}
+
+#secondaryButton:hover {
+    background: #3a3d52;
+}
+
+#secondaryButton:pressed {
+    background: #2d3043;
+}
+
+#taskTable {
+    border: 1px solid #313244;
+    border-radius: 12px;
+    gridline-color: #313244;
+    background: #222436;
+    alternate-background-color: #2a2d42;
+    selection-background-color: rgba(137, 180, 250, 0.4);
+    selection-color: #f5f7ff;
+}
+
+#taskTable::item {
+    padding: 8px;
+}
+
+#taskTable QHeaderView::section {
+    background: #313244;
+    border: none;
+    padding: 8px;
+    font-weight: 600;
+}
+
+QCheckBox {
+    spacing: 8px;
+    font-size: 13px;
+}
+
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    border: 1px solid #45475a;
+    background: #2a2d42;
+}
+
+QCheckBox::indicator:checked {
+    background: #89b4fa;
+    border: 1px solid #89b4fa;
+}
