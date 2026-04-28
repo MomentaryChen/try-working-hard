@@ -332,12 +332,10 @@ class MouseJigglerApp:
                 fg_color=self._CARD_BG,
                 border_color=self._CARD_BORDER,
             )
-        if hasattr(self, "_settings_scroll"):
-            self._settings_scroll.configure(
+        if hasattr(self, "page_settings"):
+            self.page_settings.configure(
                 fg_color=self._CARD_BG,
                 border_color=self._CARD_BORDER,
-                scrollbar_button_color=self._BTN_SECONDARY,
-                scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
             )
         if hasattr(self, "analytics_scroll"):
             self.analytics_scroll.configure(
@@ -1476,22 +1474,12 @@ class MouseJigglerApp:
         self.page_settings = ctk.CTkFrame(
             self.pages_host,
             corner_radius=_R,
-            fg_color="transparent",
-        )
-        self.page_settings.grid_columnconfigure(0, weight=1)
-        self.page_settings.grid_rowconfigure(0, weight=1)
-        self._settings_scroll = ctk.CTkScrollableFrame(
-            self.page_settings,
             fg_color=self._CARD_BG,
-            corner_radius=_R,
             border_width=1,
             border_color=self._CARD_BORDER,
-            scrollbar_button_color=self._BTN_SECONDARY,
-            scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
         )
-        self._settings_scroll.grid(row=0, column=0, sticky="nsew")
-        self._settings_scroll.grid_columnconfigure(0, weight=1)
-        self._fill_settings_panel(self._settings_scroll)
+        self.page_settings.grid_columnconfigure(0, weight=1)
+        self._fill_settings_panel(self.page_settings)
 
         self.frame_control = ctk.CTkScrollableFrame(
             self.content_host,
@@ -1621,7 +1609,7 @@ class MouseJigglerApp:
             )
         self._lbl_schedule_banner.grid(row=1, column=0, sticky="ew", pady=(6, 0))
 
-    def _fill_settings_panel(self, card: ctk.CTkFrame | ctk.CTkScrollableFrame) -> None:
+    def _fill_settings_panel(self, card: ctk.CTkFrame) -> None:
         p = self._UI_PAD
         card.grid_columnconfigure(0, weight=1)
 
