@@ -12,7 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Settings → Work hours (09:00–18:00)**: the **schedule window** toggle moved from Home → Control into **Settings** (above tray / autostart). This removes a grid overlap that hid parts of Path speed when both were shown.
 - **Schedule (Windows)**: nudges run only after the **interval** elapses with **no keyboard or mouse input**, using `GetLastInputInfo` (not a fixed wall-clock timer). Repeats while you stay idle require at least one full interval between nudges so synthetic cursor motion does not immediately re-trigger if the OS does not count it as user input.
+- **Settings** uses the same **sidebar page shell** as **Analytics** (one **bordered card**); the **form body** is a **`CTkScrollableFrame`** inside that card so long option lists still scroll when the window is short.
 
 ### Added
 
@@ -20,7 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Windows: Start with Windows** (Settings, when `pystray` is available): optional entry under **HKCU\Software\Microsoft\Windows\CurrentVersion\Run** so the app starts at sign-in; it passes **`--start-in-tray`** to open with the main window in the system tray.
 - **Home → Control:** quick interval buttons **30s / 1m / 5m / 10m** next to the interval field (they set the unit and value together).
 - **CLI:** `python -m mouse_jiggler --start-in-tray` to launch with the main window hidden and the tray only (pystray required; same as autostart when enabled from Settings).
-- **Home → Control → Work hours (09:00–18:00)**: optional **schedule window** so nudges run only on **Mon–Fri** between **09:00 and 18:00** (local time); **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long-running background schedules. Persisted in `config.json` as `schedule_window`.
+- **Schedule window (Mon–Fri 09:00–18:00)**: optional **work-hours** limit so nudges run only in that **local-time** band; **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long background runs. Config key `schedule_window`; toggle UI on **Settings** (not Home → Control). **`schedule_window_start_text`** / **`schedule_window_end_text`** (24h **HH:MM**) set the window on the same **Settings** card as other preferences; when the limit is on, **Home** shows a **short line under the status strip** with the active window (or a fix-times prompt if invalid).
 - **Interval jitter (± sec)** on Home → Control: optional per-wait randomization of the **idle-required** interval so each spacing is `interval ± N` seconds (uniform), clamped to the same minimum as the main interval. Stored as `interval_jitter_text` in `config.json` (0–3600; `0` disables).
 - **Analytics** (sidebar): **Matplotlib** charts for nudge counts (today by hour or last 7 days), **scheduled uptime** per day (minutes, last 14 days), and **path usage** pie (totals). Data is stored next to `config.json` as **`analytics.json`** (same folder: `%APPDATA%\try-working-hard\` on Windows). The activity log area still mirrors **Home → Log**.
 - **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
@@ -34,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Cursor command** `.cursor/commands/pr-to-develop.md`: removed the **Before you submit** block (local pre-merge conflict check); **open-pr-to-develop** skill preconditions updated to match.
 - **Main panel**: removed the duplicate **Home / Settings / Analytics** segmented control above the page content; **sidebar** is the only navigation for those sections.
 - **Home status**: the schedule state is shown in a **bordered strip** at the **top** of Home with a **colored indicator** and tint (muted when stopped, green while counting down to the next nudge, amber reserved for an active-motion phase if enabled in the future). The **progress bar** was removed in favor of the status text alone.
-- **Home → Control**: control card is **scrollable** so short windows still show Start, Stop, and fields; field order is interval (with quick presets) → interval jitter → nudge size → path speed → motion path → optional work-hours switch.
+- **Home → Control**: control card is **scrollable** so short windows still show Start, Stop, and fields; field order is interval (with quick presets) → interval jitter → nudge size → path speed → motion path.
 - **Cursor skill** `dev-branch-auto`: documented that the topic branch must **upstream-track `origin/<branch>`** (not `develop`), including first push with **`git push -u`**, **`git branch -u`**, and verification with **`@{upstream}`**.
 - **Cursor skill** `dev-branch-auto`: **Git worktree under `D:\projects\worktree` is now mandatory** when the skill runs—new branches are created with `git worktree add` only; the agent continues work from the new path instead of switching the main clone.
 - **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
