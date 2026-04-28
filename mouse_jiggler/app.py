@@ -272,7 +272,12 @@ class MouseJigglerApp:
 
     def _contact_line(self) -> str:
         name, email = contact_info.maintainer_contact()
-        return self._t("contact_body", name=name, email=email)
+        return self._t(
+            "contact_body",
+            name=name,
+            email=email,
+            version=self._pkg_version(),
+        )
 
     def _sync_ui_theme_seg(self) -> None:
         if not hasattr(self, "_seg_ui_theme"):
