@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **PySide6 UI workspace**: introduced a modern multi-page desktop shell with `Dashboard`, `Tasks`, and `Settings` views, plus supporting window bootstrapping in `main.py`.
 - **Reusable UI components**: added `StatCard`, `CustomTable`, `SidebarButton`, `Toast`, and `OneTimeReminderDialog` to support richer dashboards and in-app feedback.
 - **Page-level structure**: added dedicated page modules under `views/` and icon assets under `assets/icons/` for sidebar navigation and page framing.
+- **Advanced schedule engine**: schedule parsing now supports multi-segment windows (e.g. `09:00-12:00,13:00-18:00,21:00-23:00`), optional weekend inclusion, and cron-like 5-field rules (`schedule_cron_text`, `;`-separated) in addition to legacy start/end fields.
 
 ### Changed
 
@@ -22,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Styling system**: added and tuned `styles/styles.qss` for a consistent modern visual system across cards, sidebar navigation, and page sections.
 - **Project metadata**: refined `pyproject.toml` package metadata and English project description for publishing consistency.
 - **Documentation coverage**: refreshed `README.md`, `README.zh-TW.md`, and this changelog to better capture feature behavior and recent UI/settings updates.
+- **Work-hours runtime behavior**: schedule waiting and resume logic now evaluates a unified schedule spec (windows + weekends + cron-like rules) while keeping the existing Settings UI backward-compatible with previous `schedule_window_start_text` / `schedule_window_end_text`.
 
 ### Removed
 
