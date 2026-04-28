@@ -1065,7 +1065,16 @@ class MouseJigglerApp:
 
     def _apply_language(self) -> None:
         self.root.title(self._t("window_title"))
-        self._lbl_subtitle.configure(text=self._t("app_subtitle"))
+        if hasattr(self, "_brand"):
+            self._brand.configure(text=self._t("window_title"))
+        sub = self._t("app_subtitle").strip()
+        self._lbl_subtitle.configure(text=sub)
+        p = self._UI_PAD
+        if sub:
+            if not self._lbl_subtitle.winfo_ismapped():
+                self._lbl_subtitle.pack(anchor="w", padx=p, pady=(0, p), after=self._brand)
+        else:
+            self._lbl_subtitle.pack_forget()
         if hasattr(self, "_lbl_appearance"):
             self._lbl_appearance.configure(text=self._t("theme_appearance"))
         self._lbl_lang.configure(text=self._t("lang_ui"))
@@ -1322,21 +1331,23 @@ class MouseJigglerApp:
 
         self._brand = ctk.CTkLabel(
             sidebar,
-            text="try-working-hard",
+            text=self._t("window_title"),
             font=self._font_brand,
             text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
             anchor="w",
         )
         self._brand.pack(anchor="w", padx=p, pady=(p, 4))
 
+        sub = self._t("app_subtitle").strip()
         self._lbl_subtitle = ctk.CTkLabel(
             sidebar,
-            text=self._t("app_subtitle"),
+            text=sub,
             font=self._font_body,
             text_color=self._TEXT_BODY,
             anchor="w",
         )
-        self._lbl_subtitle.pack(anchor="w", padx=p, pady=(0, p))
+        if sub:
+            self._lbl_subtitle.pack(anchor="w", padx=p, pady=(0, p))
 
         ic = self._nav_icons
         self._nav_home = self._nav_btn(

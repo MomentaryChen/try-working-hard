@@ -8,8 +8,8 @@ Lang = Literal["zh", "en"]
 
 STRINGS: dict[Lang, dict[str, str]] = {
     "zh": {
-        "window_title": "滑鼠定時微動",
-        "app_subtitle": "滑鼠定時微動",
+        "window_title": "try-working-hard",
+        "app_subtitle": "",
         "seg_control": "控制面板",
         "seg_log": "紀錄",
         "theme_appearance": "外觀",
@@ -130,8 +130,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
     },
     "en": {
-        "window_title": "Mouse nudge",
-        "app_subtitle": "Mouse nudge",
+        "window_title": "try-working-hard",
+        "app_subtitle": "",
         "seg_control": "Control",
         "seg_log": "Log",
         "theme_appearance": "Appearance",
