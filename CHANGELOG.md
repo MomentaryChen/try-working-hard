@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Analytics (Matplotlib)**: empty-state and axis labels no longer render as **garbled or tofu blocks** when the UI language is **Chinese**; plots use a **CJK-capable** system font on Windows (Microsoft JhengHei / YaHei via explicit `FontProperties`) and disable problematic Unicode minus handling.
+
 ### Changed
 
 - **Schedule (Windows)**: nudges run only after the **interval** elapses with **no keyboard or mouse input**, using `GetLastInputInfo` (not a fixed wall-clock timer). Repeats while you stay idle require at least one full interval between nudges so synthetic cursor motion does not immediately re-trigger if the OS does not count it as user input.

@@ -1844,9 +1844,11 @@ class MouseJigglerApp:
             days_map = {}
         today_key = date.today().isoformat()
         palette = self._palette_for_charts()
+        fp = analytics_charts.prepare_chart_font(self._lang)
         mode = self._analytics_trigger_mode
         analytics_charts.render_trigger_figure(
             self._fig_trigger,
+            fp=fp,
             palette=palette,
             mode=mode,
             days_map=days_map,
@@ -1859,6 +1861,7 @@ class MouseJigglerApp:
         self._mpl_canvas_trigger.draw()
         analytics_charts.render_runtime_figure(
             self._fig_runtime,
+            fp=fp,
             palette=palette,
             days_map=days_map,
             today_key=today_key,
@@ -1875,6 +1878,7 @@ class MouseJigglerApp:
         )
         analytics_charts.render_patterns_figure(
             self._fig_patterns,
+            fp=fp,
             palette=palette,
             days_map=days_map,
             labels=labels,

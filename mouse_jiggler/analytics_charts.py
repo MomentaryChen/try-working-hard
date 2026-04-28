@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import sys
+
 import matplotlib
 
 matplotlib.use("TkAgg")
@@ -9,8 +12,63 @@ matplotlib.use("TkAgg")
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from matplotlib.font_manager import FontProperties, fontManager
+
+# Avoid fullwidth minus when using CJK fonts
+plt.rcParams["axes.unicode_minus"] = False
+
+
+def chart_font_properties(lang: str) -> FontProperties:
+    """Font that can render UI strings (CJK when ``lang`` is ``zh``). DejaVu cannot."""
+    if lang != "zh":
+        return FontProperties(family="DejaVu Sans")
+
+    if sys.platform == "win32":
+        windir = os.environ.get("WINDIR", r"C:\Windows")
+        fonts_dir = os.path.join(windir, "Fonts")
+        for fname in (
+            "msjh.ttc",
+            "msjhbd.ttc",
+            "msyh.ttc",
+            "msyhbd.ttc",
+            "simhei.ttf",
+            "simsun.ttc",
+            "mingliu.ttc",
+        ):
+            path = os.path.join(fonts_dir, fname)
+            if os.path.isfile(path):
+                return FontProperties(fname=path)
+
+    for want in ("Microsoft JhengHei", "Microsoft YaHei", "PingFang TC", "Heiti TC", "Noto Sans CJK TC"):
+        for info in fontManager.ttflist:
+            if info.name == want or want.lower() in info.name.lower():
+                return FontProperties(fname=info.fname)
+
+    return FontProperties(family=["Microsoft JhengHei", "Microsoft YaHei", "sans-serif"])
+
+
+def _apply_rcparams_for_lang(lang: str) -> None:
+    """Align default sans-serif with CJK when needed so mixed renders resolve correctly."""
+    if lang == "zh":
+        plt.rcParams["font.sans-serif"] = [
+            "Microsoft JhengHei",
+            "Microsoft YaHei",
+            "Microsoft YaHei UI",
+            "SimHei",
+            "SimSun",
+            "DejaVu Sans",
+        ]
+    else:
+        plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "Segoe UI", "Arial"]
+
+
+def prepare_chart_font(lang: str) -> FontProperties:
+    """Set ``rcParams`` for ``lang`` and return a ``FontProperties`` for explicit text."""
+    _apply_rcparams_for_lang(lang)
+    return chart_font_properties(lang)
 
 
 @dataclass(frozen=True)
@@ -31,6 +89,7 @@ def _fmt_day_short(d: date) -> str:
 def render_trigger_figure(
     fig: Figure,
     *,
+    fp: FontProperties,
     palette: ChartPalette,
     mode: str,
     days_map: dict[str, dict],
@@ -49,13 +108,13 @@ def render_trigger_figure(
     ax.tick_params(colors=palette.tick, labelsize=9)
     ax.yaxis.label.set_color(palette.text)
     ax.xaxis.label.set_color(palette.text)
-    ax.set_ylabel(ylabel, fontsize=9)
+    ax.set_ylabel(ylabel, fontsize=9, fontproperties=fp)
     ax.grid(True, color=palette.grid, alpha=0.35)
 
     today_d = date.fromisoformat(today_key)
 
     if mode == "today":
-        ax.set_xlabel(xlabel_today, fontsize=9)
+        ax.set_xlabel(xlabel_today, fontsize=9, fontproperties=fp)
         raw = days_map.get(today_key) or {}
         hrs = raw.get("hourly_nudges")
         hourly = list(hrs) if isinstance(hrs, list) and len(hrs) == 24 else [0] * 24
@@ -71,6 +130,7 @@ def render_trigger_figure(
                 transform=ax.transAxes,
                 color=palette.muted,
                 fontsize=10,
+                fontproperties=fp,
             )
             ax.set_xticks([0, 6, 12, 18, 23])
             ax.set_xlim(-0.5, 23.5)
@@ -88,7 +148,7 @@ def render_trigger_figure(
             ymax = max(hourly)
             ax.set_ylim(0, max(1.0, ymax * 1.15))
     else:
-        ax.set_xlabel(xlabel_week, fontsize=9)
+        ax.set_xlabel(xlabel_week, fontsize=9, fontproperties=fp)
         labels: list[str] = []
         counts: list[int] = []
         for i in range(6, -1, -1):
@@ -111,9 +171,10 @@ def render_trigger_figure(
                 transform=ax.transAxes,
                 color=palette.muted,
                 fontsize=10,
+                fontproperties=fp,
             )
             ax.set_xticks(xs)
-            ax.set_xticklabels(labels, rotation=25, ha="right")
+            ax.set_xticklabels(labels, rotation=25, ha="right", fontproperties=fp)
         else:
             ax.plot(
                 xs,
@@ -124,7 +185,7 @@ def render_trigger_figure(
                 markersize=4,
             )
             ax.set_xticks(xs)
-            ax.set_xticklabels(labels, rotation=25, ha="right")
+            ax.set_xticklabels(labels, rotation=25, ha="right", fontproperties=fp)
             ymax = max(counts)
             ax.set_ylim(0, max(1.0, ymax * 1.15))
 
@@ -134,6 +195,7 @@ def render_trigger_figure(
 def render_runtime_figure(
     fig: Figure,
     *,
+    fp: FontProperties,
     palette: ChartPalette,
     days_map: dict[str, dict],
     today_key: str,
@@ -151,8 +213,8 @@ def render_runtime_figure(
     ax.tick_params(colors=palette.tick, labelsize=9)
     ax.yaxis.label.set_color(palette.text)
     ax.xaxis.label.set_color(palette.text)
-    ax.set_xlabel(xlabel, fontsize=9)
-    ax.set_ylabel(ylabel_min, fontsize=9)
+    ax.set_xlabel(xlabel, fontsize=9, fontproperties=fp)
+    ax.set_ylabel(ylabel_min, fontsize=9, fontproperties=fp)
     ax.grid(True, axis="y", color=palette.grid, alpha=0.35)
 
     today_d = date.fromisoformat(today_key)
@@ -178,9 +240,10 @@ def render_runtime_figure(
             transform=ax.transAxes,
             color=palette.muted,
             fontsize=10,
+            fontproperties=fp,
         )
         ax.set_xticks(list(xs))
-        ax.set_xticklabels(labels, rotation=30, ha="right")
+        ax.set_xticklabels(labels, rotation=30, ha="right", fontproperties=fp)
     else:
         ax.bar(
             list(xs),
@@ -191,7 +254,7 @@ def render_runtime_figure(
             alpha=0.85,
         )
         ax.set_xticks(list(xs))
-        ax.set_xticklabels(labels, rotation=30, ha="right")
+        ax.set_xticklabels(labels, rotation=30, ha="right", fontproperties=fp)
         ymax = max(minutes)
         ax.set_ylim(0, max(1.0, ymax * 1.12))
 
@@ -201,6 +264,7 @@ def render_runtime_figure(
 def render_patterns_figure(
     fig: Figure,
     *,
+    fp: FontProperties,
     palette: ChartPalette,
     days_map: dict[str, dict],
     labels: tuple[str, str, str],
@@ -235,6 +299,7 @@ def render_patterns_figure(
             transform=ax.transAxes,
             color=palette.muted,
             fontsize=10,
+            fontproperties=fp,
         )
         ax.axis("off")
     else:
@@ -247,7 +312,11 @@ def render_patterns_figure(
             startangle=90,
             colors=colors_pie,
             explode=explode,
-            textprops={"color": palette.text, "fontsize": 9},
+            textprops={
+                "color": palette.text,
+                "fontsize": 9,
+                "fontproperties": fp,
+            },
             wedgeprops={"linewidth": 0.5, "edgecolor": palette.grid},
         )
         ax.axis("equal")
