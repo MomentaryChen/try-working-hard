@@ -10,7 +10,7 @@ This app is **Windows-only** and uses **CustomTkinter** for most of the window. 
 - On **Home → Control** only: **F5** = **Start**, **Shift+F5** = **Stop** (if the action is available).
 - **Enter** = **Start** and **Esc** = **Stop** under the same Home → Control rules, but **only while the main window is visible** (not when the app is closed to the **system tray**).
 - **F6** toggles **Control / Log** on Home; if you are on another page, it switches to Home first.
-- **Click the “Interval”, “Nudge (pixels)”, or “Active motion (sec)” labels** to move focus to the corresponding field (the label cursor becomes a hand where supported).
+- **Click the “Interval”, “Interval jitter (± sec)”, “Nudge (pixels)”, “Path speed”, or “Path” labels** to move focus to the corresponding field (the label cursor becomes a hand where supported). **Quick preset** buttons (**30s / 1m / 5m / 10m**) under the interval field are also in the tab order.
 
 ## Limitations of CustomTkinter with screen readers
 
@@ -25,7 +25,7 @@ If you need **strong** ARIA/IA2 guarantees, a future version would need a differ
 ## Operating system and tools
 
 - **OS Magnifier**, **high-contrast** themes, and **sticky keys** work as usual; they are independent of the app.
-- For **reduced motion**, the countdown text is not tied to a system setting; you can **Stop** the schedule to halt cursor movement and timer updates.
+- For **reduced motion**, the countdown text is not tied to a system setting; you can **Stop** the schedule to halt cursor movement and status (idle-based countdown) updates.
 
 ## Reporting issues
 

@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-04-28
+
+### Added
+
+- **Windows: Start with Windows** (Settings, when `pystray` is available): optional entry under **HKCU\Software\Microsoft\Windows\CurrentVersion\Run** so the app starts at sign-in; it passes **`--start-in-tray`** to open with the main window in the system tray.
+- **Home → Control:** quick interval buttons **30s / 1m / 5m / 10m** next to the interval field (they set the unit and value together).
+- **CLI:** `python -m mouse_jiggler --start-in-tray` to launch with the main window hidden and the tray only (pystray required; same as autostart when enabled from Settings).
+- **Schedule window (Mon–Fri 09:00–18:00)**: optional **work-hours** limit so nudges run only in that **local-time** band; **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long background runs. Config key `schedule_window`; toggle UI on **Settings** (not Home → Control). **`schedule_window_start_text`** / **`schedule_window_end_text`** (24h **HH:MM**) set the window on the same **Settings** card as other preferences; when the limit is on, **Home** shows a **short line under the status strip** with the active window (or a fix-times prompt if invalid).
+- **Interval jitter (± sec)** on Home → Control: optional per-wait randomization of the **idle-required** interval so each spacing is `interval ± N` seconds (uniform), clamped to the same minimum as the main interval. Stored as `interval_jitter_text` in `config.json` (0–3600; `0` disables).
+- **Analytics** (sidebar): **Matplotlib** charts for nudge counts (today by hour or last 7 days), **scheduled uptime** per day (minutes, last 14 days), and **path usage** pie (totals). Data is stored next to `config.json` as **`analytics.json`** (same folder: `%APPDATA%\try-working-hard\` on Windows). The activity log area still mirrors **Home → Log**.
+
+### Changed
+
+- **Settings → Appearance**: default **`ui_theme`** for new installs is **`"light"`** (documentation for v1.1.0 listed **`"dark"`**).
+- **Settings → Work hours (09:00–18:00)**: the **schedule window** toggle moved from Home → Control into **Settings** (above tray / autostart). This removes a grid overlap that hid parts of Path speed when both were shown.
+- **Schedule (Windows)**: nudges run only after the **interval** elapses with **no keyboard or mouse input**, using `GetLastInputInfo` (not a fixed wall-clock timer). Repeats while you stay idle require at least one full interval between nudges so synthetic cursor motion does not immediately re-trigger if the OS does not count it as user input.
+- **Settings** uses the same **sidebar page shell** as **Analytics** (one **bordered card**); the **form body** is a **`CTkScrollableFrame`** inside that card so long option lists still scroll when the window is short.
+- **Home → Control**: field order is interval (with quick presets) → interval jitter → nudge size → path speed → motion path.
+- **Cursor skill** `dev-branch-auto`: documented that the topic branch must **upstream-track `origin/<branch>`** (not `develop`), including first push with **`git push -u`**, **`git branch -u`**, and verification with **`@{upstream}`**.
+- **Cursor skill** `release-tag-pr-to-master`: expanded with **PEP 621 / build output** guidance—`pyproject.toml` `[project] version` is the only source for **`dist/`** sdist and wheel names; optional `__version__` metadata fallbacks should match the release. Checklist updated accordingly.
+- **docs/ACCESSIBILITY.md**: notes updated for the schedule window, interval jitter, and Home status hint line.
+
+### Fixed
+
+- **Settings**: the **Settings** heading stays pinned at the top of the bordered card; only the options area below scrolls when the window is short.
+- **Analytics (Matplotlib)**: empty-state and axis labels no longer render as **garbled or tofu blocks** when the UI language is **Chinese**; plots use a **CJK-capable** system font on Windows (Microsoft JhengHei / YaHei via explicit `FontProperties`) and disable problematic Unicode minus handling.
+
 ## [1.1.0] - 2026-04-27
 
 ### Added

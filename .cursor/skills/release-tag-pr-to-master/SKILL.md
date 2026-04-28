@@ -24,6 +24,11 @@ Given a **version tag** the user provides (e.g. `v1.0.1`), align **release notes
    - Move (or copy) all bullets from `## [Unreleased]` that belong to this release into the new section under `### Added` / `### Changed` / `### Fixed` / `### Removed` as appropriate.
    - Leave `## [Unreleased]` in place; it may be empty or keep only items **not** shipping in this release.
 2. **`pyproject.toml`**: Set `version = "X.Y.Z"` to match the tag (no `v`).
+
+   **Why this is mandatory for artifacts:** The `[project] version` field is the **source of truth** for PEP 621 metadata. Build backends (`hatchling`, `setuptools`, etc.) and commands such as `python -m build` or `uv build` name outputs from this value only. If it stays at an old number, **`dist/` will still contain** sdist and wheel files like `try_working_hard-1.0.0.tar.gz` even when the human intent, tag, or `CHANGELOG` say `v1.1.0`—the archive filename does not infer the tag; it comes only from `pyproject.toml`.
+
+   If the package exposes a **fallback** `__version__` when `importlib.metadata` fails (e.g. uninstalled `editable` or script runs), keep that string in sync with `X.Y.Z` on release so dev-only runs are not stuck on a stale number.
+
 3. **User-facing docs**: If `README.md` mentions the latest version or release highlights, update to match. If usage or behavior text in `README.md` changed, update the parallel section in `README.zh-TW.md` per `.cursor/rules/changelog-readme-on-completion.mdc`.
 4. **Commits**: Prefer one or two clear commits (e.g. `chore(release): bump version to X.Y.Z` and changelog-only if splitting helps review).
 
@@ -63,7 +68,7 @@ Use the **exact** tag the user requested. If that tag already exists remotely, d
 
 - [ ] Tag normalized to `v*`
 - [ ] `CHANGELOG.md` has `## [X.Y.Z] - date` and `Unreleased` updated
-- [ ] `pyproject.toml` version matches `X.Y.Z`
+- [ ] `pyproject.toml` version matches `X.Y.Z` (so `dist/*.tar.gz` / `*.whl` names match the release; bump any `__version__` fallback in code if present)
 - [ ] README / `README.zh-TW.md` updated if user-visible release info changed
 - [ ] Topic branch; merge test against `origin/master` clean
 - [ ] `open-pr-to-develop.ps1 -Base master` run; user merges PR

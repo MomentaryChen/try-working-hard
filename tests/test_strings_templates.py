@@ -27,6 +27,7 @@ def test_status_running_sec_template(lang: str) -> None:
 def test_error_templates(lang: str) -> None:
     assert "0.1" in STRINGS[lang]["err_minutes"].format(min=0.1)
     assert STRINGS[lang]["err_seconds"].format(min=6.0)
+    assert STRINGS[lang]["err_jitter"].format(max=3600)
     assert STRINGS[lang]["err_pixels"].format(lo=0, hi=500)
 
 
@@ -46,6 +47,25 @@ def test_log_started_sec_template(lang: str) -> None:
     )
     assert "50" in line
     assert "5" in line
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_log_started_jitter_templates(lang: str) -> None:
+    m = STRINGS[lang]["log_started_min_jitter"].format(
+        v=5, sec=300, j=60, pat="line", px=10, ps=5
+    )
+    assert "60" in m or "60" in m.replace(" ", "")
+    s = STRINGS[lang]["log_started_sec_jitter"].format(
+        v=30, j=5, pat="line", px=10, ps=5
+    )
+    assert "5" in s
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_status_schedule_wait_template(lang: str) -> None:
+    out = STRINGS[lang]["status_schedule_wait"].format(cd="2:00:00")
+    assert "2:00:00" in out
+    assert len(out) > 10
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])

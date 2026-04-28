@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 from typing import Any, Literal
 
-from . import nudge_logic
+from . import nudge_logic, schedule_window
 from .cursor_nudge import MotionPattern
 
 Lang = Literal["zh", "en"]
@@ -30,11 +30,15 @@ def _defaults() -> dict[str, Any]:
         "ui_theme": "dark",
         "interval_text": str(int(nudge_logic.DEFAULT_MINUTES)),
         "interval_unit": "min",
+        "interval_jitter_text": "0",
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
         "path_speed_text": str(nudge_logic.DEFAULT_PATH_SPEED),
         "motion_pattern": "horizontal",
         "close_to_tray": False,
         "intro_acknowledged": False,
+        "schedule_window": False,
+        "schedule_window_start_text": "09:00",
+        "schedule_window_end_text": "18:00",
     }
 
 
@@ -54,6 +58,15 @@ def _sanitize_interval_unit(raw: object) -> str | None:
     if raw in ("min", "sec"):
         return raw  # type: ignore[return-value]
     return None
+
+
+def _sanitize_interval_jitter_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:32]
+    if nudge_logic.parse_interval_jitter_seconds_string(s) is None:
+        return fallback
+    return s
 
 
 def _sanitize_interval_text(
@@ -110,6 +123,21 @@ def _sanitize_intro_acknowledged(raw: object) -> bool | None:
     return None
 
 
+def _sanitize_schedule_window(raw: object) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
+    return None
+
+
+def _sanitize_hhmm_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:8]
+    if schedule_window.parse_hhmm(s) is None:
+        return fallback
+    return s
+
+
 def load_config(path: Path | None = None) -> dict[str, Any]:
     """Return merged config dict; missing or invalid file yields defaults."""
     p = path or default_config_path()
@@ -140,6 +168,11 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
         raw.get("interval_text"), out["interval_unit"], fallback=fb_interval
     )
 
+    fb_jitter = out["interval_jitter_text"]
+    out["interval_jitter_text"] = _sanitize_interval_jitter_text(
+        raw.get("interval_jitter_text"), fallback=fb_jitter
+    )
+
     fb_pixels = out["pixels_text"]
     out["pixels_text"] = _sanitize_pixels_text(raw.get("pixels_text"), fallback=fb_pixels)
 
@@ -167,6 +200,18 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     else:
         out["intro_acknowledged"] = True
 
+    sw = _sanitize_schedule_window(raw.get("schedule_window"))
+    if sw is not None:
+        out["schedule_window"] = sw
+    fb_start = out["schedule_window_start_text"]
+    out["schedule_window_start_text"] = _sanitize_hhmm_text(
+        raw.get("schedule_window_start_text"), fallback=fb_start
+    )
+    fb_end = out["schedule_window_end_text"]
+    out["schedule_window_end_text"] = _sanitize_hhmm_text(
+        raw.get("schedule_window_end_text"), fallback=fb_end
+    )
+
     out["version"] = CONFIG_VERSION
     return out
 
@@ -177,7 +222,10 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     base = _defaults()
     ctt = _sanitize_close_to_tray(data.get("close_to_tray"))
     ia = _sanitize_intro_acknowledged(data.get("intro_acknowledged"))
+    sw = _sanitize_schedule_window(data.get("schedule_window"))
     unit = _sanitize_interval_unit(data.get("interval_unit")) or base["interval_unit"]
+    fb_start = base["schedule_window_start_text"]
+    fb_end = base["schedule_window_end_text"]
     payload = {
         "version": CONFIG_VERSION,
         "lang": _sanitize_lang(data.get("lang")) or base["lang"],
@@ -186,6 +234,9 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
             data.get("interval_text"), unit, fallback=base["interval_text"]
         ),
         "interval_unit": unit,
+        "interval_jitter_text": _sanitize_interval_jitter_text(
+            data.get("interval_jitter_text"), fallback=base["interval_jitter_text"]
+        ),
         "pixels_text": _sanitize_pixels_text(
             data.get("pixels_text"), fallback=base["pixels_text"]
         ),
@@ -196,6 +247,13 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         or base["motion_pattern"],
         "close_to_tray": ctt if ctt is not None else base["close_to_tray"],
         "intro_acknowledged": ia if ia is not None else base["intro_acknowledged"],
+        "schedule_window": sw if sw is not None else base["schedule_window"],
+        "schedule_window_start_text": _sanitize_hhmm_text(
+            data.get("schedule_window_start_text"), fallback=fb_start
+        ),
+        "schedule_window_end_text": _sanitize_hhmm_text(
+            data.get("schedule_window_end_text"), fallback=fb_end
+        ),
     }
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
