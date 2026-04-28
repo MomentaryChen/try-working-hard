@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 import threading
 import time
 import tkinter as tk
 from datetime import date, datetime, time as dtime
-from importlib.metadata import version as pkg_version
+from importlib.metadata import PackageNotFoundError, version as pkg_version
 from importlib.resources import files
 from pathlib import Path
 from tkinter import messagebox
@@ -26,6 +27,7 @@ from .win32_mouse import get_seconds_since_last_user_input, jiggle_mouse
 
 # Primary UI font (Inter). If missing, Tk picks a substitute.
 _FONT_INTER = "Inter"
+_LOG = logging.getLogger(__name__)
 
 # Pro dark / light: unified corner radius; padding in class (see _UI_PAD).
 _R = 12
@@ -659,7 +661,7 @@ class MouseJigglerApp:
     def _pkg_version(self) -> str:
         try:
             return pkg_version("try-working-hard")
-        except Exception:
+        except PackageNotFoundError:
             return "1.0.0"
 
     def _apply_window_icon(self) -> None:
@@ -2115,8 +2117,8 @@ class MouseJigglerApp:
         if self._active_nav == "analytics":
             try:
                 self._refresh_analytics_charts()
-            except Exception:
-                pass
+            except (OSError, RuntimeError, ValueError, tk.TclError):
+                _LOG.exception("Failed to refresh analytics charts")
         self.root.after(5000, self._tick_analytics_charts_loop)
 
     def _on_analytics_trigger_range(self, value: str) -> None:
@@ -2512,7 +2514,19 @@ class MouseJigglerApp:
                 return
         except tk.TclError:
             return
-        self.root.after(0, lambda m=message: self._log_ui(m))
+        self._ui_invoke(lambda m=message: self._log_ui(m))
+
+    def _ui_invoke(self, fn: Any) -> None:
+        """Run a callable in the Tk main loop thread."""
+        if self._shutting_down:
+            return
+        try:
+            if threading.current_thread() is threading.main_thread():
+                fn()
+            else:
+                self.root.after(0, fn)
+        except tk.TclError:
+            pass
 
     def _log_ui(self, message: str) -> None:
         ts = datetime.now().strftime("%H:%M:%S")
@@ -2608,14 +2622,15 @@ class MouseJigglerApp:
         waited = False
         while not self._stop.is_set():
             now = datetime.now()
-            ws, we = self._effective_schedule_bounds()
+            # Use cached bounds synced from UI traces; avoids reading Tk variables off the worker thread.
+            ws, we = self._schedule_ws, self._schedule_we
             if schedule_window.is_within_work_window(now, ws, we):
                 if waited:
-                    self.root.after(0, lambda: self._log(self._t("log_schedule_resumed")))
+                    self._ui_invoke(lambda: self._log(self._t("log_schedule_resumed")))
                 return not self._stop.is_set()
             waited = True
             resume_at = schedule_window.next_window_start(now, ws, we)
-            self.root.after(0, lambda ra=resume_at: self._ui_schedule_wait_begin(ra))
+            self._ui_invoke(lambda ra=resume_at: self._ui_schedule_wait_begin(ra))
             end_mono = time.monotonic() + max(0.0, (resume_at - now).total_seconds())
             while time.monotonic() < end_mono and not self._stop.is_set():
                 left = end_mono - time.monotonic()
@@ -2625,7 +2640,7 @@ class MouseJigglerApp:
                 if self._stop.wait(timeout=step):
                     return False
                 if not self._run_schedule_window:
-                    self.root.after(0, self._ui_exit_schedule_wait)
+                    self._ui_invoke(self._ui_exit_schedule_wait)
                     return not self._stop.is_set()
             if self._stop.is_set():
                 return False
