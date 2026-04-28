@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - **Window and sidebar branding**: the UI window title, tray tooltip, and sidebar header now use the project name **`try-working-hard`** instead of the old generic nudge phrase (e.g. Chinese **滑鼠定時微動** / English **Mouse nudge**). The optional subtitle line stays hidden unless `app_subtitle` is set in strings.
+- **GitHub Actions (`setup-uv`)**: release/CI setup no longer fails when `uv.lock` is absent; cache dependency lookup now keys from `pyproject.toml` instead of requiring a lockfile.
 
 ### Added
 
