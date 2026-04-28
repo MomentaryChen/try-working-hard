@@ -74,7 +74,7 @@ class TrayController:
         if icon is not None:
             try:
                 icon.stop()
-            except Exception:
+            except (OSError, RuntimeError):
                 pass
         self._icon = None
 

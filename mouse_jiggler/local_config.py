@@ -42,6 +42,9 @@ def _defaults() -> dict[str, Any]:
         "schedule_window": False,
         "schedule_window_start_text": "09:00",
         "schedule_window_end_text": "18:00",
+        "schedule_window_segments_text": "09:00-18:00",
+        "schedule_include_weekends": False,
+        "schedule_cron_text": "",
     }
 
 
@@ -153,6 +156,33 @@ def _sanitize_hhmm_text(raw: object, *, fallback: str) -> str:
     return s
 
 
+def _sanitize_schedule_segments_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:256]
+    if schedule_window.parse_time_segments(s) is None:
+        return fallback
+    return s
+
+
+def _sanitize_schedule_include_weekends(raw: object) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
+    return None
+
+
+def _sanitize_schedule_cron_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:512]
+    if not s:
+        return ""
+    for part in [p.strip() for p in s.split(";") if p.strip()]:
+        if schedule_window.parse_cron_like(part) is None:
+            return fallback
+    return s
+
+
 def load_config(path: Path | None = None) -> dict[str, Any]:
     """Return merged config dict; missing or invalid file yields defaults."""
     p = path or default_config_path()
@@ -236,6 +266,17 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     out["schedule_window_end_text"] = _sanitize_hhmm_text(
         raw.get("schedule_window_end_text"), fallback=fb_end
     )
+    fb_segments = out["schedule_window_segments_text"]
+    out["schedule_window_segments_text"] = _sanitize_schedule_segments_text(
+        raw.get("schedule_window_segments_text"), fallback=fb_segments
+    )
+    siw = _sanitize_schedule_include_weekends(raw.get("schedule_include_weekends"))
+    if siw is not None:
+        out["schedule_include_weekends"] = siw
+    fb_cron = out["schedule_cron_text"]
+    out["schedule_cron_text"] = _sanitize_schedule_cron_text(
+        raw.get("schedule_cron_text"), fallback=fb_cron
+    )
 
     out["version"] = CONFIG_VERSION
     return out
@@ -253,6 +294,9 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     unit = _sanitize_interval_unit(data.get("interval_unit")) or base["interval_unit"]
     fb_start = base["schedule_window_start_text"]
     fb_end = base["schedule_window_end_text"]
+    fb_segments = base["schedule_window_segments_text"]
+    siw = _sanitize_schedule_include_weekends(data.get("schedule_include_weekends"))
+    fb_cron = base["schedule_cron_text"]
     payload = {
         "version": CONFIG_VERSION,
         "lang": _sanitize_lang(data.get("lang")) or base["lang"],
@@ -284,6 +328,15 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         ),
         "schedule_window_end_text": _sanitize_hhmm_text(
             data.get("schedule_window_end_text"), fallback=fb_end
+        ),
+        "schedule_window_segments_text": _sanitize_schedule_segments_text(
+            data.get("schedule_window_segments_text"), fallback=fb_segments
+        ),
+        "schedule_include_weekends": (
+            siw if siw is not None else base["schedule_include_weekends"]
+        ),
+        "schedule_cron_text": _sanitize_schedule_cron_text(
+            data.get("schedule_cron_text"), fallback=fb_cron
         ),
     }
     try:
