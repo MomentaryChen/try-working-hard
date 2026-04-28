@@ -20,6 +20,9 @@ def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
     assert cfg["ui_theme"] == "dark"
     assert cfg["close_to_tray"] is False
     assert cfg["intro_acknowledged"] is False
+    assert cfg["schedule_window"] is False
+    assert cfg["schedule_window_start_text"] == "09:00"
+    assert cfg["schedule_window_end_text"] == "18:00"
 
 
 def test_round_trip(tmp_path: Path) -> None:
