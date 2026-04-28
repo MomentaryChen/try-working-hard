@@ -1,4 +1,4 @@
-"""Optional smoke test on Windows (importing ``win32_mouse`` exits immediately on other OSes)."""
+"""Smoke tests for cross-platform ``win32_mouse`` import behavior."""
 
 from __future__ import annotations
 
@@ -6,13 +6,22 @@ import sys
 
 import pytest
 
-pytestmark = pytest.mark.skipif(sys.platform != "win32", reason="win32_mouse imports only on Windows")
+
+def test_import_module_never_exits() -> None:
+    import mouse_jiggler.win32_mouse as mod
+
+    assert hasattr(mod, "jiggle_mouse")
+    assert hasattr(mod, "get_seconds_since_last_user_input")
 
 
 def test_jiggle_mouse_zero_is_noop() -> None:
     from mouse_jiggler.win32_mouse import jiggle_mouse
 
-    jiggle_mouse(0)
+    if sys.platform == "win32":
+        jiggle_mouse(0)
+    else:
+        with pytest.raises(OSError):
+            jiggle_mouse(0)
 
 
 def test_get_seconds_since_last_user_input_finite() -> None:

@@ -10,6 +10,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Window and sidebar branding**: the UI window title, tray tooltip, and sidebar header now use the project name **`try-working-hard`** instead of the old generic nudge phrase (e.g. Chinese **滑鼠定時微動** / English **Mouse nudge**). The optional subtitle line stays hidden unless `app_subtitle` is set in strings.
 - **GitHub Actions (`setup-uv`)**: release/CI setup no longer fails when `uv.lock` is absent; cache dependency lookup now keys from `pyproject.toml` instead of requiring a lockfile.
+- **Worker/UI safety around schedule state**: the background nudge loop now reads cached schedule bounds synchronized on the UI thread, and worker-triggered UI actions are dispatched through a dedicated UI invoker to avoid touching Tk state directly from worker paths.
+- **Cross-platform imports**: `mouse_jiggler.win32_mouse` no longer exits at import time on non-Windows platforms. The module imports cleanly for tests/tooling, returns `0.0` idle seconds off Windows, and raises an explicit `OSError` only when trying to jiggle the cursor.
+- **Error diagnosability**: broad `except Exception` handlers in analytics refresh and tray stop paths were narrowed, and analytics refresh failures are now logged with stack traces.
+
+### Added
+
+- **PR-time CI safety net**: added `.github/workflows/ci.yml` to run pytest on `pull_request` to `develop` and on pushes to `develop` / topic branches (`dev/**`, `feature/**`, `fix/**`).
 
 ### Added
 
