@@ -17,13 +17,22 @@ def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
     assert cfg["pixels_text"] == "100"
     assert cfg["path_speed_text"] == "5"
     assert cfg["motion_pattern"] == "horizontal"
+    assert cfg["activity_style"] == "pattern"
+    assert cfg["natural_rare_click"] is False
+    assert cfg["natural_rare_scroll"] is False
     assert cfg["ui_theme"] == "dark"
     assert cfg["close_to_tray"] is False
     assert cfg["intro_acknowledged"] is False
     assert cfg["schedule_window"] is False
     assert cfg["schedule_window_start_text"] == "09:00"
     assert cfg["schedule_window_end_text"] == "18:00"
+<<<<<<< HEAD
     assert cfg["auto_check_updates"] is True
+=======
+    assert cfg["schedule_window_segments_text"] == "09:00-18:00"
+    assert cfg["schedule_include_weekends"] is False
+    assert cfg["schedule_cron_text"] == ""
+>>>>>>> origin/develop
 
 
 def test_round_trip(tmp_path: Path) -> None:
@@ -75,7 +84,13 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
                 "motion_pattern": "triangle",
                 "close_to_tray": "yes",
                 "ui_theme": "sepia",
+<<<<<<< HEAD
                 "auto_check_updates": "sometimes",
+=======
+                "schedule_window_segments_text": "09:00-12:00,11:00-13:00",
+                "schedule_include_weekends": "yes",
+                "schedule_cron_text": "bad cron expression",
+>>>>>>> origin/develop
             }
         ),
         encoding="utf-8",
@@ -91,3 +106,6 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
     assert cfg["close_to_tray"] is False
     assert cfg["auto_check_updates"] is True
     assert cfg["intro_acknowledged"] is True
+    assert cfg["schedule_window_segments_text"] == "09:00-18:00"
+    assert cfg["schedule_include_weekends"] is False
+    assert cfg["schedule_cron_text"] == ""

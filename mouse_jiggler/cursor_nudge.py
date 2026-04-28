@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import math
+import random
 from collections.abc import Callable
 from typing import Literal
 
 MotionPattern = Literal["horizontal", "circle", "square"]
+ActivityStyle = Literal["pattern", "natural"]
 
 _TRAJECTORY_BASE_SLEEP = 0.02
 _HORIZ_BASE_SLEEP = 0.05
@@ -128,3 +130,49 @@ def _trace_square(
             set_pos(x, y)
             sleep(step)
         prev_x, prev_y = tx, ty
+
+
+def nudge_natural(
+    max_offset: int,
+    path_speed: int,
+    *,
+    get_pos: Callable[[], tuple[int, int] | None],
+    set_pos: Callable[[int, int], object],
+    sleep: Callable[[float], object],
+    rng: random.Random | None = None,
+) -> None:
+    """
+    Irregular micro-moves that stay within ``max_offset`` pixels of the starting point,
+    then return to the exact start. Meant to avoid obvious geometric traces.
+    """
+    r = rng or random.Random()
+    mo = int(max_offset)
+    if mo <= 0:
+        return
+    pos = get_pos()
+    if pos is None:
+        return
+    sx, sy = int(pos[0]), int(pos[1])
+    step_delay = _step_delay(_TRAJECTORY_BASE_SLEEP * 0.9, path_speed)
+    n_steps = r.randint(16, 28)
+    pull = 0.14
+    max_step = max(1.0, float(mo) * 0.22)
+    cx, cy = float(sx), float(sy)
+
+    for i in range(n_steps):
+        if i == n_steps - 1:
+            set_pos(sx, sy)
+            sleep(step_delay * r.uniform(0.85, 1.15))
+            break
+        rx = (r.random() - 0.5) * 2.0 * max_step
+        ry = (r.random() - 0.5) * 2.0 * max_step
+        cx = cx + rx + (sx - cx) * pull
+        cy = cy + ry + (sy - cy) * pull
+        dx, dy = cx - sx, cy - sy
+        dist = math.hypot(dx, dy)
+        if dist > mo and dist > 1e-6:
+            scale = mo / dist
+            cx = sx + dx * scale
+            cy = sy + dy * scale
+        set_pos(int(round(cx)), int(round(cy)))
+        sleep(step_delay * r.uniform(0.85, 1.15))

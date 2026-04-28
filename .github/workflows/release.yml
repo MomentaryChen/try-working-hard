@@ -20,6 +20,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           enable-cache: true
+          cache-dependency-glob: pyproject.toml
 
       - name: Install dependencies
         run: uv sync --group dev --extra build
@@ -30,8 +31,43 @@ jobs:
       - name: Build executable (PyInstaller)
         run: uv run pyinstaller packaging/try-working-hard.spec
 
+      - name: Build release notes from CHANGELOG
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if (-not $tag.StartsWith("v")) {
+            throw "Expected a v-prefixed tag, got: $tag"
+          }
+          $version = $tag.Substring(1)
+
+          $changelogPath = "CHANGELOG.md"
+          if (-not (Test-Path $changelogPath)) {
+            throw "CHANGELOG.md not found."
+          }
+
+          $content = Get-Content $changelogPath -Raw
+          $escapedVersion = [regex]::Escape($version)
+          $sectionPattern = "(?ms)^## \[$escapedVersion\].*?(?=^## \[|\z)"
+          $match = [regex]::Match($content, $sectionPattern)
+
+          if (-not $match.Success) {
+            throw "No CHANGELOG section found for version $version."
+          }
+
+          $section = $match.Value.Trim()
+          $body = @"
+          ## Release $tag
+
+          $section
+
+          ## Assets
+          - `dist/try-working-hard.exe`
+          "@
+
+          Set-Content -Path release-notes.md -Value $body -Encoding utf8
+
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
           files: dist/try-working-hard.exe
-          generate_release_notes: true
+          body_path: release-notes.md

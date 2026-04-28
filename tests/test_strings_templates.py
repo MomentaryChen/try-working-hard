@@ -72,6 +72,7 @@ def test_status_schedule_wait_template(lang: str) -> None:
 def test_path_speed_templates(lang: str) -> None:
     assert STRINGS[lang]["err_path_speed"].format(lo=1, hi=10)
     assert STRINGS[lang]["path_speed_hint"].format(lo=1, hi=10)
+    assert STRINGS[lang]["path_speed_hint_natural"].format(lo=1, hi=10)
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
@@ -90,6 +91,7 @@ def test_intro_body_includes_version(lang: str) -> None:
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
+<<<<<<< HEAD
 def test_update_banner_template(lang: str) -> None:
     body = STRINGS[lang]["update_banner_new_version"].format(
         latest="v1.2.0", current="1.1.0"
@@ -103,3 +105,8 @@ def test_update_info_banner_templates(lang: str) -> None:
     assert "1.1.0" in latest
     assert STRINGS[lang]["update_banner_error"]
     assert STRINGS[lang]["update_banner_checking"]
+=======
+def test_startup_notice_body_includes_version(lang: str) -> None:
+    body = STRINGS[lang]["startup_notice_body"].format(version="2.0.0")
+    assert "2.0.0" in body
+>>>>>>> origin/develop

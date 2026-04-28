@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 import threading
@@ -10,7 +11,7 @@ import time
 import webbrowser
 import tkinter as tk
 from datetime import date, datetime, time as dtime
-from importlib.metadata import version as pkg_version
+from importlib.metadata import PackageNotFoundError, version as pkg_version
 from importlib.resources import files
 from pathlib import Path
 from tkinter import messagebox
@@ -27,13 +28,14 @@ from . import (
     updater,
 )
 from .app_icon import load_app_icon_rgba
-from .cursor_nudge import MotionPattern
+from .cursor_nudge import ActivityStyle, MotionPattern
 from .strings import Lang, STRINGS
 from .tray import HAS_TRAY, TrayController
-from .win32_mouse import get_seconds_since_last_user_input, jiggle_mouse
+from .win32_mouse import get_seconds_since_last_user_input, jiggle_mouse, jiggle_natural
 
 # Primary UI font (Inter). If missing, Tk picks a substitute.
 _FONT_INTER = "Inter"
+_LOG = logging.getLogger(__name__)
 
 # Pro dark / light: unified corner radius; padding in class (see _UI_PAD).
 _R = 12
@@ -393,6 +395,16 @@ class MouseJigglerApp:
                 text_color=(self._TEXT_BODY, self._TEXT_BODY),
                 text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
             )
+        if hasattr(self, "seg_activity_style"):
+            self.seg_activity_style.configure(
+                fg_color=self._SURFACE_SUBTLE,
+                selected_color=self._ACCENT,
+                selected_hover_color=self._ACCENT_HOVER,
+                unselected_color=self._BTN_SECONDARY,
+                unselected_hover_color=self._BTN_SECONDARY_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
+            )
         if hasattr(self, "_seg_ui_theme"):
             self._seg_ui_theme.configure(
                 fg_color=self._SURFACE_SUBTLE,
@@ -499,6 +511,7 @@ class MouseJigglerApp:
                     button_color="#FFFFFF",
                     button_hover_color="#F3F4F6",
                 )
+<<<<<<< HEAD
         if hasattr(self, "swt_auto_updates"):
             if self._ui_theme == "dark":
                 self.swt_auto_updates.configure(
@@ -514,6 +527,25 @@ class MouseJigglerApp:
                     button_color="#FFFFFF",
                     button_hover_color="#F3F4F6",
                 )
+=======
+        for _swt_name in ("swt_natural_click", "swt_natural_scroll"):
+            if hasattr(self, _swt_name):
+                _swt = getattr(self, _swt_name)
+                if self._ui_theme == "dark":
+                    _swt.configure(
+                        fg_color=self._BORDER,
+                        progress_color=self._ACCENT,
+                        button_color="#C9D1D9",
+                        button_hover_color="#8B949E",
+                    )
+                else:
+                    _swt.configure(
+                        fg_color=self._BORDER,
+                        progress_color=self._ACCENT,
+                        button_color="#FFFFFF",
+                        button_hover_color="#F3F4F6",
+                    )
+>>>>>>> origin/develop
         if hasattr(self, "_interval_preset_btns"):
             for b in self._interval_preset_btns:
                 b.configure(
@@ -529,6 +561,7 @@ class MouseJigglerApp:
             "_lbl_interval_presets",
             "_lbl_pixels",
             "_lbl_path_speed",
+            "_lbl_activity_style",
             "_lbl_motion_pattern",
             "_lbl_chart_triggers",
             "_lbl_chart_runtime",
@@ -557,7 +590,11 @@ class MouseJigglerApp:
             "_hint_tray",
             "_hint_autostart",
             "_hint_schedule",
+<<<<<<< HEAD
             "_hint_auto_updates",
+=======
+            "_lbl_natural_opts_hint",
+>>>>>>> origin/develop
         ):
             if hasattr(self, name):
                 getattr(self, name).configure(text_color=self._TEXT_MUTED)
@@ -660,6 +697,9 @@ class MouseJigglerApp:
         self._run_schedule_window = False
         self._schedule_ws = schedule_window.DEFAULT_WORK_START
         self._schedule_we = schedule_window.DEFAULT_WORK_END
+        self._schedule_segments_text = "09:00-18:00"
+        self._schedule_include_weekends = False
+        self._schedule_cron_text = ""
 
         self._tray = TrayController()
         self._shutting_down = False
@@ -667,12 +707,16 @@ class MouseJigglerApp:
         self._config_loading = False
         self._intro_acknowledged = True
         self._motion_pattern: MotionPattern = "horizontal"
+<<<<<<< HEAD
         self._auto_check_updates = True
         self._update_check_in_progress = False
         self._update_notice_url = ""
         self._update_notice_after_id: str | None = None
         self._update_notice_anim_after_id: str | None = None
         self._update_notice_target_h = 72
+=======
+        self._activity_style: ActivityStyle = "pattern"
+>>>>>>> origin/develop
 
         self._analytics_trigger_mode: Literal["today", "week"] = "today"
         self._analytics_runtime_anchor = 0.0
@@ -726,7 +770,7 @@ class MouseJigglerApp:
     def _pkg_version(self) -> str:
         try:
             return pkg_version("try-working-hard")
-        except Exception:
+        except PackageNotFoundError:
             return "1.0.0"
 
     def _apply_window_icon(self) -> None:
@@ -969,7 +1013,96 @@ class MouseJigglerApp:
         self._motion_pattern = self._motion_pattern_from_seg_value(value)
         self._schedule_save_config()
 
+    def _seg_value_for_activity_style(self, s: ActivityStyle) -> str:
+        return (
+            self._t("activity_style_pattern")
+            if s == "pattern"
+            else self._t("activity_style_natural")
+        )
+
+    def _activity_style_from_seg_value(self, value: str) -> ActivityStyle:
+        return "natural" if value == self._t("activity_style_natural") else "pattern"
+
+    def _sync_activity_style_seg(self) -> None:
+        if not hasattr(self, "seg_activity_style"):
+            return
+        try:
+            self.seg_activity_style.configure(
+                values=[
+                    self._t("activity_style_pattern"),
+                    self._t("activity_style_natural"),
+                ]
+            )
+            self.seg_activity_style.set(self._seg_value_for_activity_style(self._activity_style))
+        except (tk.TclError, AttributeError):
+            pass
+
+    def _on_activity_style_seg(self, value: str) -> None:
+        if self._shutting_down:
+            return
+        self._activity_style = self._activity_style_from_seg_value(value)
+        self._refresh_activity_dependent_widgets()
+        self._schedule_save_config()
+
+    def _refresh_activity_dependent_widgets(self) -> None:
+        natural = self._activity_style == "natural"
+        try:
+            if hasattr(self, "seg_motion_pattern"):
+                self.seg_motion_pattern.configure(state="disabled" if natural else "normal")
+            if hasattr(self, "row_natural_opts"):
+                if natural:
+                    self.row_natural_opts.grid()
+                else:
+                    self.row_natural_opts.grid_remove()
+        except (tk.TclError, AttributeError):
+            pass
+        self._sync_path_speed_labels_for_mode()
+        self._sync_motion_pattern_label_for_mode()
+
+    def _sync_path_speed_labels_for_mode(self) -> None:
+        if not hasattr(self, "_lbl_path_speed"):
+            return
+        try:
+            if self._activity_style == "natural":
+                self._lbl_path_speed.configure(text=self._t("path_speed_label_natural"))
+                self._lbl_path_speed_hint.configure(
+                    text=self._t(
+                        "path_speed_hint_natural",
+                        lo=self.MIN_PATH_SPEED,
+                        hi=self.MAX_PATH_SPEED,
+                    )
+                )
+            else:
+                self._lbl_path_speed.configure(text=self._t("path_speed_label"))
+                self._lbl_path_speed_hint.configure(
+                    text=self._t(
+                        "path_speed_hint",
+                        lo=self.MIN_PATH_SPEED,
+                        hi=self.MAX_PATH_SPEED,
+                    )
+                )
+        except (tk.TclError, AttributeError):
+            pass
+
+    def _sync_motion_pattern_label_for_mode(self) -> None:
+        if not hasattr(self, "_lbl_motion_pattern"):
+            return
+        try:
+            if self._activity_style == "natural":
+                self._lbl_motion_pattern.configure(text=self._t("motion_pattern_label_when_natural"))
+            else:
+                self._lbl_motion_pattern.configure(text=self._t("motion_pattern_label"))
+        except (tk.TclError, AttributeError):
+            pass
+
+    def _on_natural_pref_changed(self) -> None:
+        if self._shutting_down or self._config_loading:
+            return
+        self._schedule_save_config()
+
     def _pattern_log_label(self) -> str:
+        if self._activity_style == "natural":
+            return self._t("motion_pattern_log_natural")
         return {
             "horizontal": self._t("motion_pattern_log_line"),
             "circle": self._t("motion_pattern_log_circle"),
@@ -995,13 +1128,30 @@ class MouseJigglerApp:
         )
         mp = cfg.get("motion_pattern", "horizontal")
         self._motion_pattern = mp if mp in ("horizontal", "circle", "square") else "horizontal"
+        ast = cfg.get("activity_style", "pattern")
+        self._activity_style = ast if ast in ("pattern", "natural") else "pattern"
+        if hasattr(self, "var_natural_rare_click"):
+            self.var_natural_rare_click.set(bool(cfg.get("natural_rare_click", False)))
+        if hasattr(self, "var_natural_rare_scroll"):
+            self.var_natural_rare_scroll.set(bool(cfg.get("natural_rare_scroll", False)))
         self.var_tray_close.set(bool(cfg.get("close_to_tray", False)))
         self.var_schedule_window.set(bool(cfg.get("schedule_window", False)))
         self.var_schedule_start.set(
             str(cfg.get("schedule_window_start_text", "09:00"))
         )
         self.var_schedule_end.set(str(cfg.get("schedule_window_end_text", "18:00")))
+<<<<<<< HEAD
         self._auto_check_updates = bool(cfg.get("auto_check_updates", True))
+=======
+        self._schedule_segments_text = str(
+            cfg.get(
+                "schedule_window_segments_text",
+                f"{self.var_schedule_start.get()}-{self.var_schedule_end.get()}",
+            )
+        )
+        self._schedule_include_weekends = bool(cfg.get("schedule_include_weekends", False))
+        self._schedule_cron_text = str(cfg.get("schedule_cron_text", ""))
+>>>>>>> origin/develop
         self._sync_schedule_times_from_vars()
         self._run_schedule_window = bool(self.var_schedule_window.get())
         self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
@@ -1032,10 +1182,16 @@ class MouseJigglerApp:
             "pixels_text": self.var_pixels.get(),
             "path_speed_text": self.var_path_speed.get(),
             "motion_pattern": self._motion_pattern,
+            "activity_style": self._activity_style,
+            "natural_rare_click": bool(self.var_natural_rare_click.get()),
+            "natural_rare_scroll": bool(self.var_natural_rare_scroll.get()),
             "close_to_tray": bool(self.var_tray_close.get()),
             "schedule_window": bool(self.var_schedule_window.get()),
             "schedule_window_start_text": self.var_schedule_start.get(),
             "schedule_window_end_text": self.var_schedule_end.get(),
+            "schedule_window_segments_text": self._schedule_segments_text,
+            "schedule_include_weekends": self._schedule_include_weekends,
+            "schedule_cron_text": self._schedule_cron_text,
             "intro_acknowledged": self._intro_acknowledged,
             "auto_check_updates": bool(self.var_auto_check_updates.get()),
         }
@@ -1045,6 +1201,7 @@ class MouseJigglerApp:
             return
         if self._start_in_tray:
             return
+        self._show_startup_usage_notice()
         if self._intro_acknowledged:
             return
         try:
@@ -1060,6 +1217,19 @@ class MouseJigglerApp:
         self._reapply_start_maximized()
         self._intro_acknowledged = True
         self._save_config_now()
+
+    def _show_startup_usage_notice(self) -> None:
+        try:
+            if not self.root.winfo_exists():
+                return
+        except tk.TclError:
+            return
+        messagebox.showinfo(
+            self._t("startup_notice_title"),
+            self._t("startup_notice_body", version=self._pkg_version()),
+            parent=self.root,
+        )
+        self._reapply_start_maximized()
 
     def _register_config_persistence(self) -> None:
         def _on_write(*_a: object) -> None:
@@ -1333,7 +1503,16 @@ class MouseJigglerApp:
 
     def _apply_language(self) -> None:
         self.root.title(self._t("window_title"))
-        self._lbl_subtitle.configure(text=self._t("app_subtitle"))
+        if hasattr(self, "_brand"):
+            self._brand.configure(text=self._t("window_title"))
+        sub = self._t("app_subtitle").strip()
+        self._lbl_subtitle.configure(text=sub)
+        p = self._UI_PAD
+        if sub:
+            if not self._lbl_subtitle.winfo_ismapped():
+                self._lbl_subtitle.pack(anchor="w", padx=p, pady=(0, p), after=self._brand)
+        else:
+            self._lbl_subtitle.pack_forget()
         if hasattr(self, "_lbl_appearance"):
             self._lbl_appearance.configure(text=self._t("theme_appearance"))
         self._lbl_lang.configure(text=self._t("lang_ui"))
@@ -1355,22 +1534,21 @@ class MouseJigglerApp:
         if hasattr(self, "_interval_preset_btns") and hasattr(self, "_interval_preset_specs"):
             for b, spec in zip(self._interval_preset_btns, self._interval_preset_specs, strict=True):
                 b.configure(text=self._t(spec))
-        if hasattr(self, "_lbl_motion_pattern"):
-            self._lbl_motion_pattern.configure(text=self._t("motion_pattern_label"))
         self._sync_motion_pattern_seg()
+        if hasattr(self, "_lbl_activity_style"):
+            self._lbl_activity_style.configure(text=self._t("activity_style_label"))
+        self._sync_activity_style_seg()
+        if hasattr(self, "swt_natural_click"):
+            self.swt_natural_click.configure(text=self._t("natural_rare_click"))
+        if hasattr(self, "swt_natural_scroll"):
+            self.swt_natural_scroll.configure(text=self._t("natural_rare_scroll"))
+        if hasattr(self, "_lbl_natural_opts_hint"):
+            self._lbl_natural_opts_hint.configure(text=self._t("natural_opts_hint"))
+        self._refresh_activity_dependent_widgets()
         self._lbl_pixels.configure(text=self._t("pixels_label"))
         self._lbl_pixels_hint.configure(
             text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS)
         )
-        if hasattr(self, "_lbl_path_speed"):
-            self._lbl_path_speed.configure(text=self._t("path_speed_label"))
-            self._lbl_path_speed_hint.configure(
-                text=self._t(
-                    "path_speed_hint",
-                    lo=self.MIN_PATH_SPEED,
-                    hi=self.MAX_PATH_SPEED,
-                )
-            )
         self.btn_start.configure(text=self._t("btn_start"))
         self.btn_stop.configure(text=self._t("btn_stop"))
         self._lbl_tray_sw.configure(text=self._t("tray_switch_title"))
@@ -1608,21 +1786,23 @@ class MouseJigglerApp:
 
         self._brand = ctk.CTkLabel(
             sidebar,
-            text="try-working-hard",
+            text=self._t("window_title"),
             font=self._font_brand,
             text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
             anchor="w",
         )
         self._brand.pack(anchor="w", padx=p, pady=(p, 4))
 
+        sub = self._t("app_subtitle").strip()
         self._lbl_subtitle = ctk.CTkLabel(
             sidebar,
-            text=self._t("app_subtitle"),
+            text=sub,
             font=self._font_body,
             text_color=self._TEXT_BODY,
             anchor="w",
         )
-        self._lbl_subtitle.pack(anchor="w", padx=p, pady=(0, p))
+        if sub:
+            self._lbl_subtitle.pack(anchor="w", padx=p, pady=(0, p))
 
         ic = self._nav_icons
         self._nav_home = self._nav_btn(
@@ -1898,6 +2078,17 @@ class MouseJigglerApp:
 
     def _sync_schedule_times_from_vars(self) -> None:
         self._schedule_ws, self._schedule_we = self._effective_schedule_bounds()
+        self._schedule_segments_text = (
+            f"{self.var_schedule_start.get().strip()}-{self.var_schedule_end.get().strip()}"
+        )
+
+    def _build_schedule_spec(self) -> schedule_window.ScheduleSpec | None:
+        return schedule_window.build_schedule_spec(
+            window_segments_text=self._schedule_segments_text,
+            include_weekends=self._schedule_include_weekends,
+            cron_text=self._schedule_cron_text,
+            weekday_text="mon-fri",
+        )
 
     def _refresh_schedule_banner(self) -> None:
         if not hasattr(self, "_lbl_schedule_banner"):
@@ -1907,17 +2098,25 @@ class MouseJigglerApp:
             return
         p = self._parsed_schedule_bounds_raw()
         self._sync_schedule_times_from_vars()
-        if p is None or p[0] >= p[1]:
+        spec = self._build_schedule_spec()
+        if spec is None:
             self._lbl_schedule_banner.configure(
                 text=self._t("schedule_banner_need_valid_times"),
             )
         else:
-            ws, we = p
+            ws, we = p if p is not None and p[0] < p[1] else (
+                schedule_window.DEFAULT_WORK_START,
+                schedule_window.DEFAULT_WORK_END,
+            )
+            weekend_text = self._t("schedule_weekend_on") if self._schedule_include_weekends else self._t("schedule_weekend_off")
+            cron_text = self._schedule_cron_text.strip() or self._t("schedule_cron_off")
             self._lbl_schedule_banner.configure(
                 text=self._t(
                     "schedule_banner_active",
                     start=schedule_window.format_hhmm(ws),
                     end=schedule_window.format_hhmm(we),
+                    weekend=weekend_text,
+                    cron=cron_text,
                 ),
             )
         self._lbl_schedule_banner.grid(row=1, column=0, sticky="ew", pady=(6, 0))
@@ -2454,6 +2653,7 @@ class MouseJigglerApp:
             self._t("motion_pattern_line"),
             self._t("motion_pattern_circle"),
             self._t("motion_pattern_square"),
+            self._t("activity_style_natural"),
         )
         analytics_charts.render_patterns_figure(
             self._fig_patterns,
@@ -2471,8 +2671,8 @@ class MouseJigglerApp:
         if self._active_nav == "analytics":
             try:
                 self._refresh_analytics_charts()
-            except Exception:
-                pass
+            except (OSError, RuntimeError, ValueError, tk.TclError):
+                _LOG.exception("Failed to refresh analytics charts")
         self.root.after(5000, self._tick_analytics_charts_loop)
 
     def _on_analytics_trigger_range(self, value: str) -> None:
@@ -2708,15 +2908,82 @@ class MouseJigglerApp:
         self._lbl_path_speed_hint.pack(side="left", padx=(12, 0))
         self._a11y_label_focus_entry(self._lbl_path_speed, self.entry_path_speed)
 
+        self.var_natural_rare_click = tk.BooleanVar(value=False)
+        self.var_natural_rare_scroll = tk.BooleanVar(value=False)
+
+        self._lbl_activity_style = ctk.CTkLabel(
+            card,
+            text=self._t("activity_style_label"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+        )
+        self._lbl_activity_style.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
+        row_activity = ctk.CTkFrame(card, fg_color="transparent")
+        row_activity.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.seg_activity_style = ctk.CTkSegmentedButton(
+            row_activity,
+            values=[
+                self._t("activity_style_pattern"),
+                self._t("activity_style_natural"),
+            ],
+            command=self._on_activity_style_seg,
+            corner_radius=10,
+            font=self._font_body,
+            height=36,
+            fg_color=self._SURFACE_SUBTLE,
+            selected_color=self._ACCENT,
+            selected_hover_color=self._ACCENT_HOVER,
+            unselected_color=self._BTN_SECONDARY,
+            unselected_hover_color=self._BTN_SECONDARY_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            text_color_disabled=(self._TEXT_DISABLED, self._TEXT_DISABLED),
+        )
+        _try_takefocus(self.seg_activity_style, 1)
+        self.seg_activity_style.pack(side="left")
+        self._sync_activity_style_seg()
+        self._a11y_label_focus_entry(self._lbl_activity_style, self.seg_activity_style)
+
+        self.row_natural_opts = ctk.CTkFrame(card, fg_color="transparent")
+        self.row_natural_opts.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
+        col_nat = ctk.CTkFrame(self.row_natural_opts, fg_color="transparent")
+        col_nat.pack(side="left", fill="x", expand=True)
+        self.swt_natural_click = ctk.CTkSwitch(
+            col_nat,
+            text=self._t("natural_rare_click"),
+            variable=self.var_natural_rare_click,
+            font=self._font_body,
+            command=self._on_natural_pref_changed,
+            progress_color=self._ACCENT,
+        )
+        self.swt_natural_click.pack(anchor="w", pady=(0, 6))
+        self.swt_natural_scroll = ctk.CTkSwitch(
+            col_nat,
+            text=self._t("natural_rare_scroll"),
+            variable=self.var_natural_rare_scroll,
+            font=self._font_body,
+            command=self._on_natural_pref_changed,
+            progress_color=self._ACCENT,
+        )
+        self.swt_natural_scroll.pack(anchor="w")
+        self._lbl_natural_opts_hint = ctk.CTkLabel(
+            self.row_natural_opts,
+            text=self._t("natural_opts_hint"),
+            font=self._font_hint,
+            text_color=self._TEXT_MUTED,
+            wraplength=380,
+            justify="left",
+        )
+        self._lbl_natural_opts_hint.pack(side="left", padx=(16, 0), fill="x", expand=True)
+
         self._lbl_motion_pattern = ctk.CTkLabel(
             card,
             text=self._t("motion_pattern_label"),
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_motion_pattern.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_motion_pattern.grid(row=13, column=0, sticky="w", padx=p, pady=(p, p))
         row_pattern = ctk.CTkFrame(card, fg_color="transparent")
-        row_pattern.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_pattern.grid(row=14, column=0, sticky="ew", padx=p, pady=(0, p))
         self.seg_motion_pattern = ctk.CTkSegmentedButton(
             row_pattern,
             values=[
@@ -2742,7 +3009,7 @@ class MouseJigglerApp:
         self._a11y_label_focus_entry(self._lbl_motion_pattern, self.seg_motion_pattern)
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        btn_row.grid(row=12, column=0, sticky="w", padx=p, pady=(p, p))
+        btn_row.grid(row=15, column=0, sticky="w", padx=p, pady=(p, p))
 
         self.btn_start = self._btn(
             btn_row,
@@ -2767,6 +3034,7 @@ class MouseJigglerApp:
             command=self._on_stop,
         )
         self.btn_stop.pack(side="left")
+        self._refresh_activity_dependent_widgets()
 
     def _fill_log_panel(self, card: ctk.CTkFrame) -> None:
         p = self._UI_PAD
@@ -2868,7 +3136,19 @@ class MouseJigglerApp:
                 return
         except tk.TclError:
             return
-        self.root.after(0, lambda m=message: self._log_ui(m))
+        self._ui_invoke(lambda m=message: self._log_ui(m))
+
+    def _ui_invoke(self, fn: Any) -> None:
+        """Run a callable in the Tk main loop thread."""
+        if self._shutting_down:
+            return
+        try:
+            if threading.current_thread() is threading.main_thread():
+                fn()
+            else:
+                self.root.after(0, fn)
+        except tk.TclError:
+            pass
 
     def _log_ui(self, message: str) -> None:
         ts = datetime.now().strftime("%H:%M:%S")
@@ -2913,13 +3193,26 @@ class MouseJigglerApp:
         pattern: MotionPattern,
         path_speed: int,
         *,
+        activity_style: ActivityStyle,
+        natural_rare_click: bool,
+        natural_rare_scroll: bool,
         log_success: bool = True,
     ) -> None:
         try:
-            jiggle_mouse(pixels, pattern, path_speed=path_speed)
+            if activity_style == "natural":
+                jiggle_natural(
+                    pixels,
+                    path_speed=path_speed,
+                    rare_click=natural_rare_click,
+                    rare_scroll=natural_rare_scroll,
+                )
+                rec_key = "natural"
+            else:
+                jiggle_mouse(pixels, pattern, path_speed=path_speed)
+                rec_key = pattern
             if not log_success:
                 return
-            analytics_store.record_nudge(pattern)
+            analytics_store.record_nudge(rec_key)
             if pixels > 0:
                 self._log(self._t("log_nudge"))
             else:
@@ -2964,14 +3257,16 @@ class MouseJigglerApp:
         waited = False
         while not self._stop.is_set():
             now = datetime.now()
-            ws, we = self._effective_schedule_bounds()
-            if schedule_window.is_within_work_window(now, ws, we):
+            spec = self._build_schedule_spec()
+            if spec is None:
+                return False
+            if schedule_window.is_within_schedule(now, spec):
                 if waited:
-                    self.root.after(0, lambda: self._log(self._t("log_schedule_resumed")))
+                    self._ui_invoke(lambda: self._log(self._t("log_schedule_resumed")))
                 return not self._stop.is_set()
             waited = True
-            resume_at = schedule_window.next_window_start(now, ws, we)
-            self.root.after(0, lambda ra=resume_at: self._ui_schedule_wait_begin(ra))
+            resume_at = schedule_window.next_schedule_start(now, spec)
+            self._ui_invoke(lambda ra=resume_at: self._ui_schedule_wait_begin(ra))
             end_mono = time.monotonic() + max(0.0, (resume_at - now).total_seconds())
             while time.monotonic() < end_mono and not self._stop.is_set():
                 left = end_mono - time.monotonic()
@@ -2981,7 +3276,7 @@ class MouseJigglerApp:
                 if self._stop.wait(timeout=step):
                     return False
                 if not self._run_schedule_window:
-                    self.root.after(0, self._ui_exit_schedule_wait)
+                    self._ui_invoke(self._ui_exit_schedule_wait)
                     return not self._stop.is_set()
             if self._stop.is_set():
                 return False
@@ -3033,8 +3328,8 @@ class MouseJigglerApp:
             return
 
         if bool(self.var_schedule_window.get()):
-            psched = self._parsed_schedule_bounds_raw()
-            if psched is None or psched[0] >= psched[1]:
+            psched = self._build_schedule_spec()
+            if psched is None:
                 messagebox.showerror(
                     self._t("err_title"),
                     self._t("err_schedule_bounds"),
@@ -3051,10 +3346,22 @@ class MouseJigglerApp:
         self._current_interval_sec = interval_sec
         self._next_jiggle_monotonic = time.monotonic() + interval_sec
         run_pattern: MotionPattern = self._motion_pattern
+        run_activity: ActivityStyle = self._activity_style
+        n_click = bool(self.var_natural_rare_click.get())
+        n_scroll = bool(self.var_natural_rare_scroll.get())
 
         self._worker = threading.Thread(
             target=self._run_loop,
-            args=(interval_sec, jitter_sec, pixels, path_speed, run_pattern),
+            args=(
+                interval_sec,
+                jitter_sec,
+                pixels,
+                path_speed,
+                run_activity,
+                run_pattern,
+                n_click,
+                n_scroll,
+            ),
             daemon=True,
         )
         self._worker.start()
@@ -3075,6 +3382,15 @@ class MouseJigglerApp:
             pass
         try:
             self.seg_motion_pattern.configure(state="disabled")
+        except (tk.TclError, AttributeError):
+            pass
+        try:
+            self.seg_activity_style.configure(state="disabled")
+        except (tk.TclError, AttributeError):
+            pass
+        try:
+            self.swt_natural_click.configure(state="disabled")
+            self.swt_natural_scroll.configure(state="disabled")
         except (tk.TclError, AttributeError):
             pass
         try:
@@ -3148,6 +3464,12 @@ class MouseJigglerApp:
                     "log_start_schedule",
                     start=schedule_window.format_hhmm(ws),
                     end=schedule_window.format_hhmm(we),
+                    weekend=(
+                        self._t("schedule_weekend_on")
+                        if self._schedule_include_weekends
+                        else self._t("schedule_weekend_off")
+                    ),
+                    cron=self._schedule_cron_text.strip() or self._t("schedule_cron_off"),
                 )
             )
 
@@ -3175,6 +3497,15 @@ class MouseJigglerApp:
         except (tk.TclError, AttributeError):
             pass
         try:
+            self.seg_activity_style.configure(state="normal")
+        except (tk.TclError, AttributeError):
+            pass
+        try:
+            self.swt_natural_click.configure(state="normal")
+            self.swt_natural_scroll.configure(state="normal")
+        except (tk.TclError, AttributeError):
+            pass
+        try:
             self.swt_schedule.configure(state="normal")
         except (tk.TclError, AttributeError):
             pass
@@ -3186,6 +3517,7 @@ class MouseJigglerApp:
         self.status.set(self._t("status_stopped"))
         self._apply_status_chrome("stopped")
         self._log(self._t("log_stopped"))
+        self._refresh_activity_dependent_widgets()
 
     def _run_loop(
         self,
@@ -3193,7 +3525,10 @@ class MouseJigglerApp:
         jitter_sec: float,
         pixels: int,
         path_speed: int,
+        activity_style: ActivityStyle,
         pattern: MotionPattern,
+        natural_rare_click: bool,
+        natural_rare_scroll: bool,
     ) -> None:
         last_nudge_monotonic: float | None = None
         poll = 0.2
@@ -3216,7 +3551,15 @@ class MouseJigglerApp:
                 continue
             if last_nudge_monotonic is not None and (now - last_nudge_monotonic) < active_interval:
                 continue
-            self._nudge_tick(pixels, pattern, path_speed, log_success=True)
+            self._nudge_tick(
+                pixels,
+                pattern,
+                path_speed,
+                activity_style=activity_style,
+                natural_rare_click=natural_rare_click,
+                natural_rare_scroll=natural_rare_scroll,
+                log_success=True,
+            )
             last_nudge_monotonic = now
             active_interval = nudge_logic.next_wait_seconds(interval_sec, jitter_sec)
 
