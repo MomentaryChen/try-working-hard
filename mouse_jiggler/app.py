@@ -7,6 +7,7 @@ import os
 import sys
 import threading
 import time
+import webbrowser
 import tkinter as tk
 from datetime import date, datetime, time as dtime
 from importlib.metadata import version as pkg_version
@@ -17,7 +18,14 @@ from typing import Any, Literal
 
 import customtkinter as ctk
 
-from . import analytics_charts, analytics_store, local_config, nudge_logic, schedule_window
+from . import (
+    analytics_charts,
+    analytics_store,
+    local_config,
+    nudge_logic,
+    schedule_window,
+    updater,
+)
 from .app_icon import load_app_icon_rgba
 from .cursor_nudge import MotionPattern
 from .strings import Lang, STRINGS
@@ -422,6 +430,30 @@ class MouseJigglerApp:
                 hover_color=self._NAV_HOVER,
                 text_color=(self._NAV_TEXT, self._NAV_TEXT),
             )
+        if hasattr(self, "btn_contact_us"):
+            self.btn_contact_us.configure(
+                fg_color="transparent",
+                hover_color=self._NAV_HOVER,
+                text_color=(self._NAV_TEXT, self._NAV_TEXT),
+            )
+        if hasattr(self, "btn_check_updates"):
+            self.btn_check_updates.configure(
+                fg_color=self._ACCENT,
+                hover_color=self._ACCENT_HOVER,
+                text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+            )
+        if hasattr(self, "btn_update_notice_open"):
+            self.btn_update_notice_open.configure(
+                fg_color=self._ACCENT,
+                hover_color=self._ACCENT_HOVER,
+                text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+            )
+        if hasattr(self, "btn_update_notice_close"):
+            self.btn_update_notice_close.configure(
+                fg_color="transparent",
+                hover_color=self._NAV_HOVER,
+                text_color=(self._NAV_TEXT, self._NAV_TEXT),
+            )
         if hasattr(self, "swt_tray"):
             if self._ui_theme == "dark":
                 self.swt_tray.configure(
@@ -467,6 +499,21 @@ class MouseJigglerApp:
                     button_color="#FFFFFF",
                     button_hover_color="#F3F4F6",
                 )
+        if hasattr(self, "swt_auto_updates"):
+            if self._ui_theme == "dark":
+                self.swt_auto_updates.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#C9D1D9",
+                    button_hover_color="#8B949E",
+                )
+            else:
+                self.swt_auto_updates.configure(
+                    fg_color=self._BORDER,
+                    progress_color=self._ACCENT,
+                    button_color="#FFFFFF",
+                    button_hover_color="#F3F4F6",
+                )
         if hasattr(self, "_interval_preset_btns"):
             for b in self._interval_preset_btns:
                 b.configure(
@@ -494,6 +541,8 @@ class MouseJigglerApp:
             "_lbl_schedule_sw",
             "_lbl_schedule_time_start",
             "_lbl_schedule_time_end",
+            "_lbl_about_updates",
+            "_lbl_auto_updates_sw",
         ):
             if hasattr(self, name):
                 w = getattr(self, name)
@@ -508,6 +557,7 @@ class MouseJigglerApp:
             "_hint_tray",
             "_hint_autostart",
             "_hint_schedule",
+            "_hint_auto_updates",
         ):
             if hasattr(self, name):
                 getattr(self, name).configure(text_color=self._TEXT_MUTED)
@@ -515,6 +565,15 @@ class MouseJigglerApp:
             self._lbl_schedule_banner.configure(
                 text_color=self._TEXT_MUTED,
                 fg_color=self._SURFACE_SUBTLE,
+            )
+        if hasattr(self, "_update_notice"):
+            self._update_notice.configure(
+                fg_color=self._STATUS_STRIP_BG_SCHEDULE,
+                border_color=self._STATUS_STRIP_BORDER_SCHEDULE,
+            )
+        if hasattr(self, "_lbl_update_notice"):
+            self._lbl_update_notice.configure(
+                text_color=(self._STATUS_TEXT_SCHEDULE, self._STATUS_TEXT_SCHEDULE)
             )
         if hasattr(self, "_lbl_interval_hint"):
             self._lbl_interval_hint.configure(text_color=self._TEXT_MUTED)
@@ -608,16 +667,23 @@ class MouseJigglerApp:
         self._config_loading = False
         self._intro_acknowledged = True
         self._motion_pattern: MotionPattern = "horizontal"
+        self._auto_check_updates = True
+        self._update_check_in_progress = False
+        self._update_notice_url = ""
+        self._update_notice_after_id: str | None = None
+        self._update_notice_anim_after_id: str | None = None
+        self._update_notice_target_h = 72
 
         self._analytics_trigger_mode: Literal["today", "week"] = "today"
         self._analytics_runtime_anchor = 0.0
         self._analytics_runtime_after_id: str | None = None
 
         self.root.grid_columnconfigure(1, weight=1)
-        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_rowconfigure(1, weight=1)
 
         self._build_sidebar()
         self._build_main()
+        self._build_global_update_notice()
 
         self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -640,6 +706,7 @@ class MouseJigglerApp:
             self.root.after(120, self._bootstrap_tray_start)
 
         self.root.after(4500, self._tick_analytics_charts_loop)
+        self.root.after(1500, self._maybe_auto_check_updates)
 
     def _bootstrap_tray_start(self) -> None:
         if self._shutting_down or not HAS_TRAY:
@@ -934,10 +1001,13 @@ class MouseJigglerApp:
             str(cfg.get("schedule_window_start_text", "09:00"))
         )
         self.var_schedule_end.set(str(cfg.get("schedule_window_end_text", "18:00")))
+        self._auto_check_updates = bool(cfg.get("auto_check_updates", True))
         self._sync_schedule_times_from_vars()
         self._run_schedule_window = bool(self.var_schedule_window.get())
         self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
         self._lang_seg.set("繁中" if self._lang == "zh" else "English")
+        if hasattr(self, "var_auto_check_updates"):
+            self.var_auto_check_updates.set(self._auto_check_updates)
 
         ut = cfg.get("ui_theme")
         if ut in ("dark", "light") and ut != self._ui_theme:
@@ -967,6 +1037,7 @@ class MouseJigglerApp:
             "schedule_window_start_text": self.var_schedule_start.get(),
             "schedule_window_end_text": self.var_schedule_end.get(),
             "intro_acknowledged": self._intro_acknowledged,
+            "auto_check_updates": bool(self.var_auto_check_updates.get()),
         }
 
     def _maybe_show_first_intro(self) -> None:
@@ -1014,6 +1085,7 @@ class MouseJigglerApp:
             self.var_schedule_window.trace_add("write", _on_schedule_flag)
             self.var_schedule_start.trace_add("write", _on_schedule_times_write)
             self.var_schedule_end.trace_add("write", _on_schedule_times_write)
+            self.var_auto_check_updates.trace_add("write", _on_write)
         except (tk.TclError, AttributeError):
             pass
 
@@ -1062,6 +1134,202 @@ class MouseJigglerApp:
                 self._t("err_title"),
                 self._t("err_open_config_file", err=str(e)),
             )
+
+    def _on_contact_us(self) -> None:
+        url = "https://github.com/MomentaryChen/try-working-hard/issues/new/choose"
+        messagebox.showinfo(
+            self._t("btn_contact_us"),
+            self._t("contact_us_body", url=url),
+            parent=self.root,
+        )
+        webbrowser.open(url, new=2)
+
+    def _maybe_auto_check_updates(self) -> None:
+        if self._shutting_down:
+            return
+        if not bool(self.var_auto_check_updates.get()):
+            return
+        self._check_updates(manual=False)
+
+    def _on_check_updates(self) -> None:
+        self._check_updates(manual=True)
+
+    def _show_update_banner(self, *, latest_tag: str, current: str, latest_url: str) -> None:
+        if self._shutting_down:
+            return
+        self._update_notice_url = latest_url
+        self.btn_update_notice_open.configure(state="normal")
+        self._lbl_update_notice.configure(
+            text=self._t("update_banner_new_version", latest=latest_tag, current=current)
+        )
+        self._animate_update_banner(show=True)
+        if self._update_notice_after_id is not None:
+            try:
+                self.root.after_cancel(self._update_notice_after_id)
+            except tk.TclError:
+                pass
+            self._update_notice_after_id = None
+        self._update_notice_after_id = self.root.after(12000, self._hide_update_banner)
+
+    def _show_info_banner(self, text: str) -> None:
+        if self._shutting_down:
+            return
+        self._update_notice_url = ""
+        self.btn_update_notice_open.configure(state="disabled")
+        self._lbl_update_notice.configure(text=text)
+        self._animate_update_banner(show=True)
+        if self._update_notice_after_id is not None:
+            try:
+                self.root.after_cancel(self._update_notice_after_id)
+            except tk.TclError:
+                pass
+            self._update_notice_after_id = None
+        self._update_notice_after_id = self.root.after(7000, self._hide_update_banner)
+
+    def _hide_update_banner(self) -> None:
+        self._update_notice_after_id = None
+        if self._shutting_down:
+            return
+        self._animate_update_banner(show=False)
+
+    def _animate_update_banner(self, *, show: bool) -> None:
+        if self._update_notice_anim_after_id is not None:
+            try:
+                self.root.after_cancel(self._update_notice_anim_after_id)
+            except tk.TclError:
+                pass
+            self._update_notice_anim_after_id = None
+
+        if show:
+            self._update_notice_shell.grid()
+            return
+
+        def _tick_hide() -> None:
+            self._update_notice_shell.grid_remove()
+            self._update_notice_anim_after_id = None
+
+        _tick_hide()
+
+    def _open_update_from_banner(self) -> None:
+        if not self._update_notice_url:
+            return
+        url = self._update_notice_url
+        webbrowser.open(url, new=2)
+        self._hide_update_banner()
+
+    def _build_global_update_notice(self) -> None:
+        self._update_notice_shell = ctk.CTkFrame(
+            self.root,
+            fg_color="transparent",
+        )
+        self._update_notice_shell.grid(row=0, column=0, columnspan=2, sticky="ew")
+        self._update_notice_shell.grid_columnconfigure(0, weight=1)
+        self._update_notice = ctk.CTkFrame(
+            self._update_notice_shell,
+            corner_radius=_R,
+            fg_color=self._STATUS_STRIP_BG_SCHEDULE,
+            border_width=1,
+            border_color=self._STATUS_STRIP_BORDER_SCHEDULE,
+        )
+        self._update_notice.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 4))
+        self._update_notice.grid_columnconfigure(0, weight=1)
+        _update_inner = ctk.CTkFrame(self._update_notice, fg_color="transparent")
+        _update_inner.grid(row=0, column=0, sticky="ew", padx=12, pady=10)
+        _update_inner.grid_columnconfigure(0, weight=1)
+        self._lbl_update_notice = ctk.CTkLabel(
+            _update_inner,
+            text="",
+            font=self._font_body,
+            text_color=(self._STATUS_TEXT_SCHEDULE, self._STATUS_TEXT_SCHEDULE),
+            anchor="w",
+            justify="left",
+        )
+        self._lbl_update_notice.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        self.btn_update_notice_open = self._btn(
+            _update_inner,
+            text=self._t("update_banner_open"),
+            command=self._open_update_from_banner,
+            height=34,
+            fg_color=self._ACCENT,
+            hover_color=self._ACCENT_HOVER,
+            text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+        )
+        self.btn_update_notice_open.grid(row=0, column=1, sticky="e", padx=(0, 8))
+        self.btn_update_notice_close = self._btn(
+            _update_inner,
+            text=self._t("update_banner_close"),
+            command=self._hide_update_banner,
+            height=34,
+            fg_color="transparent",
+            hover_color=self._NAV_HOVER,
+            text_color=(self._NAV_TEXT, self._NAV_TEXT),
+        )
+        self.btn_update_notice_close.grid(row=0, column=2, sticky="e")
+        self._update_notice_shell.grid_remove()
+
+    def _check_updates(self, *, manual: bool) -> None:
+        if self._update_check_in_progress:
+            if manual:
+                self._show_info_banner(self._t("update_check_in_progress"))
+            return
+
+        self._update_check_in_progress = True
+        if manual:
+            self._show_info_banner(self._t("update_banner_checking"))
+
+        def _worker() -> None:
+            try:
+                latest = updater.fetch_latest_release()
+                latest_tag = latest["tag"]
+                latest_url = latest["url"] or "https://github.com/MomentaryChen/try-working-hard/releases"
+                current = self._pkg_version()
+                has_update = updater.is_newer_version(latest_tag, current)
+                self.root.after(
+                    0,
+                    lambda: self._handle_update_check_result(
+                        has_update=has_update,
+                        latest_tag=latest_tag,
+                        latest_url=latest_url,
+                        current=current,
+                        manual=manual,
+                    ),
+                )
+            except Exception:
+                self.root.after(0, lambda: self._handle_update_check_error(manual=manual))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _handle_update_check_result(
+        self,
+        *,
+        has_update: bool,
+        latest_tag: str,
+        latest_url: str,
+        current: str,
+        manual: bool,
+    ) -> None:
+        self._update_check_in_progress = False
+        if self._shutting_down:
+            return
+        if has_update:
+            self._show_update_banner(
+                latest_tag=latest_tag,
+                current=current,
+                latest_url=latest_url,
+            )
+            return
+        if manual:
+            self._show_info_banner(
+                self._t("update_banner_latest", current=current),
+            )
+
+    def _handle_update_check_error(self, *, manual: bool) -> None:
+        self._update_check_in_progress = False
+        if self._shutting_down or not manual:
+            return
+        self._show_info_banner(
+            self._t("update_banner_error"),
+        )
 
     def _apply_language(self) -> None:
         self.root.title(self._t("window_title"))
@@ -1119,6 +1387,24 @@ class MouseJigglerApp:
             elif not HAS_TRAY:
                 a_start += self._t("autostart_requires_tray")
             self._hint_autostart.configure(text=a_start)
+        if hasattr(self, "_lbl_about_updates"):
+            self._lbl_about_updates.configure(text=self._t("about_updates_title"))
+        if hasattr(self, "_lbl_version_info"):
+            self._lbl_version_info.configure(
+                text=self._t("version_info", version=self._pkg_version())
+            )
+        if hasattr(self, "btn_contact_us"):
+            self.btn_contact_us.configure(text=self._t("btn_contact_us"))
+        if hasattr(self, "btn_check_updates"):
+            self.btn_check_updates.configure(text=self._t("btn_check_updates"))
+        if hasattr(self, "_lbl_auto_updates_sw"):
+            self._lbl_auto_updates_sw.configure(text=self._t("auto_check_updates_title"))
+        if hasattr(self, "_hint_auto_updates"):
+            self._hint_auto_updates.configure(text=self._t("auto_check_updates_hint"))
+        if hasattr(self, "btn_update_notice_open"):
+            self.btn_update_notice_open.configure(text=self._t("update_banner_open"))
+        if hasattr(self, "btn_update_notice_close"):
+            self.btn_update_notice_close.configure(text=self._t("update_banner_close"))
         self._lbl_schedule_sw.configure(text=self._t("schedule_window_title"))
         self._lbl_schedule_time_start.configure(text=self._t("schedule_window_start_label"))
         self._lbl_schedule_time_end.configure(text=self._t("schedule_window_end_label"))
@@ -1316,7 +1602,7 @@ class MouseJigglerApp:
             corner_radius=_R,
             fg_color=self._SIDEBAR_BG,
         )
-        self._sidebar.grid(row=0, column=0, sticky="nsew", padx=(p, 0), pady=p)
+        self._sidebar.grid(row=1, column=0, sticky="nsew", padx=(p, 0), pady=p)
         self._sidebar.grid_propagate(False)
         sidebar = self._sidebar
 
@@ -1378,7 +1664,7 @@ class MouseJigglerApp:
     def _build_main(self) -> None:
         p = self._UI_PAD
         main = ctk.CTkFrame(self.root, corner_radius=_R, fg_color="transparent")
-        main.grid(row=0, column=1, sticky="nsew", padx=(0, p), pady=p)
+        main.grid(row=1, column=1, sticky="nsew", padx=(0, p), pady=p)
         main.grid_columnconfigure(0, weight=1)
         main.grid_rowconfigure(0, weight=1)
 
@@ -1438,7 +1724,7 @@ class MouseJigglerApp:
             padx=12,
             pady=6,
         )
-        self._lbl_schedule_banner.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        self._lbl_schedule_banner.grid(row=2, column=0, sticky="ew", pady=(6, 0))
         self._lbl_schedule_banner.grid_remove()
 
         head = ctk.CTkFrame(self.page_home, fg_color="transparent")
@@ -1902,6 +2188,87 @@ class MouseJigglerApp:
         self._hint_autostart.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
         if not can_autowin:
             self.swt_autostart.configure(state="disabled")
+
+        self._lbl_about_updates = ctk.CTkLabel(
+            card,
+            text=self._t("about_updates_title"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_about_updates.grid(row=13, column=0, sticky="w", padx=p, pady=(0, 8))
+
+        self._lbl_version_info = ctk.CTkLabel(
+            card,
+            text=self._t("version_info", version=self._pkg_version()),
+            font=self._font_body,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_version_info.grid(row=14, column=0, sticky="w", padx=p, pady=(0, 8))
+
+        about_btn_row = ctk.CTkFrame(card, fg_color="transparent")
+        about_btn_row.grid(row=15, column=0, sticky="w", padx=p, pady=(0, p))
+        self.btn_contact_us = self._btn(
+            about_btn_row,
+            text=self._t("btn_contact_us"),
+            command=self._on_contact_us,
+            fg_color="transparent",
+            hover_color=self._NAV_HOVER,
+            text_color=(self._NAV_TEXT, self._NAV_TEXT),
+            anchor="w",
+        )
+        self.btn_contact_us.pack(side="left", padx=(0, 8))
+        _try_takefocus(self.btn_contact_us, 1)
+
+        self.btn_check_updates = self._btn(
+            about_btn_row,
+            text=self._t("btn_check_updates"),
+            command=self._on_check_updates,
+            fg_color=self._ACCENT,
+            hover_color=self._ACCENT_HOVER,
+            text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+        )
+        self.btn_check_updates.pack(side="left")
+        _try_takefocus(self.btn_check_updates, 1)
+
+        self.var_auto_check_updates = tk.BooleanVar(value=True)
+        auto_updates_row = ctk.CTkFrame(card, fg_color="transparent")
+        auto_updates_row.grid(row=16, column=0, sticky="ew", padx=p, pady=(0, 8))
+        auto_updates_row.grid_columnconfigure(0, weight=1)
+        self._lbl_auto_updates_sw = ctk.CTkLabel(
+            auto_updates_row,
+            text=self._t("auto_check_updates_title"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_auto_updates_sw.grid(row=0, column=0, sticky="w")
+        self.swt_auto_updates = ctk.CTkSwitch(
+            auto_updates_row,
+            text="",
+            variable=self.var_auto_check_updates,
+            width=52,
+            switch_width=40,
+            switch_height=22,
+            fg_color=self._BORDER,
+            progress_color=self._ACCENT,
+            button_color="#FFFFFF",
+            button_hover_color="#F3F4F6",
+            font=self._font_body,
+        )
+        self.swt_auto_updates.grid(row=0, column=1, sticky="e", padx=(16, 0))
+        _try_takefocus(self.swt_auto_updates, 1)
+        self._hint_auto_updates = ctk.CTkLabel(
+            card,
+            text=self._t("auto_check_updates_hint"),
+            font=self._font_hint,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+            justify="left",
+            wraplength=520,
+        )
+        self._hint_auto_updates.grid(row=17, column=0, sticky="ew", padx=p, pady=(0, p))
 
     def _fill_analytics_panel(self, card: ctk.CTkFrame) -> None:
         from matplotlib.figure import Figure

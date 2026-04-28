@@ -20,6 +20,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Settings → About and updates**: added **Contact us**, a visible **app version** line, and a **Check for updates** action that compares the installed version with the latest GitHub release and offers to open the release page when a newer version exists.
+- **Update preference**: new local config key **`auto_check_updates`** (default `true`) to run a background release check shortly after startup.
+- **Update UX**: when a newer version is detected, the app now shows a **non-blocking top drop-down notice** in Home with **Download now** / **Later**, instead of a modal dialog.
+
 - **Dark / light UI**: **Settings → Appearance** toggles **Dark** or **Light**; the choice is stored in `config.json` as **`ui_theme`** (`"dark"` or `"light"`, default **`"light"`**). Dark mode uses a GitHub-style dark surface; light mode matches the **#F9FAFB** / card layout.
 - **Windows: Start with Windows** (Settings, when `pystray` is available): optional entry under **HKCU\Software\Microsoft\Windows\CurrentVersion\Run** so the app starts at sign-in; it passes **`--start-in-tray`** to open with the main window in the system tray.
 - **Home → Control:** quick interval buttons **30s / 1m / 5m / 10m** next to the interval field (they set the unit and value together).

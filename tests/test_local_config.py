@@ -23,6 +23,7 @@ def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
     assert cfg["schedule_window"] is False
     assert cfg["schedule_window_start_text"] == "09:00"
     assert cfg["schedule_window_end_text"] == "18:00"
+    assert cfg["auto_check_updates"] is True
 
 
 def test_round_trip(tmp_path: Path) -> None:
@@ -37,6 +38,7 @@ def test_round_trip(tmp_path: Path) -> None:
             "path_speed_text": "8",
             "motion_pattern": "circle",
             "close_to_tray": True,
+            "auto_check_updates": False,
         },
         path=p,
     )
@@ -49,6 +51,7 @@ def test_round_trip(tmp_path: Path) -> None:
     assert cfg["path_speed_text"] == "8"
     assert cfg["motion_pattern"] == "circle"
     assert cfg["close_to_tray"] is True
+    assert cfg["auto_check_updates"] is False
     assert cfg["intro_acknowledged"] is False
 
 
@@ -72,6 +75,7 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
                 "motion_pattern": "triangle",
                 "close_to_tray": "yes",
                 "ui_theme": "sepia",
+                "auto_check_updates": "sometimes",
             }
         ),
         encoding="utf-8",
@@ -85,4 +89,5 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
     assert cfg["path_speed_text"] == "5"
     assert cfg["motion_pattern"] == "horizontal"
     assert cfg["close_to_tray"] is False
+    assert cfg["auto_check_updates"] is True
     assert cfg["intro_acknowledged"] is True

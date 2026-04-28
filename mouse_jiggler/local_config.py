@@ -39,6 +39,7 @@ def _defaults() -> dict[str, Any]:
         "schedule_window": False,
         "schedule_window_start_text": "09:00",
         "schedule_window_end_text": "18:00",
+        "auto_check_updates": True,
     }
 
 
@@ -129,6 +130,12 @@ def _sanitize_schedule_window(raw: object) -> bool | None:
     return None
 
 
+def _sanitize_auto_check_updates(raw: object) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
+    return None
+
+
 def _sanitize_hhmm_text(raw: object, *, fallback: str) -> str:
     if not isinstance(raw, str):
         return fallback
@@ -211,6 +218,9 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     out["schedule_window_end_text"] = _sanitize_hhmm_text(
         raw.get("schedule_window_end_text"), fallback=fb_end
     )
+    acu = _sanitize_auto_check_updates(raw.get("auto_check_updates"))
+    if acu is not None:
+        out["auto_check_updates"] = acu
 
     out["version"] = CONFIG_VERSION
     return out
@@ -223,6 +233,7 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     ctt = _sanitize_close_to_tray(data.get("close_to_tray"))
     ia = _sanitize_intro_acknowledged(data.get("intro_acknowledged"))
     sw = _sanitize_schedule_window(data.get("schedule_window"))
+    acu = _sanitize_auto_check_updates(data.get("auto_check_updates"))
     unit = _sanitize_interval_unit(data.get("interval_unit")) or base["interval_unit"]
     fb_start = base["schedule_window_start_text"]
     fb_end = base["schedule_window_end_text"]
@@ -254,6 +265,7 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         "schedule_window_end_text": _sanitize_hhmm_text(
             data.get("schedule_window_end_text"), fallback=fb_end
         ),
+        "auto_check_updates": acu if acu is not None else base["auto_check_updates"],
     }
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
