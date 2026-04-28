@@ -990,6 +990,7 @@ class MouseJigglerApp:
             return
         if self._start_in_tray:
             return
+        self._show_startup_usage_notice()
         if self._intro_acknowledged:
             return
         try:
@@ -1005,6 +1006,19 @@ class MouseJigglerApp:
         self._reapply_start_maximized()
         self._intro_acknowledged = True
         self._save_config_now()
+
+    def _show_startup_usage_notice(self) -> None:
+        try:
+            if not self.root.winfo_exists():
+                return
+        except tk.TclError:
+            return
+        messagebox.showinfo(
+            self._t("startup_notice_title"),
+            self._t("startup_notice_body", version=self._pkg_version()),
+            parent=self.root,
+        )
+        self._reapply_start_maximized()
 
     def _register_config_persistence(self) -> None:
         def _on_write(*_a: object) -> None:

@@ -112,6 +112,10 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "analytics_axis_runtime_min": "分鐘",
         "analytics_empty": "尚無資料 — 請開始排程並觸發微動。",
         "intro_title": "歡迎使用",
+        "startup_notice_title": "用途提醒",
+        "startup_notice_body": "try-working-hard {version}\n\n"
+        "本工具僅可用於合法且合規的生產力情境（例如簡報或閱讀時避免螢幕休眠）。\n\n"
+        "禁止用於規避公司、學校或服務平台的安全、監控與稽核機制。按下「確定」以繼續。",
         "motion_pattern_log_line": "直線",
         "motion_pattern_log_circle": "圓形",
         "motion_pattern_log_square": "方形",
@@ -237,6 +241,10 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "analytics_axis_runtime_min": "Minutes",
         "analytics_empty": "No data yet — start the schedule and generate nudges.",
         "intro_title": "Welcome",
+        "startup_notice_title": "Usage reminder",
+        "startup_notice_body": "try-working-hard {version}\n\n"
+        "Use this tool only for lawful and policy-compliant productivity scenarios (for example, keeping the screen awake while presenting or reading).\n\n"
+        "Do not use it to bypass company, school, or service security, monitoring, or audit controls. Click OK to continue.",
         "motion_pattern_log_line": "line",
         "motion_pattern_log_circle": "circle",
         "motion_pattern_log_square": "square",
