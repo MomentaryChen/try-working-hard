@@ -1390,7 +1390,37 @@ class MouseJigglerApp:
         self.page_home = ctk.CTkFrame(self.pages_host, corner_radius=_R, fg_color="transparent")
         self.page_home.grid(row=0, column=0, sticky="nsew")
         self.page_home.grid_columnconfigure(0, weight=1)
-        self.page_home.grid_rowconfigure(2, weight=1)
+        self.page_home.grid_rowconfigure(3, weight=1)
+
+        self._status_strip = ctk.CTkFrame(
+            self.page_home,
+            corner_radius=_R,
+            fg_color=self._STATUS_STRIP_BG_STOP,
+            border_width=1,
+            border_color=self._STATUS_STRIP_BORDER_STOP,
+        )
+        self._status_strip.grid(row=0, column=0, sticky="ew", padx=p, pady=(p, 8))
+        self._status_strip.grid_columnconfigure(0, weight=1)
+        status_inner = ctk.CTkFrame(self._status_strip, fg_color="transparent")
+        status_inner.grid(row=0, column=0, sticky="ew", padx=14, pady=12)
+        status_inner.grid_columnconfigure(1, weight=1)
+        self._status_led = ctk.CTkLabel(
+            status_inner,
+            text="\u25cf",
+            font=ctk.CTkFont(family=_FONT_INTER, size=12, weight="bold"),
+            text_color=(self._STATUS_LED_STOP, self._STATUS_LED_STOP),
+            width=18,
+        )
+        self._status_led.grid(row=0, column=0, sticky="nw", padx=(0, 10), pady=2)
+        self._lbl_status = ctk.CTkLabel(
+            status_inner,
+            textvariable=self.status,
+            font=self._font_body,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+            justify="left",
+        )
+        self._lbl_status.grid(row=0, column=1, sticky="ew")
 
         self._home_top_status = ctk.CTkFrame(self.page_home, fg_color="transparent")
         self._home_top_status.grid(row=0, column=0, sticky="ew", padx=p, pady=(p, 8))
@@ -1473,7 +1503,7 @@ class MouseJigglerApp:
         self.segmented.set(self._segment_text(self._segment_mode))
 
         self.content_host = ctk.CTkFrame(self.page_home, fg_color="transparent")
-        self.content_host.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
+        self.content_host.grid(row=3, column=0, sticky="nsew", padx=p, pady=(0, p))
         self.content_host.grid_columnconfigure(0, weight=1)
         self.content_host.grid_rowconfigure(0, weight=1)
 
@@ -1678,6 +1708,45 @@ class MouseJigglerApp:
             anchor="w",
         )
         self._hint_appearance.grid(row=2, column=0, sticky="w", padx=p, pady=(p, p))
+
+        self._lbl_appearance = ctk.CTkLabel(
+            card,
+            text=self._t("theme_appearance"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_appearance.grid(row=1, column=0, sticky="w", padx=p, pady=(0, p))
+
+        self._seg_ui_theme = ctk.CTkSegmentedButton(
+            card,
+            values=[
+                self._t("theme_appearance_dark"),
+                self._t("theme_appearance_light"),
+            ],
+            command=self._on_ui_theme_seg,
+            corner_radius=_R,
+            font=self._font_body_bold,
+            height=36,
+            fg_color=self._SURFACE_SUBTLE,
+            selected_color=self._ACCENT,
+            selected_hover_color=self._ACCENT_HOVER,
+            unselected_color=self._SURFACE_SUBTLE,
+            unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
+        )
+        self._seg_ui_theme.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._sync_ui_theme_seg()
+        _try_takefocus(self._seg_ui_theme, 1)
+
+        self._hint_appearance = ctk.CTkLabel(
+            card,
+            text=self._theme_footer_text(),
+            font=ctk.CTkFont(family=_FONT_INTER, size=11),
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+        )
+        self._hint_appearance.grid(row=3, column=0, sticky="w", padx=p, pady=(p, p))
 
         self._lbl_lang = ctk.CTkLabel(
             card,
