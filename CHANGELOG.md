@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Pattern vs Natural UI copy**: In **Natural** mode, the speed field label and hint describe **micro-move step pacing** (not geometric path tracing), and the path-shape row title notes it applies in **Pattern** mode only.
 - **Application state layer**: expanded preferences and view-model wiring (`ui/preferences_store.py`, `ui/view_model.py`) for the new workspace layout and settings flow.
 - **Styling system**: added and tuned `styles/styles.qss` for a consistent modern visual system across cards, sidebar navigation, and page sections.
 - **Project metadata**: refined `pyproject.toml` package metadata and English project description for publishing consistency.

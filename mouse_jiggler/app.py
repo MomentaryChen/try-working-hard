@@ -975,6 +975,44 @@ class MouseJigglerApp:
                     self.row_natural_opts.grid_remove()
         except (tk.TclError, AttributeError):
             pass
+        self._sync_path_speed_labels_for_mode()
+        self._sync_motion_pattern_label_for_mode()
+
+    def _sync_path_speed_labels_for_mode(self) -> None:
+        if not hasattr(self, "_lbl_path_speed"):
+            return
+        try:
+            if self._activity_style == "natural":
+                self._lbl_path_speed.configure(text=self._t("path_speed_label_natural"))
+                self._lbl_path_speed_hint.configure(
+                    text=self._t(
+                        "path_speed_hint_natural",
+                        lo=self.MIN_PATH_SPEED,
+                        hi=self.MAX_PATH_SPEED,
+                    )
+                )
+            else:
+                self._lbl_path_speed.configure(text=self._t("path_speed_label"))
+                self._lbl_path_speed_hint.configure(
+                    text=self._t(
+                        "path_speed_hint",
+                        lo=self.MIN_PATH_SPEED,
+                        hi=self.MAX_PATH_SPEED,
+                    )
+                )
+        except (tk.TclError, AttributeError):
+            pass
+
+    def _sync_motion_pattern_label_for_mode(self) -> None:
+        if not hasattr(self, "_lbl_motion_pattern"):
+            return
+        try:
+            if self._activity_style == "natural":
+                self._lbl_motion_pattern.configure(text=self._t("motion_pattern_label_when_natural"))
+            else:
+                self._lbl_motion_pattern.configure(text=self._t("motion_pattern_label"))
+        except (tk.TclError, AttributeError):
+            pass
 
     def _on_natural_pref_changed(self) -> None:
         if self._shutting_down or self._config_loading:
@@ -1186,8 +1224,6 @@ class MouseJigglerApp:
         if hasattr(self, "_interval_preset_btns") and hasattr(self, "_interval_preset_specs"):
             for b, spec in zip(self._interval_preset_btns, self._interval_preset_specs, strict=True):
                 b.configure(text=self._t(spec))
-        if hasattr(self, "_lbl_motion_pattern"):
-            self._lbl_motion_pattern.configure(text=self._t("motion_pattern_label"))
         self._sync_motion_pattern_seg()
         if hasattr(self, "_lbl_activity_style"):
             self._lbl_activity_style.configure(text=self._t("activity_style_label"))
@@ -1203,15 +1239,6 @@ class MouseJigglerApp:
         self._lbl_pixels_hint.configure(
             text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS)
         )
-        if hasattr(self, "_lbl_path_speed"):
-            self._lbl_path_speed.configure(text=self._t("path_speed_label"))
-            self._lbl_path_speed_hint.configure(
-                text=self._t(
-                    "path_speed_hint",
-                    lo=self.MIN_PATH_SPEED,
-                    hi=self.MAX_PATH_SPEED,
-                )
-            )
         self.btn_start.configure(text=self._t("btn_start"))
         self.btn_stop.configure(text=self._t("btn_stop"))
         self._lbl_tray_sw.configure(text=self._t("tray_switch_title"))
