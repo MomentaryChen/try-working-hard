@@ -51,10 +51,12 @@ uv run python -m mouse_jiggler
 10. 執行中 **首頁頂端狀態區** 顯示**下次可能微動**的 **倒數**（分:秒；滿一小時以上則為 時:分:秒），依閒置時間與間隔計算（持續閒置時，兩次微動之間至少隔一個完整間隔）與**顏色提示**；若啟用上班時段，暫停時顯示排程相關倒數；停止時為中性樣式。
 11. **預設**：關閉視窗會 **停止排程並結束程式**。若勾選「關閉視窗時縮到系統匣」，關閉後會隱藏視窗並在通知區保留圖示，**排程會繼續**；在圖示上右鍵選單文字會依目前語言顯示。亦可用 `uv run python -m mouse_jiggler --start-in-tray` 或 打包之 **.exe** 加 **`--start-in-tray`** 直接以**僅系統匣**啟動（不先顯示主視窗）。
 12. 在 **設定** 頁可使用 **開啟設定檔**，以系統預設程式開啟 `config.json`（Windows 通常位於 `%APPDATA%\try-working-hard\`；未設定 `APPDATA` 時為 `~/.try-working-hard/`）。若檔案尚未存在，會先依目前設定寫入再開啟。
+13. 左側 **分析** 頁顯示 **Matplotlib** 統計圖（觸發次數、每日運作時長、路徑比例），下方文字區與 **首頁「紀錄」** 同步唯讀顯示。統計資料另存為 **`analytics.json`**，與 **`config.json`** 位於**同一資料夾**。
 
 ## 技術說明
 
 - GUI：**CustomTkinter**—**淺色**為內建 `blue` 主題，主畫面 **#F9FAFB**、側欄 **#F3F4F6**、白底卡片；**深色**為 `dark`＋`dark-blue` 與深色色票。**首頁**內以分段切換 **控制面板 / 紀錄**。
+- **分析**：以 **Matplotlib**（TkAgg）嵌入；統計資料存於 **`analytics.json`**（與 **`config.json`** 同目錄）。
 - 滑鼠：**ctypes** 呼叫 `user32.GetCursorPos` / `SetCursorPos`；排程以 `GetLastInputInfo` 與 `GetTickCount` 取得閒置時間
 - 系統匣：**pystray**、圖示繪製：**Pillow**（主視窗與匣區共用 PNG；重建 `.exe` 時另以 [`packaging/app.ico`](packaging/app.ico) 作為檔案圖示，見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)）
 
