@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **Analytics (Matplotlib)**: empty-state and axis labels no longer render as **garbled or tofu blocks** when the UI language is **Chinese**; plots use a **CJK-capable** system font on Windows (Microsoft JhengHei / YaHei via explicit `FontProperties`) and disable problematic Unicode minus handling.
+
 ### Changed
 
 - **Schedule (Windows)**: nudges run only after the **interval** elapses with **no keyboard or mouse input**, using `GetLastInputInfo` (not a fixed wall-clock timer). Repeats while you stay idle require at least one full interval between nudges so synthetic cursor motion does not immediately re-trigger if the OS does not count it as user input.
@@ -18,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **CLI:** `python -m mouse_jiggler --start-in-tray` to launch with the main window hidden and the tray only (pystray required; same as autostart when enabled from Settings).
 - **Home → Control → Work hours (09:00–18:00)**: optional **schedule window** so nudges run only on **Mon–Fri** between **09:00 and 18:00** (local time); **evenings and weekends** stay paused with a **schedule paused** status until the next window—useful for long-running background schedules. Persisted in `config.json` as `schedule_window`.
 - **Interval jitter (± sec)** on Home → Control: optional per-wait randomization of the **idle-required** interval so each spacing is `interval ± N` seconds (uniform), clamped to the same minimum as the main interval. Stored as `interval_jitter_text` in `config.json` (0–3600; `0` disables).
+- **Analytics** (sidebar): **Matplotlib** charts for nudge counts (today by hour or last 7 days), **scheduled uptime** per day (minutes, last 14 days), and **path usage** pie (totals). Data is stored next to `config.json` as **`analytics.json`** (same folder: `%APPDATA%\try-working-hard\` on Windows). The activity log area still mirrors **Home → Log**.
 - **Cursor skill** `release-tag-pr-to-master`: given a `v*` tag, sync `CHANGELOG.md` and `pyproject.toml` version, open a PR to `master` via `scripts/open-pr-to-develop.ps1 -Base master`, then document post-merge tag push for the release workflow.
 
 ### Changed
