@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 import tkinter as tk
-from datetime import datetime
+from datetime import datetime, time as dtime
 from importlib.metadata import version as pkg_version
 from importlib.resources import files
 from pathlib import Path
@@ -327,18 +327,27 @@ class MouseJigglerApp:
                 fg_color=self._CARD_BG,
                 border_color=self._CARD_BORDER,
             )
-        if hasattr(self, "page_settings"):
-            self.page_settings.configure(
-                fg_color=self._CARD_BG,
-                border_color=self._CARD_BORDER,
-            )
         if hasattr(self, "page_analytics"):
             self.page_analytics.configure(
                 fg_color=self._CARD_BG,
                 border_color=self._CARD_BORDER,
             )
+        if hasattr(self, "_settings_scroll"):
+            self._settings_scroll.configure(
+                fg_color=self._CARD_BG,
+                border_color=self._CARD_BORDER,
+                scrollbar_button_color=self._BTN_SECONDARY,
+                scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
+            )
 
-        for w in ("entry_minutes", "entry_pixels", "entry_path_speed"):
+        for w in (
+            "entry_minutes",
+            "entry_pixels",
+            "entry_path_speed",
+            "entry_interval_jitter",
+            "entry_schedule_start",
+            "entry_schedule_end",
+        ):
             if hasattr(self, w):
                 getattr(self, w).configure(
                     fg_color=self._ENTRY_BG,
@@ -469,6 +478,8 @@ class MouseJigglerApp:
             "_lbl_tray_sw",
             "_lbl_autostart_sw",
             "_lbl_schedule_sw",
+            "_lbl_schedule_time_start",
+            "_lbl_schedule_time_end",
         ):
             if hasattr(self, name):
                 w = getattr(self, name)
@@ -486,6 +497,11 @@ class MouseJigglerApp:
         ):
             if hasattr(self, name):
                 getattr(self, name).configure(text_color=self._TEXT_MUTED)
+        if hasattr(self, "_lbl_schedule_banner"):
+            self._lbl_schedule_banner.configure(
+                text_color=self._TEXT_MUTED,
+                fg_color=self._SURFACE_SUBTLE,
+            )
         if hasattr(self, "_lbl_interval_hint"):
             self._lbl_interval_hint.configure(text_color=self._TEXT_MUTED)
         if hasattr(self, "_lbl_analytics_sub"):
@@ -556,6 +572,8 @@ class MouseJigglerApp:
         self.status = tk.StringVar(value=self._t("status_stopped"))
         self._schedule_resume_at: datetime | None = None
         self._run_schedule_window = False
+        self._schedule_ws = schedule_window.DEFAULT_WORK_START
+        self._schedule_we = schedule_window.DEFAULT_WORK_END
 
         self._tray = TrayController()
         self._shutting_down = False
@@ -879,6 +897,11 @@ class MouseJigglerApp:
         self._motion_pattern = mp if mp in ("horizontal", "circle", "square") else "horizontal"
         self.var_tray_close.set(bool(cfg.get("close_to_tray", False)))
         self.var_schedule_window.set(bool(cfg.get("schedule_window", False)))
+        self.var_schedule_start.set(
+            str(cfg.get("schedule_window_start_text", "09:00"))
+        )
+        self.var_schedule_end.set(str(cfg.get("schedule_window_end_text", "18:00")))
+        self._sync_schedule_times_from_vars()
         self._run_schedule_window = bool(self.var_schedule_window.get())
         self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
         self._lang_seg.set("繁中" if self._lang == "zh" else "English")
@@ -894,6 +917,7 @@ class MouseJigglerApp:
         self._sync_ui_theme_seg()
 
         self._apply_language()
+        self._refresh_schedule_banner()
 
     def _config_snapshot(self) -> dict[str, Any]:
         return {
@@ -907,6 +931,8 @@ class MouseJigglerApp:
             "motion_pattern": self._motion_pattern,
             "close_to_tray": bool(self.var_tray_close.get()),
             "schedule_window": bool(self.var_schedule_window.get()),
+            "schedule_window_start_text": self.var_schedule_start.get(),
+            "schedule_window_end_text": self.var_schedule_end.get(),
             "intro_acknowledged": self._intro_acknowledged,
         }
 
@@ -937,7 +963,14 @@ class MouseJigglerApp:
 
         def _on_schedule_flag(*_a: object) -> None:
             self._run_schedule_window = bool(self.var_schedule_window.get())
+            self._sync_schedule_times_from_vars()
             self._schedule_save_config()
+            self._refresh_schedule_banner()
+
+        def _on_schedule_times_write(*_a: object) -> None:
+            self._sync_schedule_times_from_vars()
+            self._schedule_save_config()
+            self._refresh_schedule_banner()
 
         try:
             self.var_tray_close.trace_add("write", _on_write)
@@ -946,6 +979,8 @@ class MouseJigglerApp:
             self.var_pixels.trace_add("write", _on_write)
             self.var_path_speed.trace_add("write", _on_write)
             self.var_schedule_window.trace_add("write", _on_schedule_flag)
+            self.var_schedule_start.trace_add("write", _on_schedule_times_write)
+            self.var_schedule_end.trace_add("write", _on_schedule_times_write)
         except (tk.TclError, AttributeError):
             pass
 
@@ -1052,6 +1087,8 @@ class MouseJigglerApp:
                 a_start += self._t("autostart_requires_tray")
             self._hint_autostart.configure(text=a_start)
         self._lbl_schedule_sw.configure(text=self._t("schedule_window_title"))
+        self._lbl_schedule_time_start.configure(text=self._t("schedule_window_start_label"))
+        self._lbl_schedule_time_end.configure(text=self._t("schedule_window_end_label"))
         self._hint_schedule.configure(text=self._t("schedule_window_hint"))
         self._lbl_log_title.configure(text=self._t("log_title"))
         self._lbl_settings_title.configure(text=self._t("settings_title"))
@@ -1075,6 +1112,7 @@ class MouseJigglerApp:
             )
         self._sync_ui_theme_seg()
         self._sync_nav_highlight()
+        self._refresh_schedule_banner()
 
         if self._stop.is_set() or not (self._worker and self._worker.is_alive()):
             self.status.set(self._t("status_stopped"))
@@ -1306,16 +1344,20 @@ class MouseJigglerApp:
         self.page_home = ctk.CTkFrame(self.pages_host, corner_radius=_R, fg_color="transparent")
         self.page_home.grid(row=0, column=0, sticky="nsew")
         self.page_home.grid_columnconfigure(0, weight=1)
-        self.page_home.grid_rowconfigure(3, weight=1)
+        self.page_home.grid_rowconfigure(2, weight=1)
+
+        self._home_top_status = ctk.CTkFrame(self.page_home, fg_color="transparent")
+        self._home_top_status.grid(row=0, column=0, sticky="ew", padx=p, pady=(p, 8))
+        self._home_top_status.grid_columnconfigure(0, weight=1)
 
         self._status_strip = ctk.CTkFrame(
-            self.page_home,
+            self._home_top_status,
             corner_radius=_R,
             fg_color=self._STATUS_STRIP_BG_STOP,
             border_width=1,
             border_color=self._STATUS_STRIP_BORDER_STOP,
         )
-        self._status_strip.grid(row=0, column=0, sticky="ew", padx=p, pady=(p, 8))
+        self._status_strip.grid(row=0, column=0, sticky="ew")
         self._status_strip.grid_columnconfigure(0, weight=1)
         status_inner = ctk.CTkFrame(self._status_strip, fg_color="transparent")
         status_inner.grid(row=0, column=0, sticky="ew", padx=14, pady=12)
@@ -1337,6 +1379,21 @@ class MouseJigglerApp:
             justify="left",
         )
         self._lbl_status.grid(row=0, column=1, sticky="ew")
+
+        self._lbl_schedule_banner = ctk.CTkLabel(
+            self._home_top_status,
+            text="",
+            font=self._font_body,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+            fg_color=self._SURFACE_SUBTLE,
+            corner_radius=_R,
+            height=36,
+            padx=12,
+            pady=6,
+        )
+        self._lbl_schedule_banner.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        self._lbl_schedule_banner.grid_remove()
 
         head = ctk.CTkFrame(self.page_home, fg_color="transparent")
         head.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
@@ -1370,18 +1427,29 @@ class MouseJigglerApp:
         self.segmented.set(self._segment_text(self._segment_mode))
 
         self.content_host = ctk.CTkFrame(self.page_home, fg_color="transparent")
-        self.content_host.grid(row=3, column=0, sticky="nsew", padx=p, pady=(0, p))
+        self.content_host.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
         self.content_host.grid_columnconfigure(0, weight=1)
         self.content_host.grid_rowconfigure(0, weight=1)
 
         self.page_settings = ctk.CTkFrame(
             self.pages_host,
             corner_radius=_R,
+            fg_color="transparent",
+        )
+        self.page_settings.grid_columnconfigure(0, weight=1)
+        self.page_settings.grid_rowconfigure(0, weight=1)
+        self._settings_scroll = ctk.CTkScrollableFrame(
+            self.page_settings,
             fg_color=self._CARD_BG,
+            corner_radius=_R,
             border_width=1,
             border_color=self._CARD_BORDER,
+            scrollbar_button_color=self._BTN_SECONDARY,
+            scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
         )
-        self._fill_settings_panel(self.page_settings)
+        self._settings_scroll.grid(row=0, column=0, sticky="nsew")
+        self._settings_scroll.grid_columnconfigure(0, weight=1)
+        self._fill_settings_panel(self._settings_scroll)
 
         self.frame_control = ctk.CTkScrollableFrame(
             self.content_host,
@@ -1460,7 +1528,57 @@ class MouseJigglerApp:
                     text_color=(self._NAV_TEXT, self._NAV_TEXT),
                 )
 
-    def _fill_settings_panel(self, card: ctk.CTkFrame) -> None:
+    def _parsed_schedule_bounds_raw(self) -> tuple[dtime, dtime] | None:
+        """Return parsed start/end, or ``None`` if strings are invalid."""
+        a = schedule_window.parse_hhmm(self.var_schedule_start.get())
+        b = schedule_window.parse_hhmm(self.var_schedule_end.get())
+        if a is None or b is None:
+            return None
+        return (a, b)
+
+    def _effective_schedule_bounds(self) -> tuple[dtime, dtime]:
+        """Bounds used by the worker; falls back when labels are malformed."""
+        p = self._parsed_schedule_bounds_raw()
+        if p is None:
+            return (
+                schedule_window.DEFAULT_WORK_START,
+                schedule_window.DEFAULT_WORK_END,
+            )
+        ws, we = p
+        if ws < we:
+            return ws, we
+        return (
+            schedule_window.DEFAULT_WORK_START,
+            schedule_window.DEFAULT_WORK_END,
+        )
+
+    def _sync_schedule_times_from_vars(self) -> None:
+        self._schedule_ws, self._schedule_we = self._effective_schedule_bounds()
+
+    def _refresh_schedule_banner(self) -> None:
+        if not hasattr(self, "_lbl_schedule_banner"):
+            return
+        if not bool(self.var_schedule_window.get()):
+            self._lbl_schedule_banner.grid_remove()
+            return
+        p = self._parsed_schedule_bounds_raw()
+        self._sync_schedule_times_from_vars()
+        if p is None or p[0] >= p[1]:
+            self._lbl_schedule_banner.configure(
+                text=self._t("schedule_banner_need_valid_times"),
+            )
+        else:
+            ws, we = p
+            self._lbl_schedule_banner.configure(
+                text=self._t(
+                    "schedule_banner_active",
+                    start=schedule_window.format_hhmm(ws),
+                    end=schedule_window.format_hhmm(we),
+                ),
+            )
+        self._lbl_schedule_banner.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+
+    def _fill_settings_panel(self, card: ctk.CTkFrame | ctk.CTkScrollableFrame) -> None:
         p = self._UI_PAD
         card.grid_columnconfigure(0, weight=1)
 
@@ -1551,6 +1669,9 @@ class MouseJigglerApp:
         _try_takefocus(self.btn_open_config, 1)
 
         self.var_schedule_window = tk.BooleanVar(value=False)
+        self.var_schedule_start = tk.StringVar(value="09:00")
+        self.var_schedule_end = tk.StringVar(value="18:00")
+
         schedule_row = ctk.CTkFrame(card, fg_color="transparent")
         schedule_row.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, 8))
         schedule_row.grid_columnconfigure(0, weight=1)
@@ -1577,6 +1698,52 @@ class MouseJigglerApp:
         )
         self.swt_schedule.grid(row=0, column=1, sticky="e", padx=(16, 0))
         _try_takefocus(self.swt_schedule, 1)
+
+        schedule_time_row = ctk.CTkFrame(card, fg_color="transparent")
+        schedule_time_row.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._lbl_schedule_time_start = ctk.CTkLabel(
+            schedule_time_row,
+            text=self._t("schedule_window_start_label"),
+            font=self._font_body,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+        )
+        self._lbl_schedule_time_start.pack(side="left")
+        self.entry_schedule_start = ctk.CTkEntry(
+            schedule_time_row,
+            textvariable=self.var_schedule_start,
+            width=96,
+            height=40,
+            corner_radius=_R,
+            font=self._font_body,
+            fg_color=self._ENTRY_BG,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            border_width=1,
+            border_color=self._ENTRY_BORDER,
+        )
+        self.entry_schedule_start.pack(side="left", padx=(8, 20))
+        _try_takefocus(self.entry_schedule_start, 1)
+        self._lbl_schedule_time_end = ctk.CTkLabel(
+            schedule_time_row,
+            text=self._t("schedule_window_end_label"),
+            font=self._font_body,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+        )
+        self._lbl_schedule_time_end.pack(side="left")
+        self.entry_schedule_end = ctk.CTkEntry(
+            schedule_time_row,
+            textvariable=self.var_schedule_end,
+            width=96,
+            height=40,
+            corner_radius=_R,
+            font=self._font_body,
+            fg_color=self._ENTRY_BG,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            border_width=1,
+            border_color=self._ENTRY_BORDER,
+        )
+        self.entry_schedule_end.pack(side="left", padx=(8, 0))
+        _try_takefocus(self.entry_schedule_end, 1)
+
         self._hint_schedule = ctk.CTkLabel(
             card,
             text=self._t("schedule_window_hint"),
@@ -1586,11 +1753,11 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_schedule.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_schedule.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self.var_tray_close = tk.BooleanVar(value=False)
         tray_row = ctk.CTkFrame(card, fg_color="transparent")
-        tray_row.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
+        tray_row.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, 8))
         tray_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_tray_sw = ctk.CTkLabel(
@@ -1630,7 +1797,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_tray.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_tray.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, p))
         if not HAS_TRAY:
             self.swt_tray.configure(state="disabled")
 
@@ -1639,7 +1806,7 @@ class MouseJigglerApp:
             value=bool(can_autowin and _windows_run_autostart_active())
         )
         autostart_row = ctk.CTkFrame(card, fg_color="transparent")
-        autostart_row.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, 8))
+        autostart_row.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, 8))
         autostart_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_autostart_sw = ctk.CTkLabel(
@@ -1682,7 +1849,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_autostart.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_autostart.grid(row=13, column=0, sticky="ew", padx=p, pady=(0, p))
         if not can_autowin:
             self.swt_autostart.configure(state="disabled")
 
@@ -2180,12 +2347,13 @@ class MouseJigglerApp:
         waited = False
         while not self._stop.is_set():
             now = datetime.now()
-            if schedule_window.is_within_work_window(now):
+            ws, we = self._effective_schedule_bounds()
+            if schedule_window.is_within_work_window(now, ws, we):
                 if waited:
                     self.root.after(0, lambda: self._log(self._t("log_schedule_resumed")))
                 return not self._stop.is_set()
             waited = True
-            resume_at = schedule_window.next_window_start(now)
+            resume_at = schedule_window.next_window_start(now, ws, we)
             self.root.after(0, lambda ra=resume_at: self._ui_schedule_wait_begin(ra))
             end_mono = time.monotonic() + max(0.0, (resume_at - now).total_seconds())
             while time.monotonic() < end_mono and not self._stop.is_set():
@@ -2247,6 +2415,17 @@ class MouseJigglerApp:
         if self._worker is not None and self._worker.is_alive():
             return
 
+        if bool(self.var_schedule_window.get()):
+            psched = self._parsed_schedule_bounds_raw()
+            if psched is None or psched[0] >= psched[1]:
+                messagebox.showerror(
+                    self._t("err_title"),
+                    self._t("err_schedule_bounds"),
+                    parent=self.root,
+                )
+                self._log(self._t("log_start_fail_schedule_bounds"))
+                return
+
         self._stop.clear()
         self._run_schedule_window = bool(self.var_schedule_window.get())
         interval_sec = ival * 60.0 if iu == "min" else ival
@@ -2282,7 +2461,11 @@ class MouseJigglerApp:
             self.swt_schedule.configure(state="disabled")
         except (tk.TclError, AttributeError):
             pass
-        self.status.set(self._t_status_running("—"))
+        try:
+            self.entry_schedule_start.configure(state="disabled")
+            self.entry_schedule_end.configure(state="disabled")
+        except (tk.TclError, AttributeError):
+            pass
         self._apply_status_chrome("interval")
         self._schedule_countdown_tick()
         pat = self._pattern_log_label()
@@ -2332,7 +2515,21 @@ class MouseJigglerApp:
                 )
             )
         if self._run_schedule_window:
-            self._log(self._t("log_start_schedule"))
+            b = self._parsed_schedule_bounds_raw()
+            if b is not None and b[0] < b[1]:
+                ws, we = b
+            else:
+                ws, we = (
+                    schedule_window.DEFAULT_WORK_START,
+                    schedule_window.DEFAULT_WORK_END,
+                )
+            self._log(
+                self._t(
+                    "log_start_schedule",
+                    start=schedule_window.format_hhmm(ws),
+                    end=schedule_window.format_hhmm(we),
+                )
+            )
 
     def _on_stop(self) -> None:
         self._stop.set()
@@ -2357,6 +2554,11 @@ class MouseJigglerApp:
             pass
         try:
             self.swt_schedule.configure(state="normal")
+        except (tk.TclError, AttributeError):
+            pass
+        try:
+            self.entry_schedule_start.configure(state="normal")
+            self.entry_schedule_end.configure(state="normal")
         except (tk.TclError, AttributeError):
             pass
         self.status.set(self._t("status_stopped"))
