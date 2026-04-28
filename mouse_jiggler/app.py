@@ -1374,6 +1374,15 @@ class MouseJigglerApp:
         self.content_host.grid_columnconfigure(0, weight=1)
         self.content_host.grid_rowconfigure(0, weight=1)
 
+        self.page_settings = ctk.CTkFrame(
+            self.pages_host,
+            corner_radius=_R,
+            fg_color=self._CARD_BG,
+            border_width=1,
+            border_color=self._CARD_BORDER,
+        )
+        self._fill_settings_panel(self.page_settings)
+
         self.frame_control = ctk.CTkScrollableFrame(
             self.content_host,
             fg_color=self._CARD_BG,
@@ -1396,15 +1405,6 @@ class MouseJigglerApp:
         )
         self._fill_log_panel(self.frame_log)
         self.frame_log.grid_remove()
-
-        self.page_settings = ctk.CTkFrame(
-            self.pages_host,
-            corner_radius=_R,
-            fg_color=self._CARD_BG,
-            border_width=1,
-            border_color=self._CARD_BORDER,
-        )
-        self._fill_settings_panel(self.page_settings)
 
         self.page_analytics = ctk.CTkFrame(
             self.pages_host,
@@ -1550,9 +1550,47 @@ class MouseJigglerApp:
         self.btn_open_config.grid(row=6, column=0, sticky="w", padx=p, pady=(0, p))
         _try_takefocus(self.btn_open_config, 1)
 
+        self.var_schedule_window = tk.BooleanVar(value=False)
+        schedule_row = ctk.CTkFrame(card, fg_color="transparent")
+        schedule_row.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, 8))
+        schedule_row.grid_columnconfigure(0, weight=1)
+        self._lbl_schedule_sw = ctk.CTkLabel(
+            schedule_row,
+            text=self._t("schedule_window_title"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_schedule_sw.grid(row=0, column=0, sticky="w")
+        self.swt_schedule = ctk.CTkSwitch(
+            schedule_row,
+            text="",
+            variable=self.var_schedule_window,
+            width=52,
+            switch_width=40,
+            switch_height=22,
+            fg_color=self._BORDER,
+            progress_color=self._ACCENT,
+            button_color="#FFFFFF",
+            button_hover_color="#F3F4F6",
+            font=self._font_body,
+        )
+        self.swt_schedule.grid(row=0, column=1, sticky="e", padx=(16, 0))
+        _try_takefocus(self.swt_schedule, 1)
+        self._hint_schedule = ctk.CTkLabel(
+            card,
+            text=self._t("schedule_window_hint"),
+            font=self._font_hint,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+            justify="left",
+            wraplength=520,
+        )
+        self._hint_schedule.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
+
         self.var_tray_close = tk.BooleanVar(value=False)
         tray_row = ctk.CTkFrame(card, fg_color="transparent")
-        tray_row.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, 8))
+        tray_row.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
         tray_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_tray_sw = ctk.CTkLabel(
@@ -1592,7 +1630,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_tray.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_tray.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
         if not HAS_TRAY:
             self.swt_tray.configure(state="disabled")
 
@@ -1601,7 +1639,7 @@ class MouseJigglerApp:
             value=bool(can_autowin and _windows_run_autostart_active())
         )
         autostart_row = ctk.CTkFrame(card, fg_color="transparent")
-        autostart_row.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
+        autostart_row.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, 8))
         autostart_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_autostart_sw = ctk.CTkLabel(
@@ -1644,7 +1682,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_autostart.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_autostart.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
         if not can_autowin:
             self.swt_autostart.configure(state="disabled")
 
@@ -1919,44 +1957,6 @@ class MouseJigglerApp:
         self.seg_motion_pattern.pack(side="left")
         self._sync_motion_pattern_seg()
         self._a11y_label_focus_entry(self._lbl_motion_pattern, self.seg_motion_pattern)
-
-        schedule_row = ctk.CTkFrame(card, fg_color="transparent")
-        schedule_row.grid(row=8, column=0, sticky="ew", padx=p, pady=(p, p))
-        schedule_row.grid_columnconfigure(0, weight=1)
-        self._lbl_schedule_sw = ctk.CTkLabel(
-            schedule_row,
-            text=self._t("schedule_window_title"),
-            font=self._font_body_bold,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
-            anchor="w",
-        )
-        self._lbl_schedule_sw.grid(row=0, column=0, sticky="w")
-        self.var_schedule_window = tk.BooleanVar(value=False)
-        self.swt_schedule = ctk.CTkSwitch(
-            schedule_row,
-            text="",
-            variable=self.var_schedule_window,
-            width=52,
-            switch_width=40,
-            switch_height=22,
-            fg_color=self._BORDER,
-            progress_color=self._ACCENT,
-            button_color="#FFFFFF",
-            button_hover_color="#F3F4F6",
-            font=self._font_body,
-        )
-        self.swt_schedule.grid(row=0, column=1, sticky="e", padx=(16, 0))
-        _try_takefocus(self.swt_schedule, 1)
-        self._hint_schedule = ctk.CTkLabel(
-            card,
-            text=self._t("schedule_window_hint"),
-            font=self._font_hint,
-            text_color=self._TEXT_MUTED,
-            anchor="w",
-            justify="left",
-            wraplength=520,
-        )
-        self._hint_schedule.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
 
         btn_row = ctk.CTkFrame(card, fg_color="transparent")
         btn_row.grid(row=12, column=0, sticky="w", padx=p, pady=(p, p))
