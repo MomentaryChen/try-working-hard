@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **PySide6 UI workspace**: introduced a modern multi-page desktop shell with `Dashboard`, `Tasks`, and `Settings` views, plus supporting window bootstrapping in `main.py`.
 - **Reusable UI components**: added `StatCard`, `CustomTable`, `SidebarButton`, `Toast`, and `OneTimeReminderDialog` to support richer dashboards and in-app feedback.
 - **Page-level structure**: added dedicated page modules under `views/` and icon assets under `assets/icons/` for sidebar navigation and page framing.
+- **Startup usage reminder**: added a product-level compliance reminder dialog on each normal app launch (non-tray startup) to clarify lawful and policy-compliant use before interaction.
 
 ### Changed
 

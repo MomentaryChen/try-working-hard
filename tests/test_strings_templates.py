@@ -87,3 +87,9 @@ def test_a11y_help_body_includes_version(lang: str) -> None:
 def test_intro_body_includes_version(lang: str) -> None:
     body = STRINGS[lang]["intro_body"].format(version="2.0.0")
     assert "2.0.0" in body
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_startup_notice_body_includes_version(lang: str) -> None:
+    body = STRINGS[lang]["startup_notice_body"].format(version="2.0.0")
+    assert "2.0.0" in body
