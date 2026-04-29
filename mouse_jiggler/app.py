@@ -255,6 +255,9 @@ class MouseJigglerApp:
     _LOG_TRIM_LINES = nudge_logic.LOG_TRIM_LINES
     _SIDEBAR_WIDTH = 200
     _UI_PAD = 26
+    _AUTO_UPDATE_STARTUP_DELAY_MS = 1500
+    _AUTO_UPDATE_INTERVAL_MS = 1 * 60 * 60 * 1000
+    _AUTO_UPDATE_RETRY_MS = 15 * 60 * 1000
 
     def _apply_theme_palette(self, name: UiTheme) -> None:
         for key, value in _UI_PALETTES[name].items():
@@ -712,7 +715,22 @@ class MouseJigglerApp:
         self._motion_pattern: MotionPattern = "horizontal"
         self._auto_check_updates = True
         self._update_check_in_progress = False
+        self._update_check_after_id: str | None = None
         self._update_notice_url = ""
+        self._update_notice_installer_url = ""
+        self._update_notice_installer_name = ""
+        self._update_notice_checksum_url = ""
+        self._update_notice_checksum_name = ""
+        self._update_notice_latest_tag = ""
+        self._update_download_in_progress = False
+        self._update_download_cancel_requested = False
+        self._update_download_started_at = 0.0
+        self._update_download_dialog: ctk.CTkToplevel | None = None
+        self._update_download_label: ctk.CTkLabel | None = None
+        self._update_download_bar: ctk.CTkProgressBar | None = None
+        self._update_download_percent: ctk.CTkLabel | None = None
+        self._update_download_meta: ctk.CTkLabel | None = None
+        self._btn_update_download_cancel: ctk.CTkButton | None = None
         self._update_notice_after_id: str | None = None
         self._update_notice_anim_after_id: str | None = None
         self._update_notice_target_h = 72
@@ -750,7 +768,7 @@ class MouseJigglerApp:
             self.root.after(120, self._bootstrap_tray_start)
 
         self.root.after(4500, self._tick_analytics_charts_loop)
-        self.root.after(1500, self._maybe_auto_check_updates)
+        self._schedule_auto_update_check(self._AUTO_UPDATE_STARTUP_DELAY_MS)
 
     def _bootstrap_tray_start(self) -> None:
         if self._shutting_down or not HAS_TRAY:
@@ -1636,6 +1654,13 @@ class MouseJigglerApp:
             self._schedule_save_config()
             self._refresh_schedule_banner()
 
+        def _on_auto_updates_toggle(*_a: object) -> None:
+            _on_write()
+            if bool(self.var_auto_check_updates.get()):
+                self._schedule_auto_update_check(self._AUTO_UPDATE_STARTUP_DELAY_MS)
+            else:
+                self._cancel_auto_update_check()
+
         try:
             self.var_tray_close.trace_add("write", _on_write)
             self.var_minutes.trace_add("write", _on_write)
@@ -1645,7 +1670,7 @@ class MouseJigglerApp:
             self.var_schedule_window.trace_add("write", _on_schedule_flag)
             self.var_schedule_start.trace_add("write", _on_schedule_times_write)
             self.var_schedule_end.trace_add("write", _on_schedule_times_write)
-            self.var_auto_check_updates.trace_add("write", _on_write)
+            self.var_auto_check_updates.trace_add("write", _on_auto_updates_toggle)
         except (tk.TclError, AttributeError):
             pass
 
@@ -1711,6 +1736,36 @@ class MouseJigglerApp:
             return
         self._check_updates(manual=False)
 
+    def _cancel_auto_update_check(self) -> None:
+        if self._update_check_after_id is None:
+            return
+        try:
+            self.root.after_cancel(self._update_check_after_id)
+        except tk.TclError:
+            pass
+        self._update_check_after_id = None
+
+    def _schedule_auto_update_check(self, delay_ms: int | None = None) -> None:
+        if self._shutting_down:
+            return
+        if not hasattr(self, "var_auto_check_updates"):
+            return
+        if not bool(self.var_auto_check_updates.get()):
+            self._cancel_auto_update_check()
+            return
+        self._cancel_auto_update_check()
+        next_delay = delay_ms if delay_ms is not None else self._AUTO_UPDATE_INTERVAL_MS
+        self._update_check_after_id = self.root.after(next_delay, self._run_auto_update_check)
+
+    def _run_auto_update_check(self) -> None:
+        self._update_check_after_id = None
+        if self._shutting_down:
+            return
+        if self._update_check_in_progress:
+            self._schedule_auto_update_check(self._AUTO_UPDATE_RETRY_MS)
+            return
+        self._maybe_auto_check_updates()
+
     def _on_check_updates(self) -> None:
         self._check_updates(manual=True)
 
@@ -1721,10 +1776,19 @@ class MouseJigglerApp:
         current: str,
         latest_url: str,
         summary: str,
+        installer_url: str,
+        installer_name: str,
+        checksum_url: str,
+        checksum_name: str,
     ) -> None:
         if self._shutting_down:
             return
         self._update_notice_url = latest_url
+        self._update_notice_latest_tag = latest_tag
+        self._update_notice_installer_url = installer_url
+        self._update_notice_installer_name = installer_name
+        self._update_notice_checksum_url = checksum_url
+        self._update_notice_checksum_name = checksum_name
         self.btn_update_notice_open.configure(state="normal")
         msg = [self._t("update_banner_new_version", latest=latest_tag, current=current)]
         if summary:
@@ -1744,6 +1808,11 @@ class MouseJigglerApp:
         if self._shutting_down:
             return
         self._update_notice_url = ""
+        self._update_notice_latest_tag = ""
+        self._update_notice_installer_url = ""
+        self._update_notice_installer_name = ""
+        self._update_notice_checksum_url = ""
+        self._update_notice_checksum_name = ""
         self.btn_update_notice_open.configure(state="disabled")
         self._lbl_update_notice.configure(text=text)
         self._animate_update_banner(show=True)
@@ -1780,11 +1849,303 @@ class MouseJigglerApp:
         _tick_hide()
 
     def _open_update_from_banner(self) -> None:
-        if not self._update_notice_url:
+        if self._update_download_in_progress:
+            self._show_info_banner(self._t("update_download_in_progress"))
             return
-        url = self._update_notice_url
-        webbrowser.open(url, new=2)
+        if self._update_notice_installer_url and self._update_notice_installer_name:
+            self._prompt_download_latest_installer(
+                latest_tag=self._update_notice_latest_tag,
+                installer_name=self._update_notice_installer_name,
+                installer_url=self._update_notice_installer_url,
+                checksum_url=self._update_notice_checksum_url,
+            )
+            return
+        if self._update_notice_url:
+            webbrowser.open(self._update_notice_url, new=2)
         self._hide_update_banner()
+
+    def _default_installer_target_path(self, installer_name: str) -> Path:
+        downloads_dir = Path.home() / "Downloads"
+        if downloads_dir.exists() and downloads_dir.is_dir():
+            return downloads_dir / installer_name
+        return Path(local_config.default_config_path().parent) / installer_name
+
+    def _prompt_download_latest_installer(
+        self,
+        *,
+        latest_tag: str,
+        installer_name: str,
+        installer_url: str,
+        checksum_url: str,
+    ) -> None:
+        if self._shutting_down:
+            return
+        current = self._pkg_version()
+        title = self._t("update_download_prompt_title")
+        body = self._t(
+            "update_download_prompt_body",
+            current=current,
+            latest=latest_tag,
+            installer=installer_name,
+        )
+        approved = messagebox.askyesno(title, body, parent=self.root)
+        if not approved:
+            return
+        self._start_installer_download(
+            installer_name=installer_name,
+            installer_url=installer_url,
+            checksum_url=checksum_url,
+        )
+
+    def _open_installer_progress_dialog(self) -> None:
+        try:
+            dialog = ctk.CTkToplevel(self.root)
+            dialog.title(self._t("update_download_progress_title"))
+            dialog.transient(self.root)
+            dialog.grab_set()
+            dialog.resizable(False, False)
+            dialog.geometry("500x230")
+            dialog.protocol("WM_DELETE_WINDOW", self._request_cancel_installer_download)
+            frame = ctk.CTkFrame(dialog, fg_color="transparent")
+            frame.pack(fill="both", expand=True, padx=18, pady=18)
+            self._update_download_label = ctk.CTkLabel(
+                frame,
+                text=self._t("update_download_progress_starting"),
+                anchor="w",
+                justify="left",
+                font=self._font_body,
+            )
+            self._update_download_label.pack(fill="x", pady=(0, 10))
+            self._update_download_bar = ctk.CTkProgressBar(frame, mode="determinate")
+            self._update_download_bar.set(0.0)
+            self._update_download_bar.pack(fill="x")
+            self._update_download_percent = ctk.CTkLabel(
+                frame, text="0%", anchor="w", font=self._font_hint
+            )
+            self._update_download_percent.pack(fill="x", pady=(8, 0))
+            self._update_download_meta = ctk.CTkLabel(
+                frame, text="", anchor="w", justify="left", font=self._font_hint
+            )
+            self._update_download_meta.pack(fill="x", pady=(6, 0))
+            self._btn_update_download_cancel = self._btn(
+                frame,
+                text=self._t("update_download_cancel"),
+                command=self._request_cancel_installer_download,
+                fg_color=self._BTN_SECONDARY,
+                hover_color=self._BTN_SECONDARY_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            )
+            self._btn_update_download_cancel.pack(anchor="e", pady=(12, 0))
+            self._update_download_dialog = dialog
+        except tk.TclError:
+            self._update_download_dialog = None
+            self._update_download_label = None
+            self._update_download_bar = None
+            self._update_download_percent = None
+            self._update_download_meta = None
+            self._btn_update_download_cancel = None
+
+    def _close_installer_progress_dialog(self) -> None:
+        dialog = self._update_download_dialog
+        self._update_download_dialog = None
+        self._update_download_label = None
+        self._update_download_bar = None
+        self._update_download_percent = None
+        self._update_download_meta = None
+        self._btn_update_download_cancel = None
+        if dialog is None:
+            return
+        try:
+            dialog.grab_release()
+        except tk.TclError:
+            pass
+        try:
+            dialog.destroy()
+        except tk.TclError:
+            pass
+
+    def _update_installer_progress(self, downloaded: int, total: int | None) -> None:
+        if self._shutting_down:
+            return
+        if self._update_download_bar is None or self._update_download_percent is None:
+            return
+        if total and total > 0:
+            ratio = max(0.0, min(1.0, downloaded / total))
+            self._update_download_bar.set(ratio)
+            pct = int(ratio * 100)
+            self._update_download_percent.configure(text=f"{pct}%")
+            elapsed = max(0.001, time.monotonic() - self._update_download_started_at)
+            speed_bps = downloaded / elapsed
+            remain_sec = int(max(0.0, (total - downloaded) / speed_bps)) if speed_bps > 0 else 0
+            if self._update_download_meta is not None:
+                self._update_download_meta.configure(
+                    text=self._t(
+                        "update_download_progress_stats",
+                        speed=self._format_speed(speed_bps),
+                        eta=self._format_eta(remain_sec),
+                    )
+                )
+            if self._update_download_label is not None:
+                self._update_download_label.configure(
+                    text=self._t("update_download_progress_running_pct", pct=pct)
+                )
+        else:
+            self._update_download_bar.set(0.0)
+            self._update_download_percent.configure(
+                text=self._t("update_download_progress_bytes", bytes=downloaded)
+            )
+            if self._update_download_meta is not None:
+                elapsed = max(0.001, time.monotonic() - self._update_download_started_at)
+                speed_bps = downloaded / elapsed
+                self._update_download_meta.configure(
+                    text=self._t(
+                        "update_download_progress_speed_only",
+                        speed=self._format_speed(speed_bps),
+                    )
+                )
+
+    def _format_speed(self, speed_bps: float) -> str:
+        if speed_bps < 1024:
+            return f"{int(speed_bps)} B/s"
+        if speed_bps < 1024 * 1024:
+            return f"{speed_bps / 1024:.1f} KB/s"
+        return f"{speed_bps / (1024 * 1024):.2f} MB/s"
+
+    def _format_eta(self, sec: int) -> str:
+        if sec < 60:
+            return f"{sec}s"
+        m, s = divmod(sec, 60)
+        if m < 60:
+            return f"{m}m {s}s"
+        h, m = divmod(m, 60)
+        return f"{h}h {m}m"
+
+    def _request_cancel_installer_download(self) -> None:
+        if not self._update_download_in_progress:
+            return
+        self._update_download_cancel_requested = True
+        if self._update_download_label is not None:
+            self._update_download_label.configure(text=self._t("update_download_cancelling"))
+        if self._btn_update_download_cancel is not None:
+            self._btn_update_download_cancel.configure(state="disabled")
+
+    def _start_installer_download(
+        self, *, installer_name: str, installer_url: str, checksum_url: str
+    ) -> None:
+        if self._update_download_in_progress:
+            self._show_info_banner(self._t("update_download_in_progress"))
+            return
+        self._update_download_in_progress = True
+        self._update_download_cancel_requested = False
+        self._update_download_started_at = time.monotonic()
+        target_path = self._default_installer_target_path(installer_name)
+        self._open_installer_progress_dialog()
+
+        def _progress(downloaded: int, total: int | None) -> None:
+            self.root.after(0, lambda: self._update_installer_progress(downloaded, total))
+
+        def _worker() -> None:
+            try:
+                out = updater.download_file(
+                    url=installer_url,
+                    target_path=target_path,
+                    progress_cb=_progress,
+                    cancel_cb=lambda: self._update_download_cancel_requested,
+                )
+                expected_sha256 = ""
+                actual_sha256 = ""
+                checksum_verified = False
+                if checksum_url:
+                    checksum_text = updater.fetch_text(checksum_url)
+                    digest = updater.parse_sha256_from_text(checksum_text, installer_name)
+                    if digest:
+                        expected_sha256 = digest
+                if expected_sha256:
+                    actual_sha256 = updater.sha256_file(out)
+                    if actual_sha256.lower() != expected_sha256.lower():
+                        raise RuntimeError(
+                            self._t(
+                                "update_checksum_mismatch_error",
+                                expected=self._short_digest(expected_sha256),
+                                actual=self._short_digest(actual_sha256),
+                            )
+                        )
+                    checksum_verified = True
+                self.root.after(
+                    0,
+                    lambda: self._on_installer_download_done(
+                        path=out,
+                        checksum_verified=checksum_verified,
+                        checksum_digest=(actual_sha256 or expected_sha256),
+                    ),
+                )
+            except updater.DownloadCancelledError:
+                self.root.after(0, self._on_installer_download_cancelled)
+            except Exception as exc:
+                self.root.after(0, lambda: self._on_installer_download_failed(err=str(exc)))
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _on_installer_download_done(
+        self,
+        *,
+        path: Path,
+        checksum_verified: bool = False,
+        checksum_digest: str = "",
+    ) -> None:
+        self._update_download_in_progress = False
+        self._close_installer_progress_dialog()
+        if self._shutting_down:
+            return
+        digest_hint = ""
+        if checksum_verified and checksum_digest:
+            digest_hint = self._t(
+                "update_checksum_verified_hint",
+                digest=self._short_digest(checksum_digest),
+            )
+        approved = messagebox.askyesno(
+            self._t("update_install_prompt_title"),
+            self._t("update_install_prompt_body", path=str(path), verify_hint=digest_hint),
+            parent=self.root,
+        )
+        if not approved:
+            return
+        try:
+            if hasattr(os, "startfile"):
+                os.startfile(str(path.resolve()))
+            else:
+                webbrowser.open(path.resolve().as_uri(), new=2)
+            self._show_info_banner(self._t("update_install_started"))
+        except OSError as exc:
+            messagebox.showerror(
+                self._t("update_install_prompt_title"),
+                self._t("update_install_failed", err=str(exc)),
+                parent=self.root,
+            )
+
+    def _on_installer_download_failed(self, *, err: str) -> None:
+        self._update_download_in_progress = False
+        self._close_installer_progress_dialog()
+        if self._shutting_down:
+            return
+        messagebox.showerror(
+            self._t("update_download_failed_title"),
+            self._t("update_download_failed_body", err=err),
+            parent=self.root,
+        )
+
+    def _on_installer_download_cancelled(self) -> None:
+        self._update_download_in_progress = False
+        self._close_installer_progress_dialog()
+        if self._shutting_down:
+            return
+        self._show_info_banner(self._t("update_download_cancelled"))
+
+    def _short_digest(self, digest: str) -> str:
+        d = digest.strip().lower()
+        if len(d) <= 16:
+            return d
+        return f"{d[:12]}...{d[-8:]}"
 
     def _build_global_update_notice(self) -> None:
         self._update_notice_shell = ctk.CTkFrame(
@@ -1855,6 +2216,12 @@ class MouseJigglerApp:
                 latest = updater.fetch_latest_release()
                 latest_tag = latest["tag"]
                 latest_url = latest["url"] or "https://github.com/MomentaryChen/try-working-hard/releases"
+                installer = updater.choose_windows_installer_asset(latest)
+                installer_url = installer["url"] if installer else ""
+                installer_name = installer["name"] if installer else ""
+                checksum = updater.choose_checksum_asset(latest)
+                checksum_url = checksum["url"] if checksum else ""
+                checksum_name = checksum["name"] if checksum else ""
                 release_summary = updater.summarize_release_notes(latest.get("body", ""))
                 if not release_summary and latest.get("name"):
                     release_summary = str(latest["name"]).strip()
@@ -1866,6 +2233,10 @@ class MouseJigglerApp:
                         has_update=has_update,
                         latest_tag=latest_tag,
                         latest_url=latest_url,
+                        installer_url=installer_url,
+                        installer_name=installer_name,
+                        checksum_url=checksum_url,
+                        checksum_name=checksum_name,
                         release_summary=release_summary,
                         current=current,
                         manual=manual,
@@ -1882,11 +2253,17 @@ class MouseJigglerApp:
         has_update: bool,
         latest_tag: str,
         latest_url: str,
+        installer_url: str,
+        installer_name: str,
+        checksum_url: str,
+        checksum_name: str,
         release_summary: str,
         current: str,
         manual: bool,
     ) -> None:
         self._update_check_in_progress = False
+        if not manual:
+            self._schedule_auto_update_check()
         if self._shutting_down:
             return
         if has_update:
@@ -1894,6 +2271,10 @@ class MouseJigglerApp:
                 latest_tag=latest_tag,
                 current=current,
                 latest_url=latest_url,
+                installer_url=installer_url,
+                installer_name=installer_name,
+                checksum_url=checksum_url,
+                checksum_name=checksum_name,
                 summary=release_summary,
             )
             return
@@ -1904,6 +2285,8 @@ class MouseJigglerApp:
 
     def _handle_update_check_error(self, *, manual: bool) -> None:
         self._update_check_in_progress = False
+        if not manual:
+            self._schedule_auto_update_check(self._AUTO_UPDATE_RETRY_MS)
         if self._shutting_down or not manual:
             return
         self._show_info_banner(
@@ -3995,6 +4378,8 @@ class MouseJigglerApp:
         self._shutting_down = True
 
         self._cancel_analytics_runtime_flush()
+        self._cancel_auto_update_check()
+        self._close_installer_progress_dialog()
         self._flush_runtime_segment()
 
         self._stop.set()
