@@ -55,8 +55,6 @@ def test_choose_windows_installer_asset_prefers_setup_over_plain_exe() -> None:
     asset = updater.choose_windows_installer_asset(release)
     assert asset is not None
     assert asset["name"] == "try-working-hard-setup-v1.2.0.exe"
-
-
 def test_choose_windows_installer_asset_returns_none_without_exe() -> None:
     release = {
         "tag": "v1.2.0",
