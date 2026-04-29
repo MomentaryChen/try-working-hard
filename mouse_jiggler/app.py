@@ -3306,10 +3306,10 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_chart_triggers.grid(row=0, column=0, sticky="w", padx=p, pady=(p, 4))
+        self._lbl_chart_triggers.grid(row=1, column=0, sticky="w", padx=p, pady=(p, 4))
 
         seg_row = ctk.CTkFrame(self.analytics_scroll, fg_color="transparent")
-        seg_row.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
+        seg_row.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
         vt = self._t("analytics_range_today")
         vw = self._t("analytics_range_week")
         self._seg_analytics_range = ctk.CTkSegmentedButton(
@@ -3331,7 +3331,7 @@ class MouseJigglerApp:
         _try_takefocus(self._seg_analytics_range, 1)
 
         trig_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
-        trig_host.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
+        trig_host.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self._fig_trigger = Figure(figsize=(6.5, 2.85), dpi=100)
         self._mpl_canvas_trigger = analytics_charts.attach_canvas(self._fig_trigger, trig_host)
@@ -3343,10 +3343,10 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_chart_runtime.grid(row=3, column=0, sticky="w", padx=p, pady=(p, 4))
+        self._lbl_chart_runtime.grid(row=4, column=0, sticky="w", padx=p, pady=(p, 4))
 
         run_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
-        run_host.grid(row=4, column=0, sticky="ew", padx=p, pady=(0, p))
+        run_host.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self._fig_runtime = Figure(figsize=(6.5, 2.85), dpi=100)
         self._mpl_canvas_runtime = analytics_charts.attach_canvas(self._fig_runtime, run_host)
@@ -3358,10 +3358,10 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_chart_patterns.grid(row=5, column=0, sticky="w", padx=p, pady=(p, 4))
+        self._lbl_chart_patterns.grid(row=6, column=0, sticky="w", padx=p, pady=(p, 4))
 
         pie_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
-        pie_host.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, p))
+        pie_host.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self._fig_patterns = Figure(figsize=(6.5, 2.95), dpi=100)
         self._mpl_canvas_patterns = analytics_charts.attach_canvas(self._fig_patterns, pie_host)
@@ -3376,7 +3376,7 @@ class MouseJigglerApp:
             border_color=self._ENTRY_BORDER,
             height=150,
         )
-        self.analytics_log.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.analytics_log.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
         self.analytics_log.configure(state="disabled")
         _try_takefocus(self.analytics_log, 1)
 

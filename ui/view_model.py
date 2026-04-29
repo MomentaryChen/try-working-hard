@@ -12,7 +12,7 @@ class NavigationViewModel(QObject):
 
     def __init__(self) -> None:
         super().__init__()
-        self._active_page = "dashboard"
+        self._active_page = "home"
 
     @property
     def active_page(self) -> str:

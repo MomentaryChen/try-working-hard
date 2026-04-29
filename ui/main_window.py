@@ -31,13 +31,13 @@ from views.tasks_page import TasksPage
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Modern PySide6 Dashboard")
+        self.setWindowTitle("try-working-hard")
         self.resize(1200, 760)
         self.setMinimumSize(960, 620)
 
         self.view_model = NavigationViewModel()
         self.sidebar_buttons: dict[str, SidebarButton] = {}
-        self.page_index = {"dashboard": 0, "tasks": 1, "settings": 2}
+        self.page_index = {"home": 0, "settings": 1, "analytics": 2}
         self._indicator_ready = False
         self.preferences = PreferencesStore()
         self.shortcuts: list[QShortcut] = []
@@ -47,8 +47,8 @@ class MainWindow(QMainWindow):
         self._setup_shortcuts()
 
         self.view_model.page_changed.connect(self._on_page_changed)
-        self._set_active_button("dashboard")
-        QTimer.singleShot(0, lambda: self._set_indicator_position("dashboard", animate=False))
+        self._set_active_button("home")
+        QTimer.singleShot(0, lambda: self._set_indicator_position("home", animate=False))
         QTimer.singleShot(250, self._show_first_run_reminder)
 
     def _setup_ui(self) -> None:
@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(14, 16, 14, 16)
         layout.setSpacing(8)
 
-        logo = QLabel("Pulse Board")
+        logo = QLabel("try-working-hard")
         logo.setObjectName("brandLabel")
         layout.addWidget(logo)
         layout.addSpacing(12)
@@ -94,9 +94,9 @@ class MainWindow(QMainWindow):
 
         icon_root = Path(__file__).resolve().parents[1] / "assets" / "icons"
         for key, label, icon in [
-            ("dashboard", "Dashboard", icon_root / "dashboard.svg"),
-            ("tasks", "Tasks", icon_root / "tasks.svg"),
+            ("home", "Home", icon_root / "dashboard.svg"),
             ("settings", "Settings", icon_root / "settings.svg"),
+            ("analytics", "Analytics", icon_root / "tasks.svg"),
         ]:
             button = SidebarButton(label, key, QIcon(str(icon)))
             button.clicked_with_key.connect(self.view_model.set_active_page)
@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
         header_layout.setContentsMargins(16, 12, 16, 12)
         header_layout.setSpacing(10)
 
-        self.page_title = QLabel("Dashboard")
+        self.page_title = QLabel("Home")
         self.page_title.setObjectName("pageTitle")
         header_layout.addWidget(self.page_title)
         header_layout.addStretch(1)
@@ -132,13 +132,15 @@ class MainWindow(QMainWindow):
 
         self.stack = QStackedWidget()
         self.dashboard_page = DashboardPage()
-        self.tasks_page = TasksPage()
         self.settings_page = SettingsPage()
+        self.tasks_page = TasksPage()
 
         self.stack.addWidget(self.dashboard_page)
-        self.stack.addWidget(self.tasks_page)
         self.stack.addWidget(self.settings_page)
+        self.stack.addWidget(self.tasks_page)
+        self.toast = Toast(shell)
         self.settings_page.reset_reminders_requested.connect(self._reset_one_time_reminders)
+        self.settings_page.settings_saved.connect(self.toast.show_message)
 
         self.opacity_effect = QGraphicsOpacityEffect(self.stack)
         self.stack.setGraphicsEffect(self.opacity_effect)
@@ -151,13 +153,13 @@ class MainWindow(QMainWindow):
         shell_layout.addWidget(header)
         shell_layout.addWidget(self.stack, 1)
 
-        self.toast = Toast(shell)
         return shell
 
     def _on_page_changed(self, page_key: str) -> None:
         self._set_active_button(page_key)
         self.stack.setCurrentIndex(self.page_index[page_key])
-        self.page_title.setText(page_key.capitalize())
+        page_titles = {"home": "Home", "settings": "Settings", "analytics": "Analytics"}
+        self.page_title.setText(page_titles.get(page_key, page_key.capitalize()))
         self.fade_animation.stop()
         self.fade_animation.start()
         self._set_indicator_position(page_key, animate=True)
@@ -195,12 +197,21 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(styles_path.read_text(encoding="utf-8"))
 
     def _setup_shortcuts(self) -> None:
-        self._add_shortcut("Ctrl+1", lambda: self.view_model.set_active_page("dashboard"))
-        self._add_shortcut("Ctrl+2", lambda: self.view_model.set_active_page("tasks"))
-        self._add_shortcut("Ctrl+3", lambda: self.view_model.set_active_page("settings"))
-        self._add_shortcut("Ctrl+N", self._add_task_with_feedback)
-        self._add_shortcut("Delete", self._remove_task_with_feedback)
+        self._add_shortcut("Ctrl+1", lambda: self.view_model.set_active_page("home"))
+        self._add_shortcut("Ctrl+2", lambda: self.view_model.set_active_page("settings"))
+        self._add_shortcut("Ctrl+3", lambda: self.view_model.set_active_page("analytics"))
+        self._add_shortcut("Ctrl+N", self._refresh_analytics_with_feedback)
+        self._add_shortcut("Delete", self._refresh_analytics_with_feedback)
         self._add_shortcut("?", self._show_shortcuts_hint)
+        self._add_shortcut("F1", self._show_shortcuts_hint)
+        self._add_shortcut("F2", lambda: self.view_model.set_active_page("home"))
+        self._add_shortcut("F3", lambda: self.view_model.set_active_page("settings"))
+        self._add_shortcut("F4", lambda: self.view_model.set_active_page("analytics"))
+        self._add_shortcut("F5", self._start_from_shortcut)
+        self._add_shortcut("Shift+F5", self._stop_from_shortcut)
+        self._add_shortcut("F6", self._toggle_home_segment)
+        self._add_shortcut("Return", self._start_from_shortcut)
+        self._add_shortcut("Escape", self._stop_from_shortcut)
 
     def _add_shortcut(self, key: str, handler) -> None:
         shortcut = QShortcut(QKeySequence(key), self)
@@ -208,21 +219,29 @@ class MainWindow(QMainWindow):
         shortcut.activated.connect(handler)
         self.shortcuts.append(shortcut)
 
-    def _add_task_with_feedback(self) -> None:
-        self.view_model.set_active_page("tasks")
-        self.tasks_page.add_task()
-        self.toast.show_message("Task added. Use Delete to remove selected row.")
-
-    def _remove_task_with_feedback(self) -> None:
-        self.view_model.set_active_page("tasks")
-        removed = self.tasks_page.remove_selected_task()
-        if removed:
-            self.toast.show_message("Task removed.")
-            return
-        self.toast.show_message("Select a task row first.")
+    def _refresh_analytics_with_feedback(self) -> None:
+        self.view_model.set_active_page("analytics")
+        self.tasks_page.refresh_analytics()
+        self.toast.show_message("Analytics refreshed.")
 
     def _show_shortcuts_hint(self) -> None:
-        self.toast.show_message("Shortcuts: Ctrl+1/2/3 pages, Ctrl+N add task, Delete remove task.")
+        self.toast.show_message("F2/F3/F4 pages, F5 start, F6 Home Control/Log, Ctrl+N refresh analytics.")
+
+    def _start_from_shortcut(self) -> None:
+        if self.view_model.active_page != "home":
+            self.view_model.set_active_page("home")
+        self.dashboard_page.start_runtime()
+
+    def _toggle_home_segment(self) -> None:
+        if self.view_model.active_page != "home":
+            self.view_model.set_active_page("home")
+        idx = self.dashboard_page.stack.currentIndex()
+        self.dashboard_page.stack.setCurrentIndex(1 - idx)
+
+    def _stop_from_shortcut(self) -> None:
+        if self.view_model.active_page != "home":
+            self.view_model.set_active_page("home")
+        self.dashboard_page.stop_runtime()
 
     def _show_first_run_reminder(self) -> None:
         reminder_key = "dashboard_shortcuts"
@@ -231,8 +250,8 @@ class MainWindow(QMainWindow):
         reminder = OneTimeReminderDialog(
             title="Quick Productivity Tip",
             message=(
-                "Use Ctrl+1/2/3 to switch pages, Ctrl+N to add a task, and Delete to remove "
-                "a selected task row."
+                "Use F2/F3/F4 to switch Home/Settings/Analytics, F5/Shift+F5 to start or stop, "
+                "and F6 to switch Home Control/Log."
             ),
             parent=self,
         )
@@ -244,3 +263,7 @@ class MainWindow(QMainWindow):
     def _reset_one_time_reminders(self) -> None:
         self.preferences.reset_reminders()
         self.toast.show_message("One-time reminders reset.")
+
+    def closeEvent(self, event) -> None:  # noqa: N802 (Qt override)
+        self.dashboard_page.stop_runtime()
+        super().closeEvent(event)
