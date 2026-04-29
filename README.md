@@ -1,8 +1,31 @@
 # try-working-hard
 
-**Languages:** English (this file) · [正體中文](README.zh-TW.md)
+![try-working-hard-v1.2.0 demo](img/try-working-hard-v.1.2.0.gif)
 
-Nudges the mouse **only after** the chosen interval elapses with **no keyboard or mouse input** (Windows `GetLastInputInfo`). You can choose **Pattern** mode (line, circle, or square) or **Natural** mode (irregular micro-moves, with optional rare click or scroll), then the cursor is restored. GUI for interval and options. For **lawful personal use only** (for example, keeping the screen awake during a presentation or reading). You must comply with applicable laws, employer or school policies, and service terms.
+**Languages:** English (this file) · [正體中文](README.zh-TW.md)  
+Windows desktop utility that nudges the cursor only after real idle time.  
+Modes: `Pattern` (line/circle/square) or `Natural` (irregular micro-moves).  
+Cursor returns to original position after each cycle.  
+Use only in lawful, compliant personal scenarios.
+
+**30-second start**
+1. `uv sync`
+2. `uv run try-working-hard`
+3. Set Interval + mode
+4. Click **Start** on Home and watch countdown
+
+**Need more detail?** See [Usage](#usage) and [FAQ (quick)](#faq-quick) below.
+
+## Contents
+
+- [Requirements](#requirements)
+- [Install and run](#install-and-run)
+- [Usage](#usage)
+- [FAQ (quick)](#faq-quick)
+- [Technical notes](#technical-notes)
+- [Limitations](#limitations)
+- [Disclaimer](#disclaimer)
+- [License](#license)
 
 ## Requirements
 
@@ -39,27 +62,42 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 
 ## Usage
 
-### Startup prompt flow
+### Quick start (recommended)
 
-- On normal startup (not `--start-in-tray`), the app now opens a styled startup prompt instead of a system message box.
-- Language is now set directly in the startup prompt (Traditional Chinese / English), and the prompt copy updates immediately.
-- Select **Open quick guide** to launch a step-by-step UI walkthrough with **Previous / Next / Done**.
-- The guide now includes a compact **Core capabilities** summary and a visual **progress indicator** (progress bar + step/percent) to show onboarding status.
-- Prompt suppression is saved locally in `config.json` (`intro_acknowledged`).
+1. Launch the app and pick language in the startup prompt.
+2. Set **Interval** (use `30s / 1m / 5m / 10m` presets if you want).
+3. Choose **Activity** (`Pattern` or `Natural`) and set nudge size.
+4. Click **Start** on Home -> Control.
+5. Watch the top status strip for the next-nudge countdown.
 
-1. The main window **opens maximized**; use the title bar to restore or resize as needed.
-2. On each normal launch (not `--start-in-tray`), the app shows a **usage reminder** dialog before control interaction. Continue only if your use is lawful and compliant with employer/school/service rules.
-3. On **Settings**, the page title stays fixed while options are shown in a bordered card; **scroll inside the card** when the window is short to reach every control. Choose **Appearance** (**Dark** or **Light** -> `ui_theme`, default **light**) and language (**繁中** / English). Optionally enable the schedule window: the UI provides **Start** / **End** in **HH:MM** (end exclusive), and config supports advanced rules with multiple segments in `schedule_window_segments_text` (for example `09:00-12:00,13:00-18:00,21:00-23:00`), weekend toggle via `schedule_include_weekends`, and optional cron-like expressions via `schedule_cron_text` (one or more 5-field expressions separated by `;`). Existing keys `schedule_window_start_text` / `schedule_window_end_text` remain supported for backward compatibility. On **Windows** with tray support, you may use **Start with Windows** and **Minimize to the system tray when closing** as described later. In **About and updates**, you can see the current app version, open the contact/support page, manually check for newer releases, and toggle **Auto-check updates on startup** (`auto_check_updates`). When schedule is on, **Home** shows a summary line below the status strip.
-4. Enter the **interval** (minimum **idle** time with no keyboard/mouse input before a nudge); use **min** or **sec** to pick units (minutes allow decimals, e.g. `0.5` ≈ 30 seconds, minimum **0.1** min; seconds follow the same minimum in seconds as **0.1** min). Under the field, use **30s / 1m / 5m / 10m** for a quick set.
-5. Optionally set **Interval jitter (± sec)** (`0` = fixed spacing): each idle-required spacing is drawn uniformly in `[interval − N, interval + N]` seconds (floored at the same minimum as the main interval). Range **0–3600**; saved as `interval_jitter_text`.
-6. Set **nudge size in pixels** (integer, **0–500**). For **Pattern** mode: line = horizontal distance; circle = radius; square = edge. For **Natural** mode: maximum wander distance from the starting point. **0** skips movement for that tick. Default is **100**.
-7. Set **path speed** (integer, **1–10**): how quickly each nudge runs (higher = faster). Default is **5**. Stored in `config.json` as `path_speed_text`.
-8. Choose **Activity**: **Pattern** uses **Line**, **Circle**, or **Square** (`motion_pattern`). **Natural** uses irregular micro-motions; you can enable optional **occasional left click** and **occasional wheel scroll** (low probability per nudge, at the restored position). Stored as `activity_style` (`pattern` | `natural`), `natural_rare_click`, and `natural_rare_scroll`.
-9. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
-10. While running, the **status strip** at the top of Home shows the **countdown** to the next possible nudge (`mm:ss`, or `h:mm:ss` after one hour), based on idle time and spacing (at least one full interval between nudges while you stay idle), and a color cue—or a pause countdown when the work-hours limit applies; when stopped, the strip is neutral.
-11. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right-click the icon for **Show window** or **Exit** (labels follow the selected language). Advanced: `uv run python -m mouse_jiggler --start-in-tray` (or the same flag on a frozen **.exe`) starts in the tray only, without showing the main window at first.
-12. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
-13. **Analytics** (sidebar) shows **Matplotlib** charts (nudge counts, daily scheduled uptime, path mix including **Natural**) and mirrors the **Home** log in a read-only text area. Usage stats are persisted as **`analytics.json`** in the **same folder** as `config.json`.
+### Most used settings
+
+- **Interval:** minimum idle time before a nudge.
+- **Interval jitter:** randomizes spacing (`interval ± N sec`).
+- **Nudge size / Path speed:** controls distance and movement speed.
+- **Schedule window:** optional active hours (`HH:MM` start/end) plus advanced segments/cron in `config.json`.
+- **Tray behavior:** default close = stop and exit; optional close-to-tray keeps running.
+
+### Keyboard and workflow shortcuts
+
+- **F1** help, **F2/F3/F4** switch main areas, **F6** toggle Control/Log.
+- On Home -> Control: **F5** start, **Shift+F5** stop.
+- **Enter / Esc** map to start/stop only while the main window is visible.
+
+### Detailed reference
+
+- Startup prompt includes optional quick guide and stores suppression in `config.json` (`intro_acknowledged`).
+- Settings page supports theme (`ui_theme`), language, update checks (`auto_check_updates`), schedule summary, and opening `config.json`.
+- Analytics page shows Matplotlib charts and persists usage stats to `analytics.json` next to `config.json`.
+- Start-in-tray is available via `uv run python -m mouse_jiggler --start-in-tray` (and for frozen `.exe` with the same flag).
+
+## FAQ (quick)
+
+- **Does it move continuously?** No, it waits for your configured idle interval.
+- **Does cursor position drift?** No, it restores to the original point each cycle.
+- **Can I run without Python?** Yes, use the release `.exe` asset.
+- **Can it start in tray?** Yes, launch with `--start-in-tray`.
+- **Can it be used to bypass policy controls?** No.
 
 ## Technical notes
 
