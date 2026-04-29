@@ -1714,14 +1714,23 @@ class MouseJigglerApp:
     def _on_check_updates(self) -> None:
         self._check_updates(manual=True)
 
-    def _show_update_banner(self, *, latest_tag: str, current: str, latest_url: str) -> None:
+    def _show_update_banner(
+        self,
+        *,
+        latest_tag: str,
+        current: str,
+        latest_url: str,
+        summary: str,
+    ) -> None:
         if self._shutting_down:
             return
         self._update_notice_url = latest_url
         self.btn_update_notice_open.configure(state="normal")
-        self._lbl_update_notice.configure(
-            text=self._t("update_banner_new_version", latest=latest_tag, current=current)
-        )
+        msg = [self._t("update_banner_new_version", latest=latest_tag, current=current)]
+        if summary:
+            msg.append(self._t("update_banner_summary", summary=summary))
+        msg.append(self._t("update_banner_rollback_hint"))
+        self._lbl_update_notice.configure(text="\n".join(msg))
         self._animate_update_banner(show=True)
         if self._update_notice_after_id is not None:
             try:
@@ -1846,6 +1855,9 @@ class MouseJigglerApp:
                 latest = updater.fetch_latest_release()
                 latest_tag = latest["tag"]
                 latest_url = latest["url"] or "https://github.com/MomentaryChen/try-working-hard/releases"
+                release_summary = updater.summarize_release_notes(latest.get("body", ""))
+                if not release_summary and latest.get("name"):
+                    release_summary = str(latest["name"]).strip()
                 current = self._pkg_version()
                 has_update = updater.is_newer_version(latest_tag, current)
                 self.root.after(
@@ -1854,6 +1866,7 @@ class MouseJigglerApp:
                         has_update=has_update,
                         latest_tag=latest_tag,
                         latest_url=latest_url,
+                        release_summary=release_summary,
                         current=current,
                         manual=manual,
                     ),
@@ -1869,6 +1882,7 @@ class MouseJigglerApp:
         has_update: bool,
         latest_tag: str,
         latest_url: str,
+        release_summary: str,
         current: str,
         manual: bool,
     ) -> None:
@@ -1880,6 +1894,7 @@ class MouseJigglerApp:
                 latest_tag=latest_tag,
                 current=current,
                 latest_url=latest_url,
+                summary=release_summary,
             )
             return
         if manual:
@@ -2908,10 +2923,10 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_chart_triggers.grid(row=0, column=0, sticky="w", padx=p, pady=(p, 4))
+        self._lbl_chart_triggers.grid(row=1, column=0, sticky="w", padx=p, pady=(p, 4))
 
         seg_row = ctk.CTkFrame(self.analytics_scroll, fg_color="transparent")
-        seg_row.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
+        seg_row.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
         vt = self._t("analytics_range_today")
         vw = self._t("analytics_range_week")
         self._seg_analytics_range = ctk.CTkSegmentedButton(
@@ -2933,7 +2948,7 @@ class MouseJigglerApp:
         _try_takefocus(self._seg_analytics_range, 1)
 
         trig_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
-        trig_host.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
+        trig_host.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self._fig_trigger = Figure(figsize=(6.5, 2.85), dpi=100)
         self._mpl_canvas_trigger = analytics_charts.attach_canvas(self._fig_trigger, trig_host)
@@ -2945,10 +2960,10 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_chart_runtime.grid(row=3, column=0, sticky="w", padx=p, pady=(p, 4))
+        self._lbl_chart_runtime.grid(row=4, column=0, sticky="w", padx=p, pady=(p, 4))
 
         run_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
-        run_host.grid(row=4, column=0, sticky="ew", padx=p, pady=(0, p))
+        run_host.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self._fig_runtime = Figure(figsize=(6.5, 2.85), dpi=100)
         self._mpl_canvas_runtime = analytics_charts.attach_canvas(self._fig_runtime, run_host)
@@ -2960,10 +2975,10 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_chart_patterns.grid(row=5, column=0, sticky="w", padx=p, pady=(p, 4))
+        self._lbl_chart_patterns.grid(row=6, column=0, sticky="w", padx=p, pady=(p, 4))
 
         pie_host = tk.Frame(self.analytics_scroll, bg=self._CARD_BG)
-        pie_host.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, p))
+        pie_host.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self._fig_patterns = Figure(figsize=(6.5, 2.95), dpi=100)
         self._mpl_canvas_patterns = analytics_charts.attach_canvas(self._fig_patterns, pie_host)
@@ -2978,7 +2993,7 @@ class MouseJigglerApp:
             border_color=self._ENTRY_BORDER,
             height=150,
         )
-        self.analytics_log.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.analytics_log.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
         self.analytics_log.configure(state="disabled")
         _try_takefocus(self.analytics_log, 1)
 

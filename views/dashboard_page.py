@@ -1,208 +1,294 @@
-"""Dashboard page containing summary cards and an interactive pyqtgraph chart."""
+"""Home page (Control + Log) for PySide6 migration."""
 
 from __future__ import annotations
 
-import bisect
+from typing import Any
 
-import pyqtgraph as pg
-from pyqtgraph import PlotWidget
-from PySide6.QtCore import QTimer, Qt
-from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QFrame, QGridLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFormLayout,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QStackedWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
-from components.stat_card import StatCard
+from mouse_jiggler import local_config, nudge_logic
+from ui.jiggler_runtime import JigglerRuntime
 
 
 class DashboardPage(QWidget):
+    """Represents the old Home page semantics."""
+
     def __init__(self) -> None:
         super().__init__()
         self.setObjectName("pageRoot")
+        self.runtime = JigglerRuntime()
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(18)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(12)
+        root.addWidget(self._build_status_strip())
+        root.addWidget(self._build_segment())
+        root.addWidget(self._build_content(), 1)
 
-        cards_layout = QGridLayout()
-        cards_layout.setHorizontalSpacing(12)
-        cards_layout.setVerticalSpacing(12)
+        self.runtime.status_changed.connect(self.status_text.setText)
+        self.runtime.countdown_changed.connect(self.countdown_text.setText)
+        self.runtime.log_emitted.connect(self._append_log)
+        self.runtime.running_changed.connect(self._on_running_changed)
+        self._load_config()
+        self._on_running_changed(False)
 
-        cards_layout.addWidget(StatCard("Active Users", "12,480", "+8.4% from last week"), 0, 0)
-        cards_layout.addWidget(StatCard("Conversion", "4.87%", "+0.6% from last week"), 0, 1)
-        cards_layout.addWidget(StatCard("Open Tickets", "32", "-5 this week"), 0, 2)
+    def _build_status_strip(self) -> QFrame:
+        strip = QFrame()
+        strip.setObjectName("statusStrip")
+        h = QHBoxLayout(strip)
+        h.setContentsMargins(12, 8, 12, 8)
+        h.setSpacing(12)
+        self.status_text = QLabel("Stopped")
+        self.status_text.setObjectName("sectionTitle")
+        self.countdown_text = QLabel("0:00")
+        self.countdown_text.setObjectName("mutedText")
+        h.addWidget(QLabel("Status:"))
+        h.addWidget(self.status_text)
+        h.addStretch(1)
+        h.addWidget(QLabel("Next:"))
+        h.addWidget(self.countdown_text)
+        return strip
 
-        chart_panel = QFrame()
-        chart_panel.setObjectName("chartPlaceholder")
-        chart_layout = QVBoxLayout(chart_panel)
-        chart_layout.setContentsMargins(18, 18, 18, 18)
-        chart_layout.setSpacing(8)
+    def _build_segment(self) -> QFrame:
+        row = QFrame()
+        h = QHBoxLayout(row)
+        h.setContentsMargins(0, 0, 0, 0)
+        h.setSpacing(8)
+        self.control_btn = QPushButton("Control")
+        self.control_btn.setObjectName("primaryButton")
+        self.log_btn = QPushButton("Log")
+        self.log_btn.setObjectName("secondaryButton")
+        self.control_btn.clicked.connect(lambda: self.stack.setCurrentIndex(0))
+        self.log_btn.clicked.connect(lambda: self.stack.setCurrentIndex(1))
+        h.addWidget(self.control_btn)
+        h.addWidget(self.log_btn)
+        h.addStretch(1)
+        return row
 
-        chart_title = QLabel("Weekly Performance")
-        chart_title.setObjectName("sectionTitle")
-        chart_hint = QLabel("Revenue and target trend over the last seven days (hover to inspect points).")
-        chart_hint.setObjectName("mutedText")
+    def _build_content(self) -> QWidget:
+        self.stack = QStackedWidget()
+        self.stack.addWidget(self._build_control_panel())
+        self.stack.addWidget(self._build_log_panel())
+        self.stack.currentChanged.connect(self._sync_segment_style)
+        self._sync_segment_style(0)
+        return self.stack
 
-        chart_view = self._build_interactive_chart()
-        chart_layout.addWidget(chart_title)
-        chart_layout.addWidget(chart_hint)
-        chart_layout.addWidget(chart_view, 1)
+    def _build_control_panel(self) -> QFrame:
+        panel = QFrame()
+        panel.setObjectName("settingsPanel")
+        outer = QVBoxLayout(panel)
+        outer.setContentsMargins(16, 16, 16, 16)
+        outer.setSpacing(10)
+        form = QFormLayout()
+        form.setHorizontalSpacing(12)
+        form.setVerticalSpacing(10)
 
-        layout.addLayout(cards_layout)
-        layout.addWidget(chart_panel, 1)
+        self.interval_text = QLineEdit()
+        self.interval_unit = QComboBox()
+        self.interval_unit.addItems(["min", "sec"])
+        unit_row = QWidget()
+        unit_layout = QHBoxLayout(unit_row)
+        unit_layout.setContentsMargins(0, 0, 0, 0)
+        unit_layout.setSpacing(6)
+        unit_layout.addWidget(self.interval_text, 1)
+        unit_layout.addWidget(self.interval_unit)
+        preset_row = QWidget()
+        preset_layout = QHBoxLayout(preset_row)
+        preset_layout.setContentsMargins(0, 0, 0, 0)
+        preset_layout.setSpacing(6)
+        self.preset_30s = QPushButton("30s")
+        self.preset_1m = QPushButton("1m")
+        self.preset_5m = QPushButton("5m")
+        self.preset_10m = QPushButton("10m")
+        for btn in (self.preset_30s, self.preset_1m, self.preset_5m, self.preset_10m):
+            btn.setObjectName("secondaryButton")
+            preset_layout.addWidget(btn)
+        preset_layout.addStretch(1)
 
-    def _build_interactive_chart(self) -> PlotWidget:
-        self.days = [1, 2, 3, 4, 5, 6, 7]
-        self.revenue_values = [72, 84, 78, 92, 105, 111, 126]
-        self.target_values = [70, 75, 80, 85, 90, 95, 100]
+        self.interval_jitter = QLineEdit()
+        self.pixels_text = QLineEdit()
+        self.path_speed_text = QLineEdit()
+        self.activity_style = QComboBox()
+        self.activity_style.addItems(["pattern", "natural"])
+        self.motion_pattern = QComboBox()
+        self.motion_pattern.addItems(["horizontal", "circle", "square"])
+        self.rare_click = QCheckBox("Occasional left click")
+        self.rare_scroll = QCheckBox("Occasional wheel scroll")
 
-        pg.setConfigOptions(antialias=True)
-        chart = PlotWidget()
-        chart.setObjectName("realChart")
-        chart.setBackground((0, 0, 0, 0))
+        self.schedule_enabled = QCheckBox("Enable schedule window")
+        self.schedule_segments = QLineEdit()
+        self.schedule_segments.setPlaceholderText("09:00-18:00")
+        self.schedule_weekends = QCheckBox("Include weekends")
+        self.schedule_cron = QLineEdit()
+        self.schedule_cron.setPlaceholderText("cron-like rules, separated by ';'")
 
-        chart.showGrid(x=True, y=True, alpha=0.25)
-        chart.getAxis("bottom").setTextPen(pg.mkPen("#a6adc8"))
-        chart.getAxis("left").setTextPen(pg.mkPen("#a6adc8"))
-        chart.getAxis("bottom").setPen(pg.mkPen("#313244"))
-        chart.getAxis("left").setPen(pg.mkPen("#313244"))
-        chart.getAxis("bottom").setTicks([[(day, f"D{day}") for day in self.days]])
-        chart.getAxis("left").setLabel("Revenue (K)", color="#a6adc8")
-        chart.setMouseEnabled(x=True, y=False)
-        chart.setMenuEnabled(False)
-        chart.setYRange(60, 130, padding=0.05)
-        chart.setXRange(1, 7, padding=0.05)
+        form.addRow("Interval", unit_row)
+        form.addRow("", preset_row)
+        form.addRow("Interval jitter (± sec)", self.interval_jitter)
+        form.addRow("Nudge (pixels)", self.pixels_text)
+        form.addRow("Path speed", self.path_speed_text)
+        form.addRow("Activity style", self.activity_style)
+        form.addRow("Path", self.motion_pattern)
+        form.addRow("", self.rare_click)
+        form.addRow("", self.rare_scroll)
+        form.addRow("", self.schedule_enabled)
+        form.addRow("Schedule segments", self.schedule_segments)
+        form.addRow("", self.schedule_weekends)
+        form.addRow("Schedule cron", self.schedule_cron)
 
-        chart.plot(
-            self.days,
-            self.revenue_values,
-            pen=pg.mkPen("#89b4fa", width=3),
-            symbol="o",
-            symbolSize=8,
-            symbolBrush="#89b4fa",
-            name="Revenue",
-        )
-        chart.plot(
-            self.days,
-            self.target_values,
-            pen=pg.mkPen(QColor("#89dceb"), width=2, style=Qt.PenStyle.DashLine),
-            symbol="t",
-            symbolSize=7,
-            symbolBrush="#89dceb",
-            name="Target",
-        )
-        self.revenue_highlight = pg.ScatterPlotItem(
-            size=14,
-            brush=pg.mkBrush("#89b4fa"),
-            pen=pg.mkPen("#f5f7ff", width=1),
-            symbol="o",
-        )
-        self.target_highlight = pg.ScatterPlotItem(
-            size=13,
-            brush=pg.mkBrush("#89dceb"),
-            pen=pg.mkPen("#f5f7ff", width=1),
-            symbol="t",
-        )
-        chart.addItem(self.revenue_highlight)
-        chart.addItem(self.target_highlight)
-        self.revenue_highlight.hide()
-        self.target_highlight.hide()
+        self.start_btn = QPushButton("Start")
+        self.start_btn.setObjectName("primaryButton")
+        self.stop_btn = QPushButton("Stop")
+        self.stop_btn.setObjectName("secondaryButton")
+        action_row = QWidget()
+        action_layout = QHBoxLayout(action_row)
+        action_layout.setContentsMargins(0, 4, 0, 0)
+        action_layout.addWidget(self.start_btn)
+        action_layout.addWidget(self.stop_btn)
+        action_layout.addStretch(1)
+        form.addRow("", action_row)
+        outer.addLayout(form)
+        self.schedule_hint = QLabel("Schedule summary: always on")
+        self.schedule_hint.setObjectName("mutedText")
+        outer.addWidget(self.schedule_hint)
 
-        legend = chart.addLegend(offset=(10, 10))
-        legend.setBrush(pg.mkBrush(30, 30, 46, 190))
-        legend.setPen(pg.mkPen("#313244"))
+        self.start_btn.clicked.connect(self.start_runtime)
+        self.stop_btn.clicked.connect(self.stop_runtime)
+        self.activity_style.currentTextChanged.connect(self._on_activity_style_changed)
+        self.preset_30s.clicked.connect(lambda: self._apply_interval_preset("sec", "30"))
+        self.preset_1m.clicked.connect(lambda: self._apply_interval_preset("min", "1"))
+        self.preset_5m.clicked.connect(lambda: self._apply_interval_preset("min", "5"))
+        self.preset_10m.clicked.connect(lambda: self._apply_interval_preset("min", "10"))
+        self.schedule_enabled.toggled.connect(lambda _: self._refresh_schedule_hint())
+        self.schedule_segments.textChanged.connect(lambda _: self._refresh_schedule_hint())
+        self.schedule_weekends.toggled.connect(lambda _: self._refresh_schedule_hint())
+        self.schedule_cron.textChanged.connect(lambda _: self._refresh_schedule_hint())
+        return panel
 
-        self.crosshair_v = pg.InfiniteLine(angle=90, movable=False, pen=pg.mkPen("#89b4fa", width=1))
-        self.crosshair_h = pg.InfiniteLine(angle=0, movable=False, pen=pg.mkPen("#89b4fa", width=1))
-        chart.addItem(self.crosshair_v, ignoreBounds=True)
-        chart.addItem(self.crosshair_h, ignoreBounds=True)
+    def _build_log_panel(self) -> QFrame:
+        panel = QFrame()
+        panel.setObjectName("chartPlaceholder")
+        v = QVBoxLayout(panel)
+        v.setContentsMargins(16, 16, 16, 16)
+        self.log_box = QTextEdit()
+        self.log_box.setReadOnly(True)
+        v.addWidget(self.log_box, 1)
+        return panel
 
-        self.tooltip_item = pg.TextItem(anchor=(0, 1), fill=pg.mkBrush(36, 39, 58, 230), color="#cdd6f4")
-        chart.addItem(self.tooltip_item)
-        self.tooltip_item.hide()
-        self.tooltip_opacity = 0.0
-        self._tooltip_target_opacity = 0.0
-        self._tooltip_fade_step = 0.16
-        self.tooltip_item.setOpacity(self.tooltip_opacity)
-        self.tooltip_fade_timer = QTimer(self)
-        self.tooltip_fade_timer.setInterval(16)
-        self.tooltip_fade_timer.timeout.connect(self._tick_tooltip_fade)
+    def _load_config(self) -> None:
+        cfg = local_config.load_config()
+        self.interval_text.setText(str(cfg.get("interval_text", "5")))
+        self.interval_unit.setCurrentText(str(cfg.get("interval_unit", "min")))
+        self.interval_jitter.setText(str(cfg.get("interval_jitter_text", "0")))
+        self.pixels_text.setText(str(cfg.get("pixels_text", "100")))
+        self.path_speed_text.setText(str(cfg.get("path_speed_text", "5")))
+        self.activity_style.setCurrentText(str(cfg.get("activity_style", "pattern")))
+        self.motion_pattern.setCurrentText(str(cfg.get("motion_pattern", "horizontal")))
+        self.rare_click.setChecked(bool(cfg.get("natural_rare_click", False)))
+        self.rare_scroll.setChecked(bool(cfg.get("natural_rare_scroll", False)))
+        self.schedule_enabled.setChecked(bool(cfg.get("schedule_window", False)))
+        self.schedule_segments.setText(str(cfg.get("schedule_window_segments_text", "09:00-18:00")))
+        self.schedule_weekends.setChecked(bool(cfg.get("schedule_include_weekends", False)))
+        self.schedule_cron.setText(str(cfg.get("schedule_cron_text", "")))
+        self._on_activity_style_changed(self.activity_style.currentText())
+        self._refresh_schedule_hint()
 
-        self._chart = chart
-        self._proxy = pg.SignalProxy(chart.scene().sigMouseMoved, rateLimit=60, slot=self._handle_mouse_move)
-        return chart
+    def collect_config(self) -> dict[str, Any]:
+        return {
+            "interval_text": self.interval_text.text().strip(),
+            "interval_unit": self.interval_unit.currentText(),
+            "interval_jitter_text": self.interval_jitter.text().strip() or "0",
+            "pixels_text": self.pixels_text.text().strip(),
+            "path_speed_text": self.path_speed_text.text().strip(),
+            "activity_style": self.activity_style.currentText(),
+            "motion_pattern": self.motion_pattern.currentText(),
+            "natural_rare_click": self.rare_click.isChecked(),
+            "natural_rare_scroll": self.rare_scroll.isChecked(),
+            "schedule_window": self.schedule_enabled.isChecked(),
+            "schedule_window_segments_text": self.schedule_segments.text().strip() or "09:00-18:00",
+            "schedule_include_weekends": self.schedule_weekends.isChecked(),
+            "schedule_cron_text": self.schedule_cron.text().strip(),
+        }
 
-    def _handle_mouse_move(self, event) -> None:
-        scene_pos = event[0]
-        if not self._chart.sceneBoundingRect().contains(scene_pos):
-            self._start_tooltip_fade(target_opacity=0.0)
-            self.revenue_highlight.hide()
-            self.target_highlight.hide()
+    def start_runtime(self) -> None:
+        cfg = self.collect_config()
+        if nudge_logic.parse_interval_to_seconds(cfg["interval_text"], cfg["interval_unit"]) is None:
+            self._append_log("Invalid interval.")
             return
+        if nudge_logic.parse_interval_jitter_seconds_string(cfg["interval_jitter_text"]) is None:
+            self._append_log("Invalid interval jitter.")
+            return
+        if nudge_logic.parse_pixels_string(cfg["pixels_text"]) is None:
+            self._append_log("Invalid pixels.")
+            return
+        if nudge_logic.parse_path_speed_string(cfg["path_speed_text"]) is None:
+            self._append_log("Invalid path speed.")
+            return
+        persisted = local_config.load_config()
+        persisted.update(cfg)
+        local_config.save_config(persisted)
+        self.runtime.start(cfg)
+        self.status_text.setText("Running")
 
-        mouse_point = self._chart.getPlotItem().vb.mapSceneToView(scene_pos)
-        x_value = mouse_point.x()
-        idx = bisect.bisect_left(self.days, x_value)
-        idx = min(max(idx, 0), len(self.days) - 1)
-        day = self.days[idx]
-        revenue = self.revenue_values[idx]
-        target = self.target_values[idx]
+    def stop_runtime(self) -> None:
+        self.runtime.stop()
 
-        self.crosshair_v.setPos(day)
-        self.crosshair_h.setPos(revenue)
-        self.revenue_highlight.setData([day], [revenue])
-        self.target_highlight.setData([day], [target])
-        self.revenue_highlight.show()
-        self.target_highlight.show()
-        self.tooltip_item.setHtml(
-            f"<div style='padding:4px 6px;'>"
-            f"<b>Day {day}</b><br/>Revenue: {revenue}K<br/>Target: {target}K"
-            f"</div>"
-        )
-        self._place_tooltip(day, revenue)
-        if not self.tooltip_item.isVisible():
-            self.tooltip_opacity = 0.0
-            self.tooltip_item.setOpacity(self.tooltip_opacity)
-            self.tooltip_item.show()
-        self._start_tooltip_fade(target_opacity=1.0)
+    def _on_running_changed(self, running: bool) -> None:
+        self.start_btn.setEnabled(not running)
+        self.stop_btn.setEnabled(running)
+        if not running and self.status_text.text() != "Stopped":
+            self.status_text.setText("Stopped")
 
-    def _place_tooltip(self, x_value: float, y_value: float) -> None:
-        view_box = self._chart.getPlotItem().vb
-        (x_min, x_max), (y_min, y_max) = view_box.viewRange()
-        pixel_size = view_box.viewPixelSize()
+    def _append_log(self, text: str) -> None:
+        self.log_box.append(text)
+        while self.log_box.document().blockCount() > nudge_logic.LOG_TRIM_LINES:
+            cursor = self.log_box.textCursor()
+            cursor.movePosition(cursor.MoveOperation.Start)
+            cursor.select(cursor.SelectionType.BlockUnderCursor)
+            cursor.removeSelectedText()
+            cursor.deleteChar()
 
-        rect = self.tooltip_item.boundingRect()
-        tooltip_width = rect.width() * pixel_size[0]
-        tooltip_height = rect.height() * pixel_size[1]
+    def _on_activity_style_changed(self, value: str) -> None:
+        natural = value == "natural"
+        self.motion_pattern.setEnabled(not natural)
+        self.rare_click.setEnabled(natural)
+        self.rare_scroll.setEnabled(natural)
 
-        margin_x = 0.15
-        margin_y = 1.6
-
-        x_offset = margin_x
-        y_offset = margin_y
-
-        if x_value + tooltip_width + margin_x > x_max:
-            x_offset = -(tooltip_width + margin_x)
-        if y_value + tooltip_height + margin_y > y_max:
-            y_offset = -(tooltip_height + margin_y)
-        if y_value + y_offset < y_min:
-            y_offset = margin_y
-
-        self.tooltip_item.setPos(x_value + x_offset, y_value + y_offset)
-
-    def _tick_tooltip_fade(self) -> None:
-        delta = self._tooltip_fade_step
-        if self.tooltip_opacity < self._tooltip_target_opacity:
-            self.tooltip_opacity = min(self._tooltip_target_opacity, self.tooltip_opacity + delta)
+    def _sync_segment_style(self, idx: int) -> None:
+        if idx == 0:
+            self.control_btn.setObjectName("primaryButton")
+            self.log_btn.setObjectName("secondaryButton")
         else:
-            self.tooltip_opacity = max(self._tooltip_target_opacity, self.tooltip_opacity - delta)
-        self.tooltip_item.setOpacity(self.tooltip_opacity)
-        if self.tooltip_opacity == self._tooltip_target_opacity:
-            self.tooltip_fade_timer.stop()
-            if self._tooltip_target_opacity == 0.0:
-                self.tooltip_item.hide()
+            self.control_btn.setObjectName("secondaryButton")
+            self.log_btn.setObjectName("primaryButton")
+        self.control_btn.style().polish(self.control_btn)
+        self.log_btn.style().polish(self.log_btn)
 
-    def _start_tooltip_fade(self, target_opacity: float) -> None:
-        self._tooltip_target_opacity = max(0.0, min(1.0, target_opacity))
-        if self._tooltip_target_opacity > 0.0 and not self.tooltip_item.isVisible():
-            self.tooltip_item.show()
-        if not self.tooltip_fade_timer.isActive():
-            self.tooltip_fade_timer.start()
+    def _apply_interval_preset(self, unit: str, value: str) -> None:
+        self.interval_unit.setCurrentText(unit)
+        self.interval_text.setText(value)
+
+    def _refresh_schedule_hint(self) -> None:
+        if not self.schedule_enabled.isChecked():
+            self.schedule_hint.setText("Schedule summary: always on")
+            return
+        seg = self.schedule_segments.text().strip() or "09:00-18:00"
+        weekend = "with weekends" if self.schedule_weekends.isChecked() else "weekdays only"
+        cron = self.schedule_cron.text().strip()
+        if cron:
+            self.schedule_hint.setText(f"Schedule summary: {seg}, {weekend}, cron={cron}")
+            return
+        self.schedule_hint.setText(f"Schedule summary: {seg}, {weekend}")
