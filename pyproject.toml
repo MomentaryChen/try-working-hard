@@ -10,8 +10,6 @@ dependencies = [
     "matplotlib>=3.8.0",
     "pystray>=0.19.5",
     "pillow>=10.0.0",
-    "pyside6>=6.9.0",
-    "pyqtgraph>=0.14.0",
 ]
 
 [project.scripts]
