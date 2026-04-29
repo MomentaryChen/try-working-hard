@@ -45,6 +45,22 @@ jobs:
           $dst = "dist/try-working-hard-$tag.exe"
           Move-Item -Path $src -Destination $dst -Force
 
+      - name: Generate SHA256 checksum file
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if (-not $tag.StartsWith("v")) {
+            throw "Expected a v-prefixed tag, got: $tag"
+          }
+          $assetName = "try-working-hard-$tag.exe"
+          $assetPath = "dist/$assetName"
+          if (-not (Test-Path $assetPath)) {
+            throw "Built executable not found at $assetPath"
+          }
+          $hash = (Get-FileHash -Path $assetPath -Algorithm SHA256).Hash.ToLower()
+          $checksumPath = "dist/try-working-hard-$tag-checksums.txt"
+          "$hash  $assetName" | Set-Content -Path $checksumPath -Encoding utf8
+
       - name: Build release notes from CHANGELOG
         shell: pwsh
         run: |
@@ -76,6 +92,7 @@ jobs:
 
           ## Assets
           - `dist/try-working-hard-$tag.exe`
+          - `dist/try-working-hard-$tag-checksums.txt`
           "@
 
           Set-Content -Path release-notes.md -Value $body -Encoding utf8
@@ -83,5 +100,7 @@ jobs:
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/try-working-hard-${{ github.ref_name }}.exe
+          files: |
+            dist/try-working-hard-${{ github.ref_name }}.exe
+            dist/try-working-hard-${{ github.ref_name }}-checksums.txt
           body_path: release-notes.md
