@@ -117,7 +117,7 @@ def choose_windows_installer_asset(release: dict[str, Any]) -> dict[str, str] | 
         if tag and tag in lower:
             score += 2
         if "installer" in lower or "setup" in lower:
-            score += 1
+            score += 4
         return (score, -len(lower))
 
     return sorted(candidates, key=_score, reverse=True)[0]
