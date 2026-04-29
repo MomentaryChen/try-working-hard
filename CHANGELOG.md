@@ -70,8 +70,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - **Pattern vs Natural UI copy**: In **Natural** mode, the speed field label and hint describe **micro-move step pacing** (not geometric path tracing), and the path-shape row title notes it applies in **Pattern** mode only.
-- **Application state layer**: expanded preferences and view-model wiring (`ui/preferences_store.py`, `ui/view_model.py`) for the new workspace layout and settings flow.
-- **Styling system**: added and tuned `styles/styles.qss` for a consistent modern visual system across cards, sidebar navigation, and page sections.
 - **Project metadata**: refined `pyproject.toml` package metadata and English project description for publishing consistency.
 - **Documentation coverage**: refreshed `README.md`, `README.zh-TW.md`, and this changelog to better capture feature behavior and recent UI/settings updates.
 - **Work-hours runtime behavior**: schedule waiting and resume logic now evaluates a unified schedule spec (windows + weekends + cron-like rules) while keeping the existing Settings UI backward-compatible with previous `schedule_window_start_text` / `schedule_window_end_text`.
@@ -79,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Removed
 
 - **Repository lockfile tracking**: removed tracked `uv.lock` from version control and updated `.gitignore` so lockfile churn does not pollute release history.
+- **PySide6 dashboard prototype**: removed the standalone PySide6 scaffold (`main.py`, `ui/`, `views/`, `components/`, `styles/styles.qss`, `assets/icons/`) and dropped `pyside6` / `pyqtgraph` from runtime dependencies so the desktop UI is CustomTkinter-only.
 
 ## [1.2.0] - 2026-04-28
 
