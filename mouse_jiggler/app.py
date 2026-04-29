@@ -1714,14 +1714,23 @@ class MouseJigglerApp:
     def _on_check_updates(self) -> None:
         self._check_updates(manual=True)
 
-    def _show_update_banner(self, *, latest_tag: str, current: str, latest_url: str) -> None:
+    def _show_update_banner(
+        self,
+        *,
+        latest_tag: str,
+        current: str,
+        latest_url: str,
+        summary: str,
+    ) -> None:
         if self._shutting_down:
             return
         self._update_notice_url = latest_url
         self.btn_update_notice_open.configure(state="normal")
-        self._lbl_update_notice.configure(
-            text=self._t("update_banner_new_version", latest=latest_tag, current=current)
-        )
+        msg = [self._t("update_banner_new_version", latest=latest_tag, current=current)]
+        if summary:
+            msg.append(self._t("update_banner_summary", summary=summary))
+        msg.append(self._t("update_banner_rollback_hint"))
+        self._lbl_update_notice.configure(text="\n".join(msg))
         self._animate_update_banner(show=True)
         if self._update_notice_after_id is not None:
             try:
@@ -1846,6 +1855,9 @@ class MouseJigglerApp:
                 latest = updater.fetch_latest_release()
                 latest_tag = latest["tag"]
                 latest_url = latest["url"] or "https://github.com/MomentaryChen/try-working-hard/releases"
+                release_summary = updater.summarize_release_notes(latest.get("body", ""))
+                if not release_summary and latest.get("name"):
+                    release_summary = str(latest["name"]).strip()
                 current = self._pkg_version()
                 has_update = updater.is_newer_version(latest_tag, current)
                 self.root.after(
@@ -1854,6 +1866,7 @@ class MouseJigglerApp:
                         has_update=has_update,
                         latest_tag=latest_tag,
                         latest_url=latest_url,
+                        release_summary=release_summary,
                         current=current,
                         manual=manual,
                     ),
@@ -1869,6 +1882,7 @@ class MouseJigglerApp:
         has_update: bool,
         latest_tag: str,
         latest_url: str,
+        release_summary: str,
         current: str,
         manual: bool,
     ) -> None:
@@ -1880,6 +1894,7 @@ class MouseJigglerApp:
                 latest_tag=latest_tag,
                 current=current,
                 latest_url=latest_url,
+                summary=release_summary,
             )
             return
         if manual:
