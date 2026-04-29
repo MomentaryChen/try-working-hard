@@ -95,7 +95,7 @@ uv run python main.py
 
 ## 技術說明
 
-- GUI：**CustomTkinter**—**淺色**為內建 `blue` 主題，主畫面 **#F9FAFB**、側欄 **#F3F4F6**、白底卡片；**深色**為 `dark`＋`dark-blue` 與深色色票。**首頁**內以分段切換 **控制面板 / 紀錄**。
+- GUI：**CustomTkinter**—**淺色**改為更乾淨的 SaaS 色票（背景 **#F5F7FB**、側欄/卡片 **#FFFFFF**、邊框 **#E2E8F0**），主色互動為 **#3B82F6 / #2563EB / #1D4ED8**；**深色**改為現代深色系（背景 **#1E1E2E**、側欄 **#181825**、卡片 **#24273A**、邊框 **#313244**），主色互動為 **#89B4FA / #74C7EC / #B4BEFE**。**首頁**內以分段切換 **控制面板 / 紀錄**。
 - **分析**：以 **Matplotlib**（TkAgg）嵌入；統計資料存於 **`analytics.json`**（與 **`config.json`** 同目錄）。
 - 滑鼠：**ctypes** 呼叫 `user32.GetCursorPos` / `SetCursorPos`；自然模式可額外以 `mouse_event` 送左鍵與滾輪；排程以 `GetLastInputInfo` 與 `GetTickCount` 取得閒置時間
 - 系統匣：**pystray**、圖示繪製：**Pillow**（主視窗與匣區共用 PNG；重建 `.exe` 時另以 [`packaging/app.ico`](packaging/app.ico) 作為檔案圖示，見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)）

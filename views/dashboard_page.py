@@ -62,8 +62,8 @@ class DashboardPage(QWidget):
         chart.showGrid(x=True, y=True, alpha=0.25)
         chart.getAxis("bottom").setTextPen(pg.mkPen("#a6adc8"))
         chart.getAxis("left").setTextPen(pg.mkPen("#a6adc8"))
-        chart.getAxis("bottom").setPen(pg.mkPen("#45475a"))
-        chart.getAxis("left").setPen(pg.mkPen("#45475a"))
+        chart.getAxis("bottom").setPen(pg.mkPen("#313244"))
+        chart.getAxis("left").setPen(pg.mkPen("#313244"))
         chart.getAxis("bottom").setTicks([[(day, f"D{day}") for day in self.days]])
         chart.getAxis("left").setLabel("Revenue (K)", color="#a6adc8")
         chart.setMouseEnabled(x=True, y=False)
@@ -83,10 +83,10 @@ class DashboardPage(QWidget):
         chart.plot(
             self.days,
             self.target_values,
-            pen=pg.mkPen(QColor("#a6adc8"), width=2, style=Qt.PenStyle.DashLine),
+            pen=pg.mkPen(QColor("#89dceb"), width=2, style=Qt.PenStyle.DashLine),
             symbol="t",
             symbolSize=7,
-            symbolBrush="#a6adc8",
+            symbolBrush="#89dceb",
             name="Target",
         )
         self.revenue_highlight = pg.ScatterPlotItem(
@@ -97,7 +97,7 @@ class DashboardPage(QWidget):
         )
         self.target_highlight = pg.ScatterPlotItem(
             size=13,
-            brush=pg.mkBrush("#a6adc8"),
+            brush=pg.mkBrush("#89dceb"),
             pen=pg.mkPen("#f5f7ff", width=1),
             symbol="t",
         )
@@ -107,7 +107,7 @@ class DashboardPage(QWidget):
         self.target_highlight.hide()
 
         legend = chart.addLegend(offset=(10, 10))
-        legend.setBrush(pg.mkBrush(24, 24, 37, 180))
+        legend.setBrush(pg.mkBrush(30, 30, 46, 190))
         legend.setPen(pg.mkPen("#313244"))
 
         self.crosshair_v = pg.InfiniteLine(angle=90, movable=False, pen=pg.mkPen("#89b4fa", width=1))
@@ -115,7 +115,7 @@ class DashboardPage(QWidget):
         chart.addItem(self.crosshair_v, ignoreBounds=True)
         chart.addItem(self.crosshair_h, ignoreBounds=True)
 
-        self.tooltip_item = pg.TextItem(anchor=(0, 1), fill=pg.mkBrush(24, 24, 37, 230), color="#cdd6f4")
+        self.tooltip_item = pg.TextItem(anchor=(0, 1), fill=pg.mkBrush(36, 39, 58, 230), color="#cdd6f4")
         chart.addItem(self.tooltip_item)
         self.tooltip_item.hide()
         self.tooltip_opacity = 0.0

@@ -44,84 +44,84 @@ _R_BTN = _R  # primary / secondary button radius (used by _btn)
 UiTheme = Literal["dark", "light"]
 _UI_PALETTES: dict[UiTheme, dict[str, str]] = {
     "dark": {
-        "MAIN_BG": "#0D1117",
-        "SIDEBAR_BG": "#010409",
-        "CARD_BG": "#161B22",
-        "CARD_BORDER": "#30363D",
-        "ENTRY_BG": "#0D1117",
-        "ENTRY_BORDER": "#30363D",
-        "ACCENT": "#2F81F7",
-        "ACCENT_HOVER": "#58A6FF",
-        "TEXT_ON_ACCENT": "#FFFFFF",
-        "SURFACE_SUBTLE": "#0D1117",
-        "SURFACE_SUBTLE_HOVER": "#21262D",
-        "BORDER": "#30363D",
-        "TEXT_TITLE": "#FFFFFF",
-        "TEXT_BODY": "#C9D1D9",
-        "TEXT_MUTED": "#8B949E",
-        "TEXT_DISABLED": "#484F58",
-        "TEXT_LOG": "#C9D1D9",
-        "NAV_TEXT": "#8B949E",
-        "NAV_HOVER": "#21262D",
-        "NAV_SELECTED": "#2F81F7",
-        "NAV_ON_SELECTED": "#FFFFFF",
-        "BTN_SECONDARY": "#21262D",
-        "BTN_SECONDARY_HOVER": "#30363D",
-        "STATUS_STRIP_BG_STOP": "#161B22",
-        "STATUS_STRIP_BORDER_STOP": "#30363D",
-        "STATUS_LED_STOP": "#6E7681",
-        "STATUS_STRIP_BG_RUN": "#0D1B12",
-        "STATUS_STRIP_BORDER_RUN": "#238636",
-        "STATUS_LED_RUN": "#3FB950",
-        "STATUS_TEXT_RUN": "#7EE787",
-        "STATUS_STRIP_BG_BURST": "#1C1008",
-        "STATUS_STRIP_BORDER_BURST": "#D29922",
-        "STATUS_LED_BURST": "#E3B341",
-        "STATUS_TEXT_BURST": "#D4A72C",
-        "STATUS_STRIP_BG_SCHEDULE": "#0C1C2E",
-        "STATUS_STRIP_BORDER_SCHEDULE": "#1F6FEB",
-        "STATUS_LED_SCHEDULE": "#58A6FF",
-        "STATUS_TEXT_SCHEDULE": "#79C0FF",
+        "MAIN_BG": "#1E1E2E",
+        "SIDEBAR_BG": "#181825",
+        "CARD_BG": "#24273A",
+        "CARD_BORDER": "#313244",
+        "ENTRY_BG": "#24273A",
+        "ENTRY_BORDER": "#313244",
+        "ACCENT": "#89B4FA",
+        "ACCENT_HOVER": "#74C7EC",
+        "TEXT_ON_ACCENT": "#F5F7FF",
+        "SURFACE_SUBTLE": "#24273A",
+        "SURFACE_SUBTLE_HOVER": "#313244",
+        "BORDER": "#313244",
+        "TEXT_TITLE": "#CDD6F4",
+        "TEXT_BODY": "#CDD6F4",
+        "TEXT_MUTED": "#A6ADC8",
+        "TEXT_DISABLED": "#6C7086",
+        "TEXT_LOG": "#CDD6F4",
+        "NAV_TEXT": "#A6ADC8",
+        "NAV_HOVER": "#313244",
+        "NAV_SELECTED": "#B4BEFE",
+        "NAV_ON_SELECTED": "#1E1E2E",
+        "BTN_SECONDARY": "#24273A",
+        "BTN_SECONDARY_HOVER": "#313244",
+        "STATUS_STRIP_BG_STOP": "#24273A",
+        "STATUS_STRIP_BORDER_STOP": "#313244",
+        "STATUS_LED_STOP": "#6C7086",
+        "STATUS_STRIP_BG_RUN": "#1F2B24",
+        "STATUS_STRIP_BORDER_RUN": "#A6E3A1",
+        "STATUS_LED_RUN": "#A6E3A1",
+        "STATUS_TEXT_RUN": "#A6E3A1",
+        "STATUS_STRIP_BG_BURST": "#2E2A1F",
+        "STATUS_STRIP_BORDER_BURST": "#F9E2AF",
+        "STATUS_LED_BURST": "#F9E2AF",
+        "STATUS_TEXT_BURST": "#F9E2AF",
+        "STATUS_STRIP_BG_SCHEDULE": "#1D2930",
+        "STATUS_STRIP_BORDER_SCHEDULE": "#89DCEB",
+        "STATUS_LED_SCHEDULE": "#89DCEB",
+        "STATUS_TEXT_SCHEDULE": "#89DCEB",
     },
     "light": {
-        "MAIN_BG": "#F9FAFB",
-        "SIDEBAR_BG": "#F3F4F6",
+        "MAIN_BG": "#F7F9FC",
+        "SIDEBAR_BG": "#FFFFFF",
         "CARD_BG": "#FFFFFF",
-        "CARD_BORDER": "#E5E7EB",
-        "ENTRY_BG": "#F9FAFB",
-        "ENTRY_BORDER": "#E5E7EB",
-        "ACCENT": "#3B82F6",
-        "ACCENT_HOVER": "#2563EB",
+        "CARD_BORDER": "#D8E0EA",
+        "ENTRY_BG": "#FFFFFF",
+        "ENTRY_BORDER": "#C7D2DF",
+        "ACCENT": "#5C7FA8",
+        "ACCENT_HOVER": "#4F7095",
         "TEXT_ON_ACCENT": "#FFFFFF",
-        "SURFACE_SUBTLE": "#F3F4F6",
-        "SURFACE_SUBTLE_HOVER": "#E5E7EB",
-        "BORDER": "#E5E7EB",
-        "TEXT_TITLE": "#111827",
-        "TEXT_BODY": "#111827",
-        "TEXT_MUTED": "#6B7280",
-        "TEXT_DISABLED": "#9CA3AF",
-        "TEXT_LOG": "#111827",
-        "NAV_TEXT": "#6B7280",
-        "NAV_HOVER": "#E5E7EB",
-        "NAV_SELECTED": "#3B82F6",
+        "SURFACE_SUBTLE": "#F0F4F8",
+        "SURFACE_SUBTLE_HOVER": "#E5EBF2",
+        "BORDER": "#D2DBE6",
+        "TEXT_TITLE": "#0F172A",
+        "TEXT_BODY": "#243244",
+        "TEXT_MUTED": "#6A7A8D",
+        "TEXT_DISABLED": "#96A4B5",
+        "TEXT_LOG": "#243244",
+        "NAV_TEXT": "#5A6B80",
+        "NAV_HOVER": "#E7EDF4",
+        "NAV_SELECTED": "#4F7095",
         "NAV_ON_SELECTED": "#FFFFFF",
-        "BTN_SECONDARY": "#E5E7EB",
-        "BTN_SECONDARY_HOVER": "#D1D5DB",
-        "STATUS_STRIP_BG_STOP": "#F3F4F6",
-        "STATUS_STRIP_BORDER_STOP": "#E5E7EB",
-        "STATUS_LED_STOP": "#9CA3AF",
-        "STATUS_STRIP_BG_RUN": "#ECFDF5",
-        "STATUS_STRIP_BORDER_RUN": "#6EE7B7",
-        "STATUS_LED_RUN": "#059669",
-        "STATUS_TEXT_RUN": "#065F46",
-        "STATUS_STRIP_BG_BURST": "#FFFBEB",
-        "STATUS_STRIP_BORDER_BURST": "#FCD34D",
-        "STATUS_LED_BURST": "#D97706",
-        "STATUS_TEXT_BURST": "#92400E",
-        "STATUS_STRIP_BG_SCHEDULE": "#F0F9FF",
-        "STATUS_STRIP_BORDER_SCHEDULE": "#7DD3FC",
-        "STATUS_LED_SCHEDULE": "#0284C7",
-        "STATUS_TEXT_SCHEDULE": "#0369A1",
+        "BTN_SECONDARY": "#ECF2F8",
+        "BTN_SECONDARY_HOVER": "#DFE8F2",
+        "STATUS_STRIP_BG_STOP": "#FFFFFF",
+        "STATUS_STRIP_BORDER_STOP": "#D2DBE6",
+        "STATUS_LED_STOP": "#96A4B5",
+        "STATUS_STRIP_BG_RUN": "#F1F7F3",
+        "STATUS_STRIP_BORDER_RUN": "#5C9B79",
+        "STATUS_LED_RUN": "#5C9B79",
+        "STATUS_TEXT_RUN": "#4D8266",
+        "STATUS_STRIP_BG_BURST": "#FCF8F1",
+        "STATUS_STRIP_BORDER_BURST": "#B7925D",
+        "STATUS_LED_BURST": "#B7925D",
+        "STATUS_TEXT_BURST": "#96774A",
+        "STATUS_STRIP_BG_SCHEDULE": "#EEF3F8",
+        "STATUS_STRIP_BORDER_SCHEDULE": "#6A89A8",
+        "STATUS_LED_SCHEDULE": "#6A89A8",
+        "STATUS_TEXT_SCHEDULE": "#5D7996",
     },
 }
 
@@ -339,17 +339,16 @@ class MouseJigglerApp:
             )
         if hasattr(self, "page_analytics"):
             self.page_analytics.configure(
-                fg_color=self._CARD_BG,
-                border_color=self._CARD_BORDER,
+                fg_color="transparent",
             )
         if hasattr(self, "page_settings"):
             self.page_settings.configure(
-                fg_color=self._CARD_BG,
-                border_color=self._CARD_BORDER,
+                fg_color="transparent",
             )
         if hasattr(self, "_settings_scroll"):
             self._settings_scroll.configure(
                 fg_color=self._CARD_BG,
+                border_color=self._CARD_BORDER,
                 scrollbar_button_color=self._BTN_SECONDARY,
                 scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
             )
@@ -429,12 +428,16 @@ class MouseJigglerApp:
                 fg_color=self._ACCENT,
                 hover_color=self._ACCENT_HOVER,
                 text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+                border_width=2,
+                border_color=self._ACCENT_HOVER,
             )
         if hasattr(self, "btn_stop"):
             self.btn_stop.configure(
-                fg_color="transparent",
-                hover_color=self._NAV_HOVER,
-                text_color=(self._NAV_TEXT, self._NAV_TEXT),
+                fg_color=self._BTN_SECONDARY,
+                hover_color=self._BTN_SECONDARY_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                border_width=2,
+                border_color=self._BORDER,
             )
         if hasattr(self, "btn_open_config"):
             self.btn_open_config.configure(
@@ -453,18 +456,24 @@ class MouseJigglerApp:
                 fg_color=self._ACCENT,
                 hover_color=self._ACCENT_HOVER,
                 text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+                border_width=2,
+                border_color=self._ACCENT_HOVER,
             )
         if hasattr(self, "btn_update_notice_open"):
             self.btn_update_notice_open.configure(
                 fg_color=self._ACCENT,
                 hover_color=self._ACCENT_HOVER,
                 text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+                border_width=2,
+                border_color=self._ACCENT_HOVER,
             )
         if hasattr(self, "btn_update_notice_close"):
             self.btn_update_notice_close.configure(
-                fg_color="transparent",
-                hover_color=self._NAV_HOVER,
-                text_color=(self._NAV_TEXT, self._NAV_TEXT),
+                fg_color=self._BTN_SECONDARY,
+                hover_color=self._BTN_SECONDARY_HOVER,
+                text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                border_width=2,
+                border_color=self._BORDER,
             )
         if hasattr(self, "swt_tray"):
             if self._ui_theme == "dark":
@@ -479,7 +488,7 @@ class MouseJigglerApp:
                     fg_color=self._BORDER,
                     progress_color=self._ACCENT,
                     button_color="#FFFFFF",
-                    button_hover_color="#F3F4F6",
+                    button_hover_color="#E2E8F0",
                 )
         if hasattr(self, "swt_autostart"):
             if self._ui_theme == "dark":
@@ -494,7 +503,7 @@ class MouseJigglerApp:
                     fg_color=self._BORDER,
                     progress_color=self._ACCENT,
                     button_color="#FFFFFF",
-                    button_hover_color="#F3F4F6",
+                    button_hover_color="#E2E8F0",
                 )
         if hasattr(self, "swt_schedule"):
             if self._ui_theme == "dark":
@@ -509,7 +518,7 @@ class MouseJigglerApp:
                     fg_color=self._BORDER,
                     progress_color=self._ACCENT,
                     button_color="#FFFFFF",
-                    button_hover_color="#F3F4F6",
+                    button_hover_color="#E2E8F0",
                 )
         if hasattr(self, "swt_auto_updates"):
             if self._ui_theme == "dark":
@@ -524,7 +533,7 @@ class MouseJigglerApp:
                     fg_color=self._BORDER,
                     progress_color=self._ACCENT,
                     button_color="#FFFFFF",
-                    button_hover_color="#F3F4F6",
+                    button_hover_color="#E2E8F0",
                 )
         for _swt_name in ("swt_natural_click", "swt_natural_scroll"):
             if hasattr(self, _swt_name):
@@ -541,7 +550,7 @@ class MouseJigglerApp:
                         fg_color=self._BORDER,
                         progress_color=self._ACCENT,
                         button_color="#FFFFFF",
-                        button_hover_color="#F3F4F6",
+                        button_hover_color="#E2E8F0",
                     )
         if hasattr(self, "_interval_preset_btns"):
             for b in self._interval_preset_btns:
@@ -1414,6 +1423,8 @@ class MouseJigglerApp:
             fg_color=self._ACCENT,
             hover_color=self._ACCENT_HOVER,
             text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+            border_width=2,
+            border_color=self._ACCENT_HOVER,
         )
         self.btn_update_notice_open.grid(row=0, column=1, sticky="e", padx=(0, 8))
         self.btn_update_notice_close = self._btn(
@@ -1421,9 +1432,11 @@ class MouseJigglerApp:
             text=self._t("update_banner_close"),
             command=self._hide_update_banner,
             height=34,
-            fg_color="transparent",
-            hover_color=self._NAV_HOVER,
-            text_color=(self._NAV_TEXT, self._NAV_TEXT),
+            fg_color=self._BTN_SECONDARY,
+            hover_color=self._BTN_SECONDARY_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            border_width=2,
+            border_color=self._BORDER,
         )
         self.btn_update_notice_close.grid(row=0, column=2, sticky="e")
         self._update_notice_shell.grid_remove()
@@ -1934,34 +1947,32 @@ class MouseJigglerApp:
         self.content_host.grid_columnconfigure(0, weight=1)
         self.content_host.grid_rowconfigure(0, weight=1)
 
-        self.page_settings = ctk.CTkFrame(
-            self.pages_host,
-            corner_radius=_R,
-            fg_color=self._CARD_BG,
-            border_width=1,
-            border_color=self._CARD_BORDER,
-        )
+        self.page_settings = ctk.CTkFrame(self.pages_host, corner_radius=_R, fg_color="transparent")
         self.page_settings.grid_columnconfigure(0, weight=1)
         self.page_settings.grid_rowconfigure(1, weight=1)
 
         _ps = self._UI_PAD
+        settings_head = ctk.CTkFrame(self.page_settings, fg_color="transparent")
+        settings_head.grid(row=0, column=0, sticky="ew", padx=_ps, pady=(_ps, _ps))
+        settings_head.grid_columnconfigure(0, weight=1)
         self._lbl_settings_title = ctk.CTkLabel(
-            self.page_settings,
+            settings_head,
             text=self._t("settings_title"),
             font=self._font_title,
             text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
         )
-        self._lbl_settings_title.grid(row=0, column=0, sticky="w", padx=_ps, pady=(_ps, _ps))
+        self._lbl_settings_title.grid(row=0, column=0, sticky="w")
 
         self._settings_scroll = ctk.CTkScrollableFrame(
             self.page_settings,
             fg_color=self._CARD_BG,
-            corner_radius=0,
-            border_width=0,
+            corner_radius=_R,
+            border_width=1,
+            border_color=self._CARD_BORDER,
             scrollbar_button_color=self._BTN_SECONDARY,
             scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
         )
-        self._settings_scroll.grid(row=1, column=0, sticky="nsew")
+        self._settings_scroll.grid(row=1, column=0, sticky="nsew", padx=_ps, pady=(0, _ps))
         self._settings_scroll.grid_columnconfigure(0, weight=1)
         self._fill_settings_panel(self._settings_scroll)
 
@@ -1988,13 +1999,21 @@ class MouseJigglerApp:
         self._fill_log_panel(self.frame_log)
         self.frame_log.grid_remove()
 
-        self.page_analytics = ctk.CTkFrame(
-            self.pages_host,
-            corner_radius=_R,
-            fg_color=self._CARD_BG,
-            border_width=1,
-            border_color=self._CARD_BORDER,
+        self.page_analytics = ctk.CTkFrame(self.pages_host, corner_radius=_R, fg_color="transparent")
+        self.page_analytics.grid_columnconfigure(0, weight=1)
+        self.page_analytics.grid_rowconfigure(1, weight=1)
+
+        analytics_head = ctk.CTkFrame(self.page_analytics, fg_color="transparent")
+        analytics_head.grid(row=0, column=0, sticky="ew", padx=_ps, pady=(_ps, _ps))
+        analytics_head.grid_columnconfigure(0, weight=1)
+        self._lbl_analytics_title = ctk.CTkLabel(
+            analytics_head,
+            text=self._t("analytics_title"),
+            font=self._font_title,
+            text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
         )
+        self._lbl_analytics_title.grid(row=0, column=0, sticky="w")
+
         self._fill_analytics_panel(self.page_analytics)
 
         self.page_settings.grid_remove()
@@ -2219,7 +2238,7 @@ class MouseJigglerApp:
             fg_color=self._BORDER,
             progress_color=self._ACCENT,
             button_color="#FFFFFF",
-            button_hover_color="#F3F4F6",
+            button_hover_color="#E2E8F0",
             font=self._font_body,
         )
         self.swt_schedule.grid(row=0, column=1, sticky="e", padx=(16, 0))
@@ -2305,7 +2324,7 @@ class MouseJigglerApp:
             fg_color=self._BORDER,
             progress_color=self._ACCENT,
             button_color="#FFFFFF",
-            button_hover_color="#F3F4F6",
+            button_hover_color="#E2E8F0",
             font=self._font_body,
         )
         self.swt_tray.grid(row=0, column=1, sticky="e", padx=(16, 0))
@@ -2354,7 +2373,7 @@ class MouseJigglerApp:
             fg_color=self._BORDER,
             progress_color=self._ACCENT,
             button_color="#FFFFFF",
-            button_hover_color="#F3F4F6",
+            button_hover_color="#E2E8F0",
             font=self._font_body,
             command=self._on_autostart_win_committed,
         )
@@ -2418,6 +2437,8 @@ class MouseJigglerApp:
             fg_color=self._ACCENT,
             hover_color=self._ACCENT_HOVER,
             text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+            border_width=2,
+            border_color=self._ACCENT_HOVER,
         )
         self.btn_check_updates.pack(side="left")
         _try_takefocus(self.btn_check_updates, 1)
@@ -2444,7 +2465,7 @@ class MouseJigglerApp:
             fg_color=self._BORDER,
             progress_color=self._ACCENT,
             button_color="#FFFFFF",
-            button_hover_color="#F3F4F6",
+            button_hover_color="#E2E8F0",
             font=self._font_body,
         )
         self.swt_auto_updates.grid(row=0, column=1, sticky="e", padx=(16, 0))
@@ -2465,24 +2486,7 @@ class MouseJigglerApp:
 
         p = self._UI_PAD
         card.grid_columnconfigure(0, weight=1)
-        card.grid_rowconfigure(2, weight=1)
-
-        self._lbl_analytics_title = ctk.CTkLabel(
-            card,
-            text=self._t("analytics_title"),
-            font=self._font_title,
-            text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
-        )
-        self._lbl_analytics_title.grid(row=0, column=0, sticky="w", padx=p, pady=(p, p))
-
-        self._lbl_analytics_sub = ctk.CTkLabel(
-            card,
-            text=self._t("analytics_subtitle"),
-            font=self._font_body,
-            text_color=self._TEXT_MUTED,
-            anchor="w",
-        )
-        self._lbl_analytics_sub.grid(row=1, column=0, sticky="w", padx=p, pady=(0, p))
+        card.grid_rowconfigure(1, weight=1)
 
         self.analytics_scroll = ctk.CTkScrollableFrame(
             card,
@@ -2493,8 +2497,17 @@ class MouseJigglerApp:
             scrollbar_button_color=self._BTN_SECONDARY,
             scrollbar_button_hover_color=self._BTN_SECONDARY_HOVER,
         )
-        self.analytics_scroll.grid(row=2, column=0, sticky="nsew", padx=p, pady=(0, p))
+        self.analytics_scroll.grid(row=1, column=0, sticky="nsew", padx=p, pady=(0, p))
         self.analytics_scroll.grid_columnconfigure(0, weight=1)
+
+        self._lbl_analytics_sub = ctk.CTkLabel(
+            self.analytics_scroll,
+            text=self._t("analytics_subtitle"),
+            font=self._font_body,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+        )
+        self._lbl_analytics_sub.grid(row=0, column=0, sticky="w", padx=p, pady=(p, p))
 
         self._analytics_trigger_mode = "today"
 
@@ -2566,7 +2579,7 @@ class MouseJigglerApp:
         self._mpl_canvas_patterns = analytics_charts.attach_canvas(self._fig_patterns, pie_host)
 
         self.analytics_log = ctk.CTkTextbox(
-            card,
+            self.analytics_scroll,
             corner_radius=_R,
             font=self._font_mono,
             fg_color=self._ENTRY_BG,
@@ -2575,7 +2588,7 @@ class MouseJigglerApp:
             border_color=self._ENTRY_BORDER,
             height=150,
         )
-        self.analytics_log.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.analytics_log.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
         self.analytics_log.configure(state="disabled")
         _try_takefocus(self.analytics_log, 1)
 
@@ -3009,6 +3022,8 @@ class MouseJigglerApp:
             fg_color=self._ACCENT,
             hover_color=self._ACCENT_HOVER,
             text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+            border_width=2,
+            border_color=self._ACCENT_HOVER,
             font=self._font_body_bold,
             command=self._on_start,
         )
@@ -3018,9 +3033,11 @@ class MouseJigglerApp:
             btn_row,
             text=self._t("btn_stop"),
             width=120,
-            fg_color="transparent",
-            hover_color=self._NAV_HOVER,
-            text_color=(self._NAV_TEXT, self._NAV_TEXT),
+            fg_color=self._BTN_SECONDARY,
+            hover_color=self._BTN_SECONDARY_HOVER,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            border_width=2,
+            border_color=self._BORDER,
             state="disabled",
             command=self._on_stop,
         )
