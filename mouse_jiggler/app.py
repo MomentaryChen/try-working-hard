@@ -426,21 +426,13 @@ class MouseJigglerApp:
                 text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
             )
 
-        if hasattr(self, "btn_start"):
-            self.btn_start.configure(
+        if hasattr(self, "btn_run_toggle"):
+            self.btn_run_toggle.configure(
                 fg_color=self._ACCENT,
                 hover_color=self._ACCENT_HOVER,
                 text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
                 border_width=2,
                 border_color=self._ACCENT_HOVER,
-            )
-        if hasattr(self, "btn_stop"):
-            self.btn_stop.configure(
-                fg_color=self._BTN_SECONDARY,
-                hover_color=self._BTN_SECONDARY_HOVER,
-                text_color=(self._TEXT_BODY, self._TEXT_BODY),
-                border_width=2,
-                border_color=self._BORDER,
             )
         if hasattr(self, "btn_open_config"):
             self.btn_open_config.configure(
@@ -904,10 +896,12 @@ class MouseJigglerApp:
         if self._active_nav != "home" or self._segment_mode != "control":
             return
         try:
-            st = str(self.btn_start.cget("state")).lower()
+            st = str(self.btn_run_toggle.cget("state")).lower()
         except (tk.TclError, AttributeError):
             return
         if st == "disabled" or (st.isdigit() and st == "0"):
+            return
+        if self._worker is not None and self._worker.is_alive() and not self._stop.is_set():
             return
         self._on_start()
 
@@ -915,12 +909,27 @@ class MouseJigglerApp:
         if self._active_nav != "home" or self._segment_mode != "control":
             return
         try:
-            st = str(self.btn_stop.cget("state")).lower()
+            st = str(self.btn_run_toggle.cget("state")).lower()
         except (tk.TclError, AttributeError):
             return
         if st == "disabled" or (st.isdigit() and st == "0"):
             return
+        if self._worker is None or not self._worker.is_alive() or self._stop.is_set():
+            return
         self._on_stop()
+
+    def _refresh_run_toggle_text(self) -> None:
+        if not hasattr(self, "btn_run_toggle"):
+            return
+        is_running = self._worker is not None and self._worker.is_alive() and not self._stop.is_set()
+        self.btn_run_toggle.configure(text=self._t("btn_stop") if is_running else self._t("btn_start"))
+
+    def _on_toggle_run(self) -> None:
+        is_running = self._worker is not None and self._worker.is_alive() and not self._stop.is_set()
+        if is_running:
+            self._on_stop()
+        else:
+            self._on_start()
 
     def _t(self, key: str, **kwargs: Any) -> str:
         s = STRINGS[self._lang][key]
@@ -2341,8 +2350,7 @@ class MouseJigglerApp:
         self._lbl_pixels_hint.configure(
             text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS)
         )
-        self.btn_start.configure(text=self._t("btn_start"))
-        self.btn_stop.configure(text=self._t("btn_stop"))
+        self._refresh_run_toggle_text()
         self._lbl_tray_sw.configure(text=self._t("tray_switch_title"))
         tray_hint = self._t("tray_switch_hint")
         if not HAS_TRAY:
@@ -2953,15 +2961,6 @@ class MouseJigglerApp:
         self._sync_ui_theme_seg()
         _try_takefocus(self._seg_ui_theme, 1)
 
-        self._hint_appearance = ctk.CTkLabel(
-            card,
-            text=self._theme_footer_text(),
-            font=ctk.CTkFont(family=_FONT_INTER, size=11),
-            text_color=self._TEXT_MUTED,
-            anchor="w",
-        )
-        self._hint_appearance.grid(row=2, column=0, sticky="w", padx=p, pady=(p, p))
-
         self._lbl_lang = ctk.CTkLabel(
             card,
             text=self._t("lang_ui"),
@@ -2969,7 +2968,7 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_lang.grid(row=3, column=0, sticky="w", padx=p, pady=(0, p))
+        self._lbl_lang.grid(row=2, column=0, sticky="w", padx=p, pady=(0, p))
 
         self._lang_seg = ctk.CTkSegmentedButton(
             card,
@@ -2985,28 +2984,16 @@ class MouseJigglerApp:
             unselected_hover_color=self._SURFACE_SUBTLE_HOVER,
             text_color=(self._TEXT_BODY, self._TEXT_ON_ACCENT),
         )
-        self._lang_seg.grid(row=4, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._lang_seg.grid(row=3, column=0, sticky="ew", padx=p, pady=(0, p))
         self._lang_seg.set("English")
         _try_takefocus(self._lang_seg, 1)
-
-        self.btn_open_config = self._btn(
-            card,
-            text=self._t("btn_open_config_file"),
-            command=self._on_open_config_file,
-            fg_color="transparent",
-            hover_color=self._NAV_HOVER,
-            text_color=(self._NAV_TEXT, self._NAV_TEXT),
-            anchor="w",
-        )
-        self.btn_open_config.grid(row=5, column=0, sticky="w", padx=p, pady=(0, p))
-        _try_takefocus(self.btn_open_config, 1)
 
         self.var_schedule_window = tk.BooleanVar(value=False)
         self.var_schedule_start = tk.StringVar(value="09:00")
         self.var_schedule_end = tk.StringVar(value="18:00")
 
         schedule_row = ctk.CTkFrame(card, fg_color="transparent")
-        schedule_row.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, 8))
+        schedule_row.grid(row=4, column=0, sticky="ew", padx=p, pady=(0, 8))
         schedule_row.grid_columnconfigure(0, weight=1)
         self._lbl_schedule_sw = ctk.CTkLabel(
             schedule_row,
@@ -3033,7 +3020,7 @@ class MouseJigglerApp:
         _try_takefocus(self.swt_schedule, 1)
 
         schedule_time_row = ctk.CTkFrame(card, fg_color="transparent")
-        schedule_time_row.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        schedule_time_row.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
         self._lbl_schedule_time_start = ctk.CTkLabel(
             schedule_time_row,
             text=self._t("schedule_window_start_label"),
@@ -3086,11 +3073,11 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_schedule.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_schedule.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, p))
 
         self.var_tray_close = tk.BooleanVar(value=False)
         tray_row = ctk.CTkFrame(card, fg_color="transparent")
-        tray_row.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
+        tray_row.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, 8))
         tray_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_tray_sw = ctk.CTkLabel(
@@ -3130,7 +3117,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_tray.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_tray.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
         if not HAS_TRAY:
             self.swt_tray.configure(state="disabled")
 
@@ -3139,7 +3126,7 @@ class MouseJigglerApp:
             value=bool(can_autowin and _windows_run_autostart_active())
         )
         autostart_row = ctk.CTkFrame(card, fg_color="transparent")
-        autostart_row.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, 8))
+        autostart_row.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, 8))
         autostart_row.grid_columnconfigure(0, weight=1)
 
         self._lbl_autostart_sw = ctk.CTkLabel(
@@ -3182,7 +3169,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_autostart.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_autostart.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
         if not can_autowin:
             self.swt_autostart.configure(state="disabled")
 
@@ -3193,7 +3180,7 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_about_updates.grid(row=13, column=0, sticky="w", padx=p, pady=(0, 8))
+        self._lbl_about_updates.grid(row=11, column=0, sticky="w", padx=p, pady=(0, 8))
 
         self._lbl_version_info = ctk.CTkLabel(
             card,
@@ -3202,10 +3189,10 @@ class MouseJigglerApp:
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
             anchor="w",
         )
-        self._lbl_version_info.grid(row=14, column=0, sticky="w", padx=p, pady=(0, 8))
+        self._lbl_version_info.grid(row=12, column=0, sticky="w", padx=p, pady=(0, 8))
 
         about_btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        about_btn_row.grid(row=15, column=0, sticky="w", padx=p, pady=(0, p))
+        about_btn_row.grid(row=13, column=0, sticky="w", padx=p, pady=(0, p))
         self.btn_contact_us = self._btn(
             about_btn_row,
             text=self._t("btn_contact_us"),
@@ -3217,6 +3204,18 @@ class MouseJigglerApp:
         )
         self.btn_contact_us.pack(side="left", padx=(0, 8))
         _try_takefocus(self.btn_contact_us, 1)
+
+        self.btn_open_config = self._btn(
+            about_btn_row,
+            text=self._t("btn_open_config_file"),
+            command=self._on_open_config_file,
+            fg_color="transparent",
+            hover_color=self._NAV_HOVER,
+            text_color=(self._NAV_TEXT, self._NAV_TEXT),
+            anchor="w",
+        )
+        self.btn_open_config.pack(side="left", padx=(0, 8))
+        _try_takefocus(self.btn_open_config, 1)
 
         self.btn_check_updates = self._btn(
             about_btn_row,
@@ -3233,7 +3232,7 @@ class MouseJigglerApp:
 
         self.var_auto_check_updates = tk.BooleanVar(value=True)
         auto_updates_row = ctk.CTkFrame(card, fg_color="transparent")
-        auto_updates_row.grid(row=16, column=0, sticky="ew", padx=p, pady=(0, 8))
+        auto_updates_row.grid(row=14, column=0, sticky="ew", padx=p, pady=(0, 8))
         auto_updates_row.grid_columnconfigure(0, weight=1)
         self._lbl_auto_updates_sw = ctk.CTkLabel(
             auto_updates_row,
@@ -3267,7 +3266,7 @@ class MouseJigglerApp:
             justify="left",
             wraplength=520,
         )
-        self._hint_auto_updates.grid(row=17, column=0, sticky="ew", padx=p, pady=(0, p))
+        self._hint_auto_updates.grid(row=15, column=0, sticky="ew", padx=p, pady=(0, p))
 
     def _fill_analytics_panel(self, card: ctk.CTkFrame) -> None:
         from matplotlib.figure import Figure
@@ -3512,15 +3511,32 @@ class MouseJigglerApp:
         card.grid_columnconfigure(0, weight=1)
         p = self._UI_PAD
 
+        btn_row = ctk.CTkFrame(card, fg_color="transparent")
+        btn_row.grid(row=0, column=0, sticky="w", padx=p, pady=(p, p))
+
+        self.btn_run_toggle = self._btn(
+            btn_row,
+            text=self._t("btn_start"),
+            width=120,
+            fg_color=self._ACCENT,
+            hover_color=self._ACCENT_HOVER,
+            text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+            border_width=2,
+            border_color=self._ACCENT_HOVER,
+            font=self._font_body_bold,
+            command=self._on_toggle_run,
+        )
+        self.btn_run_toggle.pack(side="left")
+
         self._lbl_interval = ctk.CTkLabel(
             card,
             text=self._t("interval_label"),
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_interval.grid(row=0, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_interval.grid(row=1, column=0, sticky="w", padx=p, pady=(p, p))
         row1 = ctk.CTkFrame(card, fg_color="transparent")
-        row1.grid(row=1, column=0, sticky="ew", padx=p, pady=(0, p))
+        row1.grid(row=2, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_minutes = tk.StringVar(value=str(int(self.DEFAULT_MINUTES)))
         self.entry_minutes = ctk.CTkEntry(
             row1,
@@ -3568,9 +3584,9 @@ class MouseJigglerApp:
             text_color=(self._TEXT_MUTED, self._TEXT_MUTED),
             anchor="w",
         )
-        self._lbl_interval_presets.grid(row=2, column=0, sticky="w", padx=p, pady=(0, 2))
+        self._lbl_interval_presets.grid(row=3, column=0, sticky="w", padx=p, pady=(0, 2))
         preset_row = ctk.CTkFrame(card, fg_color="transparent")
-        preset_row.grid(row=3, column=0, sticky="w", padx=p, pady=(0, p))
+        preset_row.grid(row=4, column=0, sticky="w", padx=p, pady=(0, p))
         self._interval_preset_specs = [
             "interval_preset_30s",
             "interval_preset_1m",
@@ -3603,9 +3619,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_interval_jitter.grid(row=4, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_interval_jitter.grid(row=5, column=0, sticky="w", padx=p, pady=(p, p))
         row_jitter = ctk.CTkFrame(card, fg_color="transparent")
-        row_jitter.grid(row=5, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_jitter.grid(row=6, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_interval_jitter = tk.StringVar(value="0")
         self.entry_interval_jitter = ctk.CTkEntry(
             row_jitter,
@@ -3636,9 +3652,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_pixels.grid(row=6, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_pixels.grid(row=7, column=0, sticky="w", padx=p, pady=(p, p))
         row3 = ctk.CTkFrame(card, fg_color="transparent")
-        row3.grid(row=7, column=0, sticky="ew", padx=p, pady=(0, p))
+        row3.grid(row=8, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_pixels = tk.StringVar(value=str(self.DEFAULT_PIXELS))
         self.entry_pixels = ctk.CTkEntry(
             row3,
@@ -3669,9 +3685,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_path_speed.grid(row=8, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_path_speed.grid(row=9, column=0, sticky="w", padx=p, pady=(p, p))
         row_path_speed = ctk.CTkFrame(card, fg_color="transparent")
-        row_path_speed.grid(row=9, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_path_speed.grid(row=10, column=0, sticky="ew", padx=p, pady=(0, p))
         self.var_path_speed = tk.StringVar(value=str(int(self.DEFAULT_PATH_SPEED)))
         self.entry_path_speed = ctk.CTkEntry(
             row_path_speed,
@@ -3709,9 +3725,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_activity_style.grid(row=10, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_activity_style.grid(row=11, column=0, sticky="w", padx=p, pady=(p, p))
         row_activity = ctk.CTkFrame(card, fg_color="transparent")
-        row_activity.grid(row=11, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_activity.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
         self.seg_activity_style = ctk.CTkSegmentedButton(
             row_activity,
             values=[
@@ -3736,7 +3752,7 @@ class MouseJigglerApp:
         self._a11y_label_focus_entry(self._lbl_activity_style, self.seg_activity_style)
 
         self.row_natural_opts = ctk.CTkFrame(card, fg_color="transparent")
-        self.row_natural_opts.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.row_natural_opts.grid(row=13, column=0, sticky="ew", padx=p, pady=(0, p))
         col_nat = ctk.CTkFrame(self.row_natural_opts, fg_color="transparent")
         col_nat.pack(side="left", fill="x", expand=True)
         self.swt_natural_click = ctk.CTkSwitch(
@@ -3773,9 +3789,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_motion_pattern.grid(row=13, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_motion_pattern.grid(row=14, column=0, sticky="w", padx=p, pady=(p, p))
         row_pattern = ctk.CTkFrame(card, fg_color="transparent")
-        row_pattern.grid(row=14, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_pattern.grid(row=15, column=0, sticky="ew", padx=p, pady=(0, p))
         self.seg_motion_pattern = ctk.CTkSegmentedButton(
             row_pattern,
             values=[
@@ -3800,36 +3816,6 @@ class MouseJigglerApp:
         self._sync_motion_pattern_seg()
         self._a11y_label_focus_entry(self._lbl_motion_pattern, self.seg_motion_pattern)
 
-        btn_row = ctk.CTkFrame(card, fg_color="transparent")
-        btn_row.grid(row=15, column=0, sticky="w", padx=p, pady=(p, p))
-
-        self.btn_start = self._btn(
-            btn_row,
-            text=self._t("btn_start"),
-            width=120,
-            fg_color=self._ACCENT,
-            hover_color=self._ACCENT_HOVER,
-            text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
-            border_width=2,
-            border_color=self._ACCENT_HOVER,
-            font=self._font_body_bold,
-            command=self._on_start,
-        )
-        self.btn_start.pack(side="left", padx=(0, 12))
-
-        self.btn_stop = self._btn(
-            btn_row,
-            text=self._t("btn_stop"),
-            width=120,
-            fg_color=self._BTN_SECONDARY,
-            hover_color=self._BTN_SECONDARY_HOVER,
-            text_color=(self._TEXT_BODY, self._TEXT_BODY),
-            border_width=2,
-            border_color=self._BORDER,
-            state="disabled",
-            command=self._on_stop,
-        )
-        self.btn_stop.pack(side="left")
         self._refresh_activity_dependent_widgets()
 
     def _fill_log_panel(self, card: ctk.CTkFrame) -> None:
@@ -4165,8 +4151,8 @@ class MouseJigglerApp:
         self._analytics_runtime_anchor = time.monotonic()
         self._schedule_next_runtime_flush()
 
-        self.btn_start.configure(state="disabled")
-        self.btn_stop.configure(state="normal")
+        self.btn_run_toggle.configure(state="normal")
+        self._refresh_run_toggle_text()
         self.entry_minutes.configure(state="disabled")
         self.entry_pixels.configure(state="disabled")
         self.entry_path_speed.configure(state="disabled")
@@ -4277,8 +4263,8 @@ class MouseJigglerApp:
         self._current_interval_sec = 0.0
         self._countdown_phase = "interval"
         self._schedule_resume_at = None
-        self.btn_start.configure(state="normal")
-        self.btn_stop.configure(state="disabled")
+        self.btn_run_toggle.configure(state="normal")
+        self._refresh_run_toggle_text()
         self.entry_minutes.configure(state="normal")
         self.entry_pixels.configure(state="normal")
         self.entry_path_speed.configure(state="normal")
