@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Startup onboarding prompt**: language selection (Traditional Chinese / English) now happens directly in the startup dialog with immediate copy refresh; the quick guide keeps core-feature summary, visual progress (bar + step/percent), and Previous/Next/Done navigation.
+
 <<<<<<< HEAD
 - **Settings → About and updates**: added **Contact us**, a visible **app version** line, and a **Check for updates** action that compares the installed version with the latest GitHub release and offers to open the release page when a newer version exists.
 - **Update preference**: new local config key **`auto_check_updates`** (default `true`) to run a background release check shortly after startup.

@@ -65,6 +65,14 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 
 ## Usage
 
+### Startup prompt flow
+
+- On normal startup (not `--start-in-tray`), the app now opens a styled startup prompt instead of a system message box.
+- Language is now set directly in the startup prompt (Traditional Chinese / English), and the prompt copy updates immediately.
+- Select **Open quick guide** to launch a step-by-step UI walkthrough with **Previous / Next / Done**.
+- The guide now includes a compact **Core capabilities** summary and a visual **progress indicator** (progress bar + step/percent) to show onboarding status.
+- Prompt suppression is saved locally in `config.json` (`intro_acknowledged`).
+
 1. The main window **opens maximized**; use the title bar to restore or resize as needed.
 <<<<<<< HEAD
 2. On **Settings**, the page title stays fixed while options are shown in a bordered card; **scroll inside the card** when the window is short to reach every control. Choose **Appearance** (**Dark** or **Light** -> `ui_theme`, default **light**) and language (**繁中** / English). Optionally enable the **weekday schedule window**: set **Start** / **End** in **HH:MM** (24-hour, Mon-Fri local time only; **end** is exclusive). Stored as `schedule_window`, `schedule_window_start_text`, and `schedule_window_end_text` (defaults **09:00** / **18:00**). On **Windows** with the tray, you may use **Start with Windows** and **Minimize to the system tray when closing** as described later. In **About and updates**, you can see the current app version, open the contact/support page, manually check for newer releases, and toggle **Auto-check updates on startup** (`auto_check_updates`). The main window title and tray tooltip also include the installed version (for example `try-working-hard v1.2.0`) so users can confirm what build is running at a glance. When a newer release is found, the app now shows a **non-blocking top drop-down notice** inside Home (with **Download now** / **Later**) instead of a modal popup. When the schedule window is on, **Home** shows an extra **summary line beneath the status strip** describing the rule (or asking you to fix invalid times).
