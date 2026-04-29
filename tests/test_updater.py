@@ -19,3 +19,49 @@ def test_summarize_release_notes_from_markdown_body() -> None:
     out = updater.summarize_release_notes(body, max_lines=2, max_chars=120)
     assert "Added version diff summary" in out
     assert "rollback guidance" in out
+
+
+def test_choose_windows_installer_asset_prefers_tagged_project_exe() -> None:
+    release = {
+        "tag": "v1.2.0",
+        "assets": [
+            {"name": "notes.txt", "url": "https://example.com/notes.txt"},
+            {"name": "other-tool-v1.2.0.exe", "url": "https://example.com/other.exe"},
+            {
+                "name": "try-working-hard-v1.2.0.exe",
+                "url": "https://example.com/try-working-hard-v1.2.0.exe",
+            },
+        ],
+    }
+    asset = updater.choose_windows_installer_asset(release)
+    assert asset is not None
+    assert asset["name"] == "try-working-hard-v1.2.0.exe"
+
+
+def test_choose_windows_installer_asset_returns_none_without_exe() -> None:
+    release = {
+        "tag": "v1.2.0",
+        "assets": [{"name": "source.zip", "url": "https://example.com/source.zip"}],
+    }
+    assert updater.choose_windows_installer_asset(release) is None
+
+
+def test_choose_checksum_asset_prefers_checksum_files() -> None:
+    release = {
+        "assets": [
+            {"name": "try-working-hard-v1.2.0.exe", "url": "https://example.com/app.exe"},
+            {"name": "checksums.txt", "url": "https://example.com/checksums.txt"},
+        ]
+    }
+    asset = updater.choose_checksum_asset(release)
+    assert asset is not None
+    assert asset["name"] == "checksums.txt"
+
+
+def test_parse_sha256_from_text_extracts_target_digest() -> None:
+    txt = (
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa  other.exe\n"
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb  try-working-hard-v1.2.0.exe\n"
+    )
+    out = updater.parse_sha256_from_text(txt, "try-working-hard-v1.2.0.exe")
+    assert out == "b" * 64
