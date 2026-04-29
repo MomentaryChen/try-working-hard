@@ -47,8 +47,8 @@ class SettingsPage(QWidget):
         self.company_input = QLineEdit("Acme Labs")
 
         form.addRow("Display name", self.name_input)
-        form.addRow("Email", self.email_input)
         form.addRow("Organization", self.company_input)
+        form.addRow("Email", self.email_input)
         panel_layout.addLayout(form)
 
         toggles = QHBoxLayout()
