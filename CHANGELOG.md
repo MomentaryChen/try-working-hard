@@ -21,7 +21,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - **Startup onboarding prompt**: language selection (Traditional Chinese / English) now happens directly in the startup dialog with immediate copy refresh; the quick guide keeps core-feature summary, visual progress (bar + step/percent), and Previous/Next/Done navigation.
 
-<<<<<<< HEAD
 - **Settings → About and updates**: added **Contact us**, a visible **app version** line, and a **Check for updates** action that compares the installed version with the latest GitHub release and offers to open the release page when a newer version exists.
 - **Update preference**: new local config key **`auto_check_updates`** (default `true`) to run a background release check shortly after startup.
 - **Update UX**: when a newer version is detected, the app now shows a **non-blocking top drop-down notice** in Home with **Download now** / **Later**, instead of a modal dialog.
@@ -57,9 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Cursor skill** `dev-branch-auto`: default base branch is now **`origin/develop`** (no implicit `main`/`master` fallback unless the user names another base).
 - **Cursor skill** `release-tag-pr-to-master`: expanded with **PEP 621 / build output** guidance—`pyproject.toml` `[project] version` is the only source for **`dist/`** sdist and wheel names; optional `__version__` metadata fallbacks should match the release. Checklist updated accordingly.
 - **docs/ACCESSIBILITY.md**: keyboard and reduced-motion notes updated for the Home status line (progress bar removed).
-=======
 - **PR-time CI safety net**: added `.github/workflows/ci.yml` to run pytest on `pull_request` to `develop` and on pushes to `develop` / topic branches (`dev/**`, `feature/**`, `fix/**`).
->>>>>>> origin/develop
 
 ### Added
 
