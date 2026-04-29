@@ -96,6 +96,11 @@ def test_update_banner_template(lang: str) -> None:
         latest="v1.2.0", current="1.1.0"
     )
     assert "1.2.0" in body
+    summary = STRINGS[lang]["update_banner_summary"].format(
+        summary="Added safer upgrade messaging."
+    )
+    assert "Added safer upgrade messaging." in summary
+    assert STRINGS[lang]["update_banner_rollback_hint"]
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
