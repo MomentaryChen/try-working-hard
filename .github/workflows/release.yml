@@ -31,6 +31,27 @@ jobs:
       - name: Build executable (PyInstaller)
         run: uv run pyinstaller packaging/try-working-hard.spec
 
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if (-not $tag.StartsWith("v")) {
+            throw "Expected a v-prefixed tag, got: $tag"
+          }
+          $version = $tag.Substring(1)
+          if (-not (Test-Path "dist/try-working-hard.exe")) {
+            throw "Built executable not found at dist/try-working-hard.exe"
+          }
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" "packaging/try-working-hard.iss"
+          $setupPath = "dist/try-working-hard-setup-$tag.exe"
+          if (-not (Test-Path $setupPath)) {
+            throw "Built installer not found at $setupPath"
+          }
+
       - name: Rename release asset with tag version
         shell: pwsh
         run: |
@@ -57,9 +78,17 @@ jobs:
           if (-not (Test-Path $assetPath)) {
             throw "Built executable not found at $assetPath"
           }
-          $hash = (Get-FileHash -Path $assetPath -Algorithm SHA256).Hash.ToLower()
+          $setupPath = "dist/try-working-hard-setup-$tag.exe"
+          if (-not (Test-Path $setupPath)) {
+            throw "Built installer not found at $setupPath"
+          }
+          $exeHash = (Get-FileHash -Path $assetPath -Algorithm SHA256).Hash.ToLower()
+          $setupHash = (Get-FileHash -Path $setupPath -Algorithm SHA256).Hash.ToLower()
           $checksumPath = "dist/try-working-hard-$tag-checksums.txt"
-          "$hash  $assetName" | Set-Content -Path $checksumPath -Encoding utf8
+          @(
+            "$exeHash  $assetName"
+            "$setupHash  try-working-hard-setup-$tag.exe"
+          ) | Set-Content -Path $checksumPath -Encoding utf8
 
       - name: Build release notes from CHANGELOG
         shell: pwsh
@@ -92,6 +121,7 @@ jobs:
 
           ## Assets
           - `dist/try-working-hard-$tag.exe`
+          - `dist/try-working-hard-setup-$tag.exe`
           - `dist/try-working-hard-$tag-checksums.txt`
           "@
 
@@ -102,5 +132,6 @@ jobs:
         with:
           files: |
             dist/try-working-hard-${{ github.ref_name }}.exe
+            dist/try-working-hard-setup-${{ github.ref_name }}.exe
             dist/try-working-hard-${{ github.ref_name }}-checksums.txt
           body_path: release-notes.md
