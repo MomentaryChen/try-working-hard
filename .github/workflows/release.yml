@@ -31,6 +31,20 @@ jobs:
       - name: Build executable (PyInstaller)
         run: uv run pyinstaller packaging/try-working-hard.spec
 
+      - name: Rename release asset with tag version
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if (-not $tag.StartsWith("v")) {
+            throw "Expected a v-prefixed tag, got: $tag"
+          }
+          $src = "dist/try-working-hard.exe"
+          if (-not (Test-Path $src)) {
+            throw "Built executable not found at $src"
+          }
+          $dst = "dist/try-working-hard-$tag.exe"
+          Move-Item -Path $src -Destination $dst -Force
+
       - name: Build release notes from CHANGELOG
         shell: pwsh
         run: |
@@ -61,7 +75,7 @@ jobs:
           $section
 
           ## Assets
-          - `dist/try-working-hard.exe`
+          - `dist/try-working-hard-$tag.exe`
           "@
 
           Set-Content -Path release-notes.md -Value $body -Encoding utf8
@@ -69,5 +83,5 @@ jobs:
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/try-working-hard.exe
+          files: dist/try-working-hard-${{ github.ref_name }}.exe
           body_path: release-notes.md

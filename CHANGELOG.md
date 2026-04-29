@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Worker/UI safety around schedule state**: the background nudge loop now reads cached schedule bounds synchronized on the UI thread, and worker-triggered UI actions are dispatched through a dedicated UI invoker to avoid touching Tk state directly from worker paths.
 - **Cross-platform imports**: `mouse_jiggler.win32_mouse` no longer exits at import time on non-Windows platforms. The module imports cleanly for tests/tooling, returns `0.0` idle seconds off Windows, and raises an explicit `OSError` only when trying to jiggle the cursor.
 - **Error diagnosability**: broad `except Exception` handlers in analytics refresh and tray stop paths were narrowed, and analytics refresh failures are now logged with stack traces.
+- **Release metadata**: bumped project version in `pyproject.toml` from `1.1.0` to `1.2.0` so package metadata and in-app version reporting are aligned with the intended release.
+- **Version visibility in the running app**: the main window title, sidebar brand title, and tray tooltip now append the installed version (for example `try-working-hard v1.2.0`) so users can verify the running release quickly.
+- **GitHub Release asset naming**: the release workflow now renames the built executable to include the tag version (for example `try-working-hard-v1.2.0.exe`) before upload, making downloaded files self-identifying.
 
 ### Added
 

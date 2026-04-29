@@ -511,7 +511,6 @@ class MouseJigglerApp:
                     button_color="#FFFFFF",
                     button_hover_color="#F3F4F6",
                 )
-<<<<<<< HEAD
         if hasattr(self, "swt_auto_updates"):
             if self._ui_theme == "dark":
                 self.swt_auto_updates.configure(
@@ -527,7 +526,6 @@ class MouseJigglerApp:
                     button_color="#FFFFFF",
                     button_hover_color="#F3F4F6",
                 )
-=======
         for _swt_name in ("swt_natural_click", "swt_natural_scroll"):
             if hasattr(self, _swt_name):
                 _swt = getattr(self, _swt_name)
@@ -545,7 +543,6 @@ class MouseJigglerApp:
                         button_color="#FFFFFF",
                         button_hover_color="#F3F4F6",
                     )
->>>>>>> origin/develop
         if hasattr(self, "_interval_preset_btns"):
             for b in self._interval_preset_btns:
                 b.configure(
@@ -590,11 +587,8 @@ class MouseJigglerApp:
             "_hint_tray",
             "_hint_autostart",
             "_hint_schedule",
-<<<<<<< HEAD
             "_hint_auto_updates",
-=======
             "_lbl_natural_opts_hint",
->>>>>>> origin/develop
         ):
             if hasattr(self, name):
                 getattr(self, name).configure(text_color=self._TEXT_MUTED)
@@ -674,7 +668,7 @@ class MouseJigglerApp:
         self._font_hint = ctk.CTkFont(family=_FONT_INTER, size=12)
         self._font_mono = ctk.CTkFont(family="Consolas", size=13)
 
-        self.root.title(self._t("window_title"))
+        self.root.title(self._app_title_with_version())
         self.root.geometry("920x640")
         self.root.minsize(860, 580)
         self.root.configure(fg_color=self._MAIN_BG)
@@ -707,16 +701,13 @@ class MouseJigglerApp:
         self._config_loading = False
         self._intro_acknowledged = True
         self._motion_pattern: MotionPattern = "horizontal"
-<<<<<<< HEAD
         self._auto_check_updates = True
         self._update_check_in_progress = False
         self._update_notice_url = ""
         self._update_notice_after_id: str | None = None
         self._update_notice_anim_after_id: str | None = None
         self._update_notice_target_h = 72
-=======
         self._activity_style: ActivityStyle = "pattern"
->>>>>>> origin/develop
 
         self._analytics_trigger_mode: Literal["today", "week"] = "today"
         self._analytics_runtime_anchor = 0.0
@@ -772,6 +763,9 @@ class MouseJigglerApp:
             return pkg_version("try-working-hard")
         except PackageNotFoundError:
             return "1.0.0"
+
+    def _app_title_with_version(self) -> str:
+        return f"{self._t('window_title')} v{self._pkg_version()}"
 
     def _apply_window_icon(self) -> None:
         from PIL import Image, ImageTk
@@ -1140,9 +1134,7 @@ class MouseJigglerApp:
             str(cfg.get("schedule_window_start_text", "09:00"))
         )
         self.var_schedule_end.set(str(cfg.get("schedule_window_end_text", "18:00")))
-<<<<<<< HEAD
         self._auto_check_updates = bool(cfg.get("auto_check_updates", True))
-=======
         self._schedule_segments_text = str(
             cfg.get(
                 "schedule_window_segments_text",
@@ -1151,7 +1143,6 @@ class MouseJigglerApp:
         )
         self._schedule_include_weekends = bool(cfg.get("schedule_include_weekends", False))
         self._schedule_cron_text = str(cfg.get("schedule_cron_text", ""))
->>>>>>> origin/develop
         self._sync_schedule_times_from_vars()
         self._run_schedule_window = bool(self.var_schedule_window.get())
         self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
@@ -1502,9 +1493,9 @@ class MouseJigglerApp:
         )
 
     def _apply_language(self) -> None:
-        self.root.title(self._t("window_title"))
+        self.root.title(self._app_title_with_version())
         if hasattr(self, "_brand"):
-            self._brand.configure(text=self._t("window_title"))
+            self._brand.configure(text=self._app_title_with_version())
         sub = self._t("app_subtitle").strip()
         self._lbl_subtitle.configure(text=sub)
         p = self._UI_PAD
@@ -1786,7 +1777,7 @@ class MouseJigglerApp:
 
         self._brand = ctk.CTkLabel(
             sidebar,
-            text=self._t("window_title"),
+            text=self._app_title_with_version(),
             font=self._font_brand,
             text_color=(self._TEXT_TITLE, self._TEXT_TITLE),
             anchor="w",
@@ -3565,7 +3556,7 @@ class MouseJigglerApp:
 
     def _start_tray(self) -> None:
         self._tray.start(
-            tooltip=self._t("window_title"),
+            tooltip=self._app_title_with_version(),
             label_show=self._t("tray_show"),
             label_quit=self._t("tray_quit"),
             on_show=lambda: self.root.after(0, self._show_from_tray),

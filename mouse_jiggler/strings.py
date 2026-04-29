@@ -9,11 +9,7 @@ Lang = Literal["zh", "en"]
 STRINGS: dict[Lang, dict[str, str]] = {
     "zh": {
         "window_title": "try-working-hard",
-<<<<<<< HEAD
         "app_subtitle": "try-working-hard",
-=======
-        "app_subtitle": "",
->>>>>>> origin/develop
         "seg_control": "控制面板",
         "seg_log": "紀錄",
         "theme_appearance": "外觀",
@@ -172,11 +168,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
     },
     "en": {
         "window_title": "try-working-hard",
-<<<<<<< HEAD
         "app_subtitle": "try-working-hard",
-=======
-        "app_subtitle": "",
->>>>>>> origin/develop
         "seg_control": "Control",
         "seg_log": "Log",
         "theme_appearance": "Appearance",

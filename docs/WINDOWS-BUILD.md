@@ -53,7 +53,7 @@ To see stderr when something fails at launch, add a second spec (or one-off comm
    git tag v1.0.0
    git push origin v1.0.0
    ```
-3. The **Release** workflow builds `try-working-hard.exe` and attaches it to a GitHub **Release** for that tag. Download it from the release **Assets** area.
+3. The **Release** workflow builds `try-working-hard.exe`, renames it to `try-working-hard-vX.Y.Z.exe` using the pushed tag, and attaches that file to the GitHub **Release**. Download it from the release **Assets** area.
 
 ## Briefcase and other toolchains
 

@@ -42,13 +42,10 @@ def _defaults() -> dict[str, Any]:
         "schedule_window": False,
         "schedule_window_start_text": "09:00",
         "schedule_window_end_text": "18:00",
-<<<<<<< HEAD
         "auto_check_updates": True,
-=======
         "schedule_window_segments_text": "09:00-18:00",
         "schedule_include_weekends": False,
         "schedule_cron_text": "",
->>>>>>> origin/develop
     }
 
 
@@ -276,11 +273,9 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     out["schedule_window_end_text"] = _sanitize_hhmm_text(
         raw.get("schedule_window_end_text"), fallback=fb_end
     )
-<<<<<<< HEAD
     acu = _sanitize_auto_check_updates(raw.get("auto_check_updates"))
     if acu is not None:
         out["auto_check_updates"] = acu
-=======
     fb_segments = out["schedule_window_segments_text"]
     out["schedule_window_segments_text"] = _sanitize_schedule_segments_text(
         raw.get("schedule_window_segments_text"), fallback=fb_segments
@@ -292,7 +287,6 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     out["schedule_cron_text"] = _sanitize_schedule_cron_text(
         raw.get("schedule_cron_text"), fallback=fb_cron
     )
->>>>>>> origin/develop
 
     out["version"] = CONFIG_VERSION
     return out
@@ -305,12 +299,9 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     ctt = _sanitize_close_to_tray(data.get("close_to_tray"))
     ia = _sanitize_intro_acknowledged(data.get("intro_acknowledged"))
     sw = _sanitize_schedule_window(data.get("schedule_window"))
-<<<<<<< HEAD
     acu = _sanitize_auto_check_updates(data.get("auto_check_updates"))
-=======
     nrc = _sanitize_natural_flag(data.get("natural_rare_click"))
     nrs = _sanitize_natural_flag(data.get("natural_rare_scroll"))
->>>>>>> origin/develop
     unit = _sanitize_interval_unit(data.get("interval_unit")) or base["interval_unit"]
     fb_start = base["schedule_window_start_text"]
     fb_end = base["schedule_window_end_text"]
@@ -349,9 +340,7 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         "schedule_window_end_text": _sanitize_hhmm_text(
             data.get("schedule_window_end_text"), fallback=fb_end
         ),
-<<<<<<< HEAD
         "auto_check_updates": acu if acu is not None else base["auto_check_updates"],
-=======
         "schedule_window_segments_text": _sanitize_schedule_segments_text(
             data.get("schedule_window_segments_text"), fallback=fb_segments
         ),
@@ -361,7 +350,6 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         "schedule_cron_text": _sanitize_schedule_cron_text(
             data.get("schedule_cron_text"), fallback=fb_cron
         ),
->>>>>>> origin/develop
     }
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
