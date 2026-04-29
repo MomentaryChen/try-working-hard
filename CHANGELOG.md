@@ -40,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Right-panel visual consistency**: Settings and Analytics now use the same right-side page shell pattern as Home (header row + inset bordered content card with matched spacing), so all main pages share a unified tab-like dashboard layout.
+- **Theme refresh (dark/light)**: updated the app palette tokens to a modern dark system (`#1E1E2E`, `#181825`, `#24273A`, `#313244`) and a cleaner SaaS light system (`#F5F7FB`, `#FFFFFF`, `#E2E8F0`), including accent/hover/active tones and status colors. The PySide6 dashboard stylesheet and chart accents were aligned with the refreshed dark palette.
 - **GUI (CustomTkinter)**: **light** mode uses `appearance_mode` **light** with the built-in **blue** theme; surfaces stay **#F9FAFB** (app), **#F3F4F6** (sidebar), **#FFFFFF** cards, **#3B82F6** primary actions. **Dark** mode uses `appearance_mode` **dark** with **dark-blue** and a Pro Dark–inspired palette. Titles use a larger **bold** type scale; radii stay in the **12–16** px range.
 
 - **Window**: the main **GUI** window opens **maximized** on startup (Windows: `wm state zoomed`; elsewhere `-zoomed` when supported). Restore or resize with the system window controls as usual. Maximize is **re-applied** after the first layout tick and after the first-run **intro** dialog so CustomTkinter / modals do not leave the window at the default size.

@@ -95,7 +95,7 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 
 ## Technical notes
 
-- GUI: **CustomTkinter** — **light** mode: built-in `blue` theme, **#F9FAFB** app background, **#F3F4F6** sidebar, **#FFFFFF** card panels. **Dark** mode: `dark` + `dark-blue` with a dark surface palette. **Home** uses a segmented control for Control / Log.
+- GUI: **CustomTkinter** — **light** mode now uses a cleaner SaaS palette (`#F5F7FB` background, `#FFFFFF` sidebar/cards, `#E2E8F0` borders) with blue accent states (`#3B82F6` / `#2563EB` / `#1D4ED8`). **Dark** mode now uses a modern dark palette (`#1E1E2E` background, `#181825` sidebar, `#24273A` cards, `#313244` borders) with cool-blue accent states (`#89B4FA` / `#74C7EC` / `#B4BEFE`). **Home** uses a segmented control for Control / Log.
 - **Analytics**: **Matplotlib** figures embedded via **TkAgg**; persisted aggregates in **`analytics.json`** next to **`config.json`**.
 - Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`; **Natural** mode may also call `mouse_event` for rare left clicks and wheel deltas. Schedule uses `user32.GetLastInputInfo` with `kernel32.GetTickCount` for idle time
 - Tray: **pystray**; icon: **Pillow** (shared PNG for window, tray, and—when rebuilt—[`packaging/app.ico`](packaging/app.ico) for the `.exe`; see [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md))
