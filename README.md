@@ -1,6 +1,6 @@
 # try-working-hard
 
-![try-working-hard UI demo](img/try-working-hard-v.1.2.0.gif)
+![try-working-hard UI demo](/img/try-working-hard-v.2.0.0.gif)
 
 **Languages:** English (this file) · [正體中文](README.zh-TW.md)
 
@@ -21,14 +21,22 @@ Use only in lawful, compliant personal scenarios.
 
 ## Contents
 
-- [Requirements](#requirements)
-- [Install and run](#install-and-run)
-- [Usage](#usage)
-- [FAQ (quick)](#faq-quick)
-- [Technical notes](#technical-notes)
-- [Limitations](#limitations)
-- [Disclaimer](#disclaimer)
-- [License](#license)
+- [try-working-hard](#try-working-hard)
+  - [Contents](#contents)
+  - [Requirements](#requirements)
+  - [Install and run](#install-and-run)
+    - [Windows executable (no Python)](#windows-executable-no-python)
+    - [Keyboard and accessibility](#keyboard-and-accessibility)
+  - [Usage](#usage)
+    - [Quick start (recommended)](#quick-start-recommended)
+    - [Most used settings](#most-used-settings)
+    - [Keyboard and workflow shortcuts](#keyboard-and-workflow-shortcuts)
+    - [Detailed reference](#detailed-reference)
+  - [FAQ (quick)](#faq-quick)
+  - [Technical notes](#technical-notes)
+  - [Limitations](#limitations)
+  - [Disclaimer](#disclaimer)
+  - [License](#license)
 
 ## Requirements
 
