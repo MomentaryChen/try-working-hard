@@ -18,7 +18,7 @@ def test_status_running_min_template(lang: str) -> None:
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_status_running_sec_template(lang: str) -> None:
     s = STRINGS[lang]["status_running_sec"]
-    out = s.format(v=30.0, cd="0:12")
+    out = s.format(v=30.0, md=10, cd="0:12")
     assert "0:12" in out
     assert len(out) > 10
 
@@ -26,8 +26,8 @@ def test_status_running_sec_template(lang: str) -> None:
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_error_templates(lang: str) -> None:
     assert "0.1" in STRINGS[lang]["err_minutes"].format(min=0.1)
-    assert STRINGS[lang]["err_seconds"].format(min=6.0)
-    assert STRINGS[lang]["err_jitter"].format(max=3600)
+    assert STRINGS[lang]["err_seconds"].format(min=5.0, max=600.0)
+    assert STRINGS[lang]["err_jitter"].format(max=600)
     assert STRINGS[lang]["err_pixels"].format(lo=0, hi=500)
 
 
@@ -66,8 +66,8 @@ def test_log_started_jitter_templates(lang: str) -> None:
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_motion_duration_templates(lang: str) -> None:
-    assert STRINGS[lang]["err_motion_duration"].format(lo=10, hi=500)
-    assert STRINGS[lang]["motion_duration_hint"].format(lo=10, hi=500)
+    assert STRINGS[lang]["err_motion_duration"].format(lo=1, hi=60)
+    assert STRINGS[lang]["motion_duration_hint"].format(lo=1, hi=60)
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
@@ -78,10 +78,17 @@ def test_status_schedule_wait_template(lang: str) -> None:
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
+def test_status_motion_burst_template(lang: str) -> None:
+    out = STRINGS[lang]["status_motion_burst"].format(md=12, cd="0:08")
+    assert "12" in out
+    assert "0:08" in out
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
 def test_path_speed_templates(lang: str) -> None:
-    assert STRINGS[lang]["err_path_speed"].format(lo=1, hi=10)
-    assert STRINGS[lang]["path_speed_hint"].format(lo=1, hi=10)
-    assert STRINGS[lang]["path_speed_hint_natural"].format(lo=1, hi=10)
+    assert STRINGS[lang]["err_path_speed"].format(lo=0, hi=30)
+    assert STRINGS[lang]["path_speed_hint"].format(lo=0, hi=30)
+    assert STRINGS[lang]["path_speed_hint_natural"].format(lo=0, hi=30)
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
