@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import re
 import sys
 import threading
 import time
@@ -39,6 +40,20 @@ _LOG = logging.getLogger(__name__)
 # Pro dark / light: unified corner radius; padding in class (see _UI_PAD).
 _R = 12
 _R_BTN = _R  # primary / secondary button radius (used by _btn)
+
+
+def _read_version_from_pyproject() -> str | None:
+    """Best-effort fallback: read project version from pyproject.toml."""
+    pyproject_path = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    try:
+        content = pyproject_path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    match = re.search(r'(?m)^\s*version\s*=\s*"([^"]+)"\s*$', content)
+    if not match:
+        return None
+    return match.group(1).strip()
 
 UiTheme = Literal["dark", "light"]
 _UI_PALETTES: dict[UiTheme, dict[str, str]] = {
@@ -783,8 +798,20 @@ class MouseJigglerApp:
 
     def _pkg_version(self) -> str:
         try:
+            import mouse_jiggler as _pkg  # noqa: PLC0415
+
+            bundled_version = getattr(_pkg, "__version__", "").strip()
+            if bundled_version:
+                return bundled_version
+        except Exception:
+            pass
+
+        try:
             return pkg_version("try-working-hard")
         except PackageNotFoundError:
+            pyproject_version = _read_version_from_pyproject()
+            if pyproject_version:
+                return pyproject_version
             return "1.0.0"
 
     def _app_title_with_version(self) -> str:
