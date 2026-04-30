@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-30
+
 ### Fixed
 
 - **Updater**: Windows installer asset selection now prefers the filename that contains the release tag, then the highest version-like segment in the name, so a stray older ``*-setup-*.exe`` on the same GitHub release is less likely to be downloaded instead of the build that matches ``tag_name``.

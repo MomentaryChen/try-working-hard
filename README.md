@@ -61,7 +61,7 @@ uv run python -m mouse_jiggler
 
 ### Windows executable (no Python)
 
-Tagged releases on **GitHub** attach a **single-file** build named with the tag version: `try-working-hard-vX.Y.Z.exe` (for example `try-working-hard-v1.3.0.exe`, PyInstaller one-file, no console). Download the asset for your target release and run it directly.
+Tagged releases on **GitHub** attach a **single-file** build named with the tag version: `try-working-hard-vX.Y.Z.exe` (for example `try-working-hard-v2.0.0.exe`, PyInstaller one-file, no console). Download the asset for your target release and run it directly.
 
 - How the `.exe` is built locally or in CI: [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md) (also covers SmartScreen, alternatives such as Briefcase at a high level).
 - **Tag a release:** push a `v*` tag (for example `v1.0.0`); [`.github/workflows/release.yml`](.github/workflows/release.yml) runs tests, builds the executable, and uploads it to that release.
