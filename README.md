@@ -50,10 +50,16 @@ uv run python -m mouse_jiggler
 
 ### Windows executable (no Python)
 
-Tagged releases on **GitHub** attach a **single-file** build named with the tag version: `try-working-hard-vX.Y.Z.exe` (for example `try-working-hard-v1.3.0.exe`, PyInstaller one-file, no console). Download the asset for your target release and run it directly.
+Tagged releases on **GitHub** publish **two** Windows downloads for the same version:
 
-- How the `.exe` is built locally or in CI: [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md) (also covers SmartScreen, alternatives such as Briefcase at a high level).
-- **Tag a release:** push a `v*` tag (for example `v1.0.0`); [`.github/workflows/release.yml`](.github/workflows/release.yml) runs tests, builds the executable, and uploads it to that release.
+1. **`try-working-hard-vX.Y.Z.exe`** — **Portable, single-file** PyInstaller build (no console). Download it from **Assets**, place it wherever you like, and run. It does not register an installer or Start-menu entry. To upgrade this layout, download a newer release’s portable `.exe` and **replace the file yourself** (or keep both and run the version you want).
+
+2. **`try-working-hard-setup-vX.Y.Z.exe`** — **Inno Setup installer**. Use this when you want a normal “installed app” layout (shortcuts, consistent install location). This is the build the **in-app update** path is built around.
+
+**In-app automatic updates (Settings → auto-check on startup, update banner, Download):** The updater requests the latest GitHub release, picks the **`setup` / installer** asset (not the portable one-file `.exe` when both exist), optionally verifies **SHA256** using `try-working-hard-vX.Y.Z-checksums.txt`, saves the installer under **Downloads** (or next to `config.json` if **Downloads** is unavailable), then launches it so you can complete the upgrade wizard. **Rely on that flow for hands-off upgrades only after you first installed with `try-working-hard-setup-*.exe`.** If you only ever run the portable `.exe`, you still get version notifications, but the offered download is the **installer**—run it if you want to migrate to an installed copy and keep using the same update mechanism; otherwise refresh the portable binary manually from **Assets**.
+
+- How the `.exe` and installer are built locally or in CI: [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md) (also covers SmartScreen, alternatives such as Briefcase at a high level).
+- **Tag a release:** push a `v*` tag (for example `v1.0.0`); [`.github/workflows/release.yml`](.github/workflows/release.yml) runs tests, builds the portable `.exe`, the **setup** installer, checksums, and uploads them to that release.
 
 ### Keyboard and accessibility
 
@@ -95,7 +101,8 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 
 - **Does it move continuously?** No, it waits for your configured idle interval.
 - **Does cursor position drift?** No, it restores to the original point each cycle.
-- **Can I run without Python?** Yes, use the release `.exe` asset.
+- **Can I run without Python?** Yes: either the portable `try-working-hard-v*.exe` or install with `try-working-hard-setup-*.exe`.
+- **Which download do I want for automatic in-app updates?** Install once with **`try-working-hard-setup-*.exe`**. The app’s download-and-launch step always fetches the **setup** installer for the new version, not a replacement portable `.exe`.
 - **Can it start in tray?** Yes, launch with `--start-in-tray`.
 - **Can it be used to bypass policy controls?** No.
 

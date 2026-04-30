@@ -41,6 +41,15 @@ For faster startup and easier AV debugging, you can generate a **folder** build 
 
 Unsigned Windows executables are sometimes flagged by **SmartScreen** or heuristics. Code signing and reputation over time help; the project does not provide signing. Users may need to use “Run anyway” or an enterprise allowlist.
 
+### Portable `.exe` vs Inno Setup (`*-setup-*.exe`) and in-app updates
+
+Each tagged release attaches:
+
+- **`try-working-hard-vX.Y.Z.exe`** — PyInstaller **one-file** build. Good for copying to a folder or USB with no installer.
+- **`try-working-hard-setup-vX.Y.Z.exe`** — **Inno Setup** installer produced from [`packaging/try-working-hard.iss`](../packaging/try-working-hard.iss).
+
+The in-app updater (`mouse_jiggler/updater.py`, used from Settings and the update banner) **selects the installer asset** (names containing `setup` or `installer` are preferred when several `.exe` files are on the same release). It downloads that file, verifies **SHA256** against the optional checksums asset when the checksum file lists the same filename, then launches the installer. **That end-to-end “download and run the new installer” behavior is the supported automatic upgrade path for users who installed with the `*-setup-*.exe` build.** Portable-only users can still check for updates, but the offered file is the **installer**—run it to move to an installed layout, or upgrade the portable app by downloading a newer `try-working-hard-v*.exe` manually from GitHub **Assets**.
+
 ### Optional: console build (debugging)
 
 To see stderr when something fails at launch, add a second spec (or one-off command) with `console=True` in the `EXE(…)` call so a terminal stays attached. The default published build stays **windowed** for a cleaner end-user experience.

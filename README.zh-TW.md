@@ -48,12 +48,16 @@ uv run try-working-hard
 uv run python -m mouse_jiggler
 ```
 
-### Windows 單檔執行檔（不需安裝 Python）
+### Windows 單檔執行檔與安裝程式（不需安裝 Python）
 
-在 **GitHub Releases** 會提供含版本號的單一執行檔：`try-working-hard-vX.Y.Z.exe`（例如 `try-working-hard-v1.3.0.exe`，PyInstaller 打包、無主控台視窗）。請到對應版本的 **Assets** 下載後直接執行。
+同一版 **GitHub Releases** 會提供兩種 Windows 下載：
+
+1. **`try-working-hard-vX.Y.Z.exe`** — **可攜式單檔**（PyInstaller、無主控台）。到 **Assets** 下載後可放在任意資料夾執行，不經過安裝程式。升級此用法時，請自行下載新版 `.exe` 並**替換檔案**（或保留多個版本擇一執行）。
+
+2. **`try-working-hard-setup-vX.Y.Z.exe`** — **Inno Setup 安裝程式**（捷徑與一般安裝路徑）。**程式內建的「自動更新」流程是以此安裝包為主**：檢查更新後會下載 **`setup`** 安裝檔（與可攜式單檔並列時優先選安裝程式），必要時用 `try-working-hard-vX.Y.Z-checksums.txt` 驗證 SHA256，存到 **下載資料夾**（若無則改存到與 `config.json` 相同目錄），再幫你開啟安裝程式完成升級。**若要依賴這套一鍵下載＋執行安裝程式的機制，第一次請務必用 `try-working-hard-setup-*.exe` 安裝本軟體。** 若你只用可攜式單檔，仍會收到更新提示，但下載的會是**安裝程式**—可執行它以改為安裝版並延續相同更新方式；若不想改為安裝版，請自行到 **Assets** 下載新版可攜式 `.exe`。
 
 - 自行或 CI 如何建置：見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)（含 SmartScreen／防毒說明，以及 Briefcase 等替代方案簡介）。
-- **發佈方式：** 推送 `v*` 標籤（例如 `v1.0.0`），[`.github/workflows/release.yml`](.github/workflows/release.yml) 會跑測試、建置並上傳至該 GitHub Release。
+- **發佈方式：** 推送 `v*` 標籤（例如 `v1.0.0`），[`.github/workflows/release.yml`](.github/workflows/release.yml) 會跑測試、建置可攜式 `.exe`、**setup** 安裝程式與 checksums，並上傳至該 GitHub Release。
 
 ### 鍵盤與無障礙
 
@@ -95,7 +99,8 @@ uv run python -m mouse_jiggler
 
 - **會一直移動滑鼠嗎？** 不會，必須先達到你設定的閒置時間。
 - **游標會飄移嗎？** 不會，每次微動後會回到原位置。
-- **不裝 Python 能用嗎？** 可以，下載 release 的 `.exe`。
+- **不裝 Python 能用嗎？** 可以，使用可攜式 `try-working-hard-v*.exe`，或用 `try-working-hard-setup-*.exe` 安裝。
+- **想用程式內自動更新要下載哪個？** 請用 **`try-working-hard-setup-*.exe` 安裝**；內建更新會下載並執行新版的 **setup** 安裝程式，不會改為下載可攜式單檔取代你手上的 `.exe`。
 - **可以直接縮在系統匣啟動嗎？** 可以，使用 `--start-in-tray`。
 - **能用來規避公司規範嗎？** 不可以。
 
