@@ -2,10 +2,10 @@
 
 ![try-working-hard UI demo](img/try-working-hard-v.1.2.0.gif)
 
-**Languages:** English (this file) · [正體中文](README.zh-TW.md)  
-Windows desktop utility that nudges the cursor only after real idle time.  
-Modes: `Pattern` (line/circle/square) or `Natural` (irregular micro-moves).  
-Cursor returns to original position after each cycle.  
+**Languages:** English (this file) · [正體中文](README.zh-TW.md)
+Windows desktop utility that nudges the cursor only after real idle time.
+Modes: `Pattern` (line/circle/square) or `Natural` (irregular micro-moves).
+Cursor returns to original position after each cycle.
 Use only in lawful, compliant personal scenarios.
 
 **30-second start**
