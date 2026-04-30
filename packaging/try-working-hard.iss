@@ -16,7 +16,8 @@ AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
-OutputDir=dist
+; Paths are relative to this .iss file (packaging/). PyInstaller writes to repo-root dist/.
+OutputDir=..\dist
 OutputBaseFilename=try-working-hard-setup-v{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
@@ -30,7 +31,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "dist\try-working-hard.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\try-working-hard.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
