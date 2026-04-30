@@ -267,7 +267,7 @@ def render_patterns_figure(
     fp: FontProperties,
     palette: ChartPalette,
     days_map: dict[str, dict],
-    labels: tuple[str, str, str],
+    labels: tuple[str, str, str, str],
     empty_msg: str,
 ) -> None:
     fig.clear()
@@ -275,7 +275,7 @@ def render_patterns_figure(
     ax = fig.add_subplot(111)
     ax.set_facecolor(palette.ax_face)
 
-    total_h = total_c = total_s = 0
+    total_h = total_c = total_s = total_n = 0
     for _key, raw in days_map.items():
         if not isinstance(raw, dict):
             continue
@@ -285,8 +285,9 @@ def render_patterns_figure(
         total_h += int(pat.get("horizontal", 0) or 0)
         total_c += int(pat.get("circle", 0) or 0)
         total_s += int(pat.get("square", 0) or 0)
+        total_n += int(pat.get("natural", 0) or 0)
 
-    sizes = [total_h, total_c, total_s]
+    sizes = [total_h, total_c, total_s, total_n]
     total = sum(sizes)
 
     if total == 0:
@@ -303,8 +304,8 @@ def render_patterns_figure(
         )
         ax.axis("off")
     else:
-        colors_pie = ("#58A6FF", "#3FB950", "#E3B341")
-        explode = (0.02, 0.02, 0.02)
+        colors_pie = ("#58A6FF", "#3FB950", "#E3B341", "#A371F7")
+        explode = (0.02, 0.02, 0.02, 0.02)
         ax.pie(
             sizes,
             labels=labels,

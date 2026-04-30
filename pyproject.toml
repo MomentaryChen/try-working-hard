@@ -1,7 +1,7 @@
 [project]
 name = "try-working-hard"
-version = "1.2.0"
-description = "try-working-hard：定時輕微移動滑鼠（Windows GUI）"
+version = "1.3.0"
+description = "Scheduled subtle mouse movement on Windows (GUI)."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
@@ -24,13 +24,14 @@ build = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-# 專案名稱為 try-working-hard 時，hatchling 預設會找 try_working_hard 目錄；
-# 實際套件目錄為 mouse_jiggler，須明確指定。
+# With project name try-working-hard, hatchling defaults to a try_working_hard package dir;
+# the real package is mouse_jiggler, so we pin it explicitly.
 [tool.hatch.build.targets.wheel]
 packages = ["mouse_jiggler"]
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.2.0",
     "pytest>=8.0",
 ]
 

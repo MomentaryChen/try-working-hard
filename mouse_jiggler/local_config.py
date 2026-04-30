@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from . import nudge_logic, schedule_window
-from .cursor_nudge import MotionPattern
+from .cursor_nudge import ActivityStyle, MotionPattern
 
 Lang = Literal["zh", "en"]
 
@@ -34,11 +34,18 @@ def _defaults() -> dict[str, Any]:
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
         "path_speed_text": str(nudge_logic.DEFAULT_PATH_SPEED),
         "motion_pattern": "horizontal",
+        "activity_style": "pattern",
+        "natural_rare_click": False,
+        "natural_rare_scroll": False,
         "close_to_tray": False,
         "intro_acknowledged": False,
         "schedule_window": False,
         "schedule_window_start_text": "09:00",
         "schedule_window_end_text": "18:00",
+        "auto_check_updates": True,
+        "schedule_window_segments_text": "09:00-18:00",
+        "schedule_include_weekends": False,
+        "schedule_cron_text": "",
     }
 
 
@@ -98,6 +105,18 @@ def _sanitize_motion_pattern(raw: object) -> MotionPattern | None:
     return None
 
 
+def _sanitize_activity_style(raw: object) -> ActivityStyle | None:
+    if raw in ("pattern", "natural"):
+        return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_natural_flag(raw: object) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
+    return None
+
+
 def _sanitize_path_speed_text(raw: object, *, fallback: str) -> str:
     if not isinstance(raw, str):
         return fallback
@@ -129,12 +148,45 @@ def _sanitize_schedule_window(raw: object) -> bool | None:
     return None
 
 
+def _sanitize_auto_check_updates(raw: object) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
+    return None
+
+
 def _sanitize_hhmm_text(raw: object, *, fallback: str) -> str:
     if not isinstance(raw, str):
         return fallback
     s = raw.strip()[:8]
     if schedule_window.parse_hhmm(s) is None:
         return fallback
+    return s
+
+
+def _sanitize_schedule_segments_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:256]
+    if schedule_window.parse_time_segments(s) is None:
+        return fallback
+    return s
+
+
+def _sanitize_schedule_include_weekends(raw: object) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
+    return None
+
+
+def _sanitize_schedule_cron_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:512]
+    if not s:
+        return ""
+    for part in [p.strip() for p in s.split(";") if p.strip()]:
+        if schedule_window.parse_cron_like(part) is None:
+            return fallback
     return s
 
 
@@ -190,6 +242,16 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     if mp is not None:
         out["motion_pattern"] = mp
 
+    ast = _sanitize_activity_style(raw.get("activity_style"))
+    if ast is not None:
+        out["activity_style"] = ast
+    nrc = _sanitize_natural_flag(raw.get("natural_rare_click"))
+    if nrc is not None:
+        out["natural_rare_click"] = nrc
+    nrs = _sanitize_natural_flag(raw.get("natural_rare_scroll"))
+    if nrs is not None:
+        out["natural_rare_scroll"] = nrs
+
     ctt = _sanitize_close_to_tray(raw.get("close_to_tray"))
     if ctt is not None:
         out["close_to_tray"] = ctt
@@ -211,6 +273,20 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     out["schedule_window_end_text"] = _sanitize_hhmm_text(
         raw.get("schedule_window_end_text"), fallback=fb_end
     )
+    acu = _sanitize_auto_check_updates(raw.get("auto_check_updates"))
+    if acu is not None:
+        out["auto_check_updates"] = acu
+    fb_segments = out["schedule_window_segments_text"]
+    out["schedule_window_segments_text"] = _sanitize_schedule_segments_text(
+        raw.get("schedule_window_segments_text"), fallback=fb_segments
+    )
+    siw = _sanitize_schedule_include_weekends(raw.get("schedule_include_weekends"))
+    if siw is not None:
+        out["schedule_include_weekends"] = siw
+    fb_cron = out["schedule_cron_text"]
+    out["schedule_cron_text"] = _sanitize_schedule_cron_text(
+        raw.get("schedule_cron_text"), fallback=fb_cron
+    )
 
     out["version"] = CONFIG_VERSION
     return out
@@ -223,9 +299,15 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     ctt = _sanitize_close_to_tray(data.get("close_to_tray"))
     ia = _sanitize_intro_acknowledged(data.get("intro_acknowledged"))
     sw = _sanitize_schedule_window(data.get("schedule_window"))
+    acu = _sanitize_auto_check_updates(data.get("auto_check_updates"))
+    nrc = _sanitize_natural_flag(data.get("natural_rare_click"))
+    nrs = _sanitize_natural_flag(data.get("natural_rare_scroll"))
     unit = _sanitize_interval_unit(data.get("interval_unit")) or base["interval_unit"]
     fb_start = base["schedule_window_start_text"]
     fb_end = base["schedule_window_end_text"]
+    fb_segments = base["schedule_window_segments_text"]
+    siw = _sanitize_schedule_include_weekends(data.get("schedule_include_weekends"))
+    fb_cron = base["schedule_cron_text"]
     payload = {
         "version": CONFIG_VERSION,
         "lang": _sanitize_lang(data.get("lang")) or base["lang"],
@@ -245,6 +327,10 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         ),
         "motion_pattern": _sanitize_motion_pattern(data.get("motion_pattern"))
         or base["motion_pattern"],
+        "activity_style": _sanitize_activity_style(data.get("activity_style"))
+        or base["activity_style"],
+        "natural_rare_click": nrc if nrc is not None else base["natural_rare_click"],
+        "natural_rare_scroll": nrs if nrs is not None else base["natural_rare_scroll"],
         "close_to_tray": ctt if ctt is not None else base["close_to_tray"],
         "intro_acknowledged": ia if ia is not None else base["intro_acknowledged"],
         "schedule_window": sw if sw is not None else base["schedule_window"],
@@ -253,6 +339,16 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         ),
         "schedule_window_end_text": _sanitize_hhmm_text(
             data.get("schedule_window_end_text"), fallback=fb_end
+        ),
+        "auto_check_updates": acu if acu is not None else base["auto_check_updates"],
+        "schedule_window_segments_text": _sanitize_schedule_segments_text(
+            data.get("schedule_window_segments_text"), fallback=fb_segments
+        ),
+        "schedule_include_weekends": (
+            siw if siw is not None else base["schedule_include_weekends"]
+        ),
+        "schedule_cron_text": _sanitize_schedule_cron_text(
+            data.get("schedule_cron_text"), fallback=fb_cron
         ),
     }
     try:

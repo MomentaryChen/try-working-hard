@@ -1,8 +1,31 @@
 # try-working-hard
 
-**Languages:** English (this file) · [正體中文](README.zh-TW.md)
+![try-working-hard UI demo](img/try-working-hard-v.1.2.0.gif)
 
-Nudges the mouse along a small path (line, circle, or square) and restores it **only after** the chosen interval elapses with **no keyboard or mouse input** (Windows `GetLastInputInfo`), with a GUI for the interval and options. For **lawful personal use only** (for example, keeping the screen awake during a presentation or reading). You must comply with applicable laws, employer or school policies, and service terms.
+**Languages:** English (this file) · [正體中文](README.zh-TW.md)  
+Windows desktop utility that nudges the cursor only after real idle time.  
+Modes: `Pattern` (line/circle/square) or `Natural` (irregular micro-moves).  
+Cursor returns to original position after each cycle.  
+Use only in lawful, compliant personal scenarios.
+
+**30-second start**
+1. `uv sync`
+2. `uv run try-working-hard`
+3. Set Interval + mode
+4. Click **Start** on Home and watch countdown
+
+**Need more detail?** See [Usage](#usage) and [FAQ (quick)](#faq-quick) below.
+
+## Contents
+
+- [Requirements](#requirements)
+- [Install and run](#install-and-run)
+- [Usage](#usage)
+- [FAQ (quick)](#faq-quick)
+- [Technical notes](#technical-notes)
+- [Limitations](#limitations)
+- [Disclaimer](#disclaimer)
+- [License](#license)
 
 ## Requirements
 
@@ -27,36 +50,60 @@ uv run python -m mouse_jiggler
 
 ### Windows executable (no Python)
 
-Tagged releases on **GitHub** attach a **single-file** build: `try-working-hard.exe` (PyInstaller, one-file, no console). Download it from the **Releases** page for the version you want (for example `v1.2.0`) and run the file.
+Tagged releases on **GitHub** attach a **single-file** build named with the tag version: `try-working-hard-vX.Y.Z.exe` (for example `try-working-hard-v1.3.0.exe`, PyInstaller one-file, no console). Download the asset for your target release and run it directly.
 
 - How the `.exe` is built locally or in CI: [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md) (also covers SmartScreen, alternatives such as Briefcase at a high level).
-- **Tag a release:** push a `v*` tag (for example `v1.2.0`); [`.github/workflows/release.yml`](.github/workflows/release.yml) runs tests, builds the executable, and uploads it to that release.
+- **Tag a release:** push a `v*` tag (for example `v1.0.0`); [`.github/workflows/release.yml`](.github/workflows/release.yml) runs tests, builds the executable, and uploads it to that release.
 
 ### Keyboard and accessibility
 
-- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **Enter** / **Esc** do the same while the **main window is visible** (they do nothing when the app is only in the **system tray**). **F6** toggles Control / Log. You can **click the interval, interval jitter, nudge, path speed, and path labels** to focus the matching field; **30s / 1m / 5m / 10m** under the interval field apply a quick preset. **Tab / Shift+Tab** moves between controls.
+- **F1** opens a help dialog with shortcuts. **F2 / F3 / F4** switch main areas; on **Home → Control**, **F5** starts and **Shift+F5** stops when available; **Enter** / **Esc** do the same while the **main window is visible** (they do nothing when the app is only in the **system tray**). **F6** toggles Control / Log. You can **click the interval, interval jitter, nudge, path speed, activity, and path labels** to focus the matching field; **30s / 1m / 5m / 10m** under the interval field apply a quick preset. **Tab / Shift+Tab** moves between controls.
 - CustomTkinter draws many controls on a **canvas**, so **screen reader** coverage is not the same as for fully native Win32 UIs. Details: [docs/ACCESSIBILITY.md](docs/ACCESSIBILITY.md).
 
 ## Usage
 
-1. The main window **opens maximized**; use the title bar to restore or resize as needed.
-2. On **Settings**, the page title stays fixed while options are shown in a bordered card; **scroll inside the card** when the window is short to reach every control. Choose **Appearance** (**Dark** or **Light** -> `ui_theme`, default **light**) and language (**繁中** / English). Optionally enable the **weekday schedule window**: set **Start** / **End** in **HH:MM** (24-hour, Mon-Fri local time only; **end** is exclusive). Stored as `schedule_window`, `schedule_window_start_text`, and `schedule_window_end_text` (defaults **09:00** / **18:00**). On **Windows** with the tray, you may use **Start with Windows** and **Minimize to the system tray when closing** as described later. When the schedule window is on, **Home** shows an extra **summary line beneath the status strip** describing the rule (or asking you to fix invalid times).
-3. Enter the **interval** (minimum **idle** time with no keyboard/mouse input before a nudge); use **min** or **sec** to pick units (minutes allow decimals, e.g. `0.5` ≈ 30 seconds, minimum **0.1** min; seconds follow the same minimum in seconds as **0.1** min). Under the field, use **30s / 1m / 5m / 10m** for a quick set.
-4. Optionally set **Interval jitter (± sec)** (`0` = fixed spacing): each idle-required spacing is drawn uniformly in `[interval − N, interval + N]` seconds (floored at the same minimum as the main interval). Range **0–3600**; saved as `interval_jitter_text`.
-5. Set **nudge size in pixels** (integer, **0–500**). Meaning depends on the path: line = horizontal distance; circle = radius; square = edge length. **0** skips movement for that tick. Default is **100**.
-6. Set **path speed** (integer, **1–10**): how quickly the app traces the line, circle, or square (higher = faster). Default is **5**. Stored in `config.json` as `path_speed_text`.
-7. Choose **motion path**: **Line**, **Circle**, or **Square**—this matches how the nudge size is applied. Saved in `config.json` as `motion_pattern`. The home control area **scrolls** if the window is short.
-8. Click **Start** to begin the schedule; **Stop** ends it. Use **Home** in the sidebar, then the **Control / Log** segmented control to switch between the control panel and the **log** view.
-9. While running, the **status strip** at the top of Home shows the **countdown** to the next possible nudge (`mm:ss`, or `h:mm:ss` after one hour), based on idle time and spacing (at least one full interval between nudges while you stay idle), and a color cue—or a pause countdown when the work-hours limit applies; when stopped, the strip is neutral.
-10. **By default**, closing the window **stops the schedule and exits** the app. If you enable **Minimize to the system tray when closing the window**, closing hides the window and keeps a notification icon while the **schedule keeps running**; right‑click the icon for **Show window** or **Exit** (labels follow the selected language). Advanced: `uv run python -m mouse_jiggler --start-in-tray` (or the same flag on a frozen **.exe`) starts in the tray only, without showing the main window at first.
-11. On **Settings**, use **Open config file** to open `config.json` (under `%APPDATA%\try-working-hard\` on Windows, or `~/.try-working-hard/` if `APPDATA` is unset) in the default application; if the file does not exist yet, the app writes the current settings first.
-12. **Analytics** (sidebar) shows **Matplotlib** charts (nudge counts, daily scheduled uptime, path mix) and mirrors the **Home** log in a read-only text area. Usage stats are persisted as **`analytics.json`** in the **same folder** as `config.json`.
+### Quick start (recommended)
+
+1. Launch the app and pick language in the startup prompt.
+2. Set **Interval** (use `30s / 1m / 5m / 10m` presets if you want).
+3. Choose **Activity** (`Pattern` or `Natural`) and set nudge size.
+4. Click **Start** on Home -> Control.
+5. Watch the top status strip for the next-nudge countdown.
+
+### Most used settings
+
+- **Interval:** minimum idle time before a nudge.
+- **Interval jitter:** randomizes spacing (`interval ± N sec`).
+- **Nudge size / Path speed:** controls distance and movement speed.
+- **Schedule window:** optional active hours (`HH:MM` start/end) plus advanced segments/cron in `config.json`.
+- **Tray behavior:** default close = stop and exit; optional close-to-tray keeps running.
+
+### Keyboard and workflow shortcuts
+
+- **F1** help, **F2/F3/F4** switch main areas, **F6** toggle Control/Log.
+- On Home -> Control: **F5** start, **Shift+F5** stop.
+- **Enter / Esc** map to start/stop only while the main window is visible.
+
+### Detailed reference
+
+- Startup prompt includes optional quick guide and stores suppression in `config.json` (`intro_acknowledged`).
+- Settings page supports theme (`ui_theme`), language, update checks (`auto_check_updates`), schedule summary, and opening `config.json`.
+- Analytics page shows Matplotlib charts and persists usage stats to `analytics.json` next to `config.json`.
+- Start-in-tray is available via `uv run python -m mouse_jiggler --start-in-tray` (and for frozen `.exe` with the same flag).
+
+## FAQ (quick)
+
+- **Does it move continuously?** No, it waits for your configured idle interval.
+- **Does cursor position drift?** No, it restores to the original point each cycle.
+- **Can I run without Python?** Yes, use the release `.exe` asset.
+- **Can it start in tray?** Yes, launch with `--start-in-tray`.
+- **Can it be used to bypass policy controls?** No.
 
 ## Technical notes
 
-- GUI: **CustomTkinter** — **light** mode: built-in `blue` theme, **#F9FAFB** app background, **#F3F4F6** sidebar, **#FFFFFF** card panels. **Dark** mode: `dark` + `dark-blue` with a dark surface palette. **Home** uses a segmented control for Control / Log.
+- GUI: **CustomTkinter** — **light** mode now uses a cleaner SaaS palette (`#F5F7FB` background, `#FFFFFF` sidebar/cards, `#E2E8F0` borders) with blue accent states (`#3B82F6` / `#2563EB` / `#1D4ED8`). **Dark** mode now uses a modern dark palette (`#1E1E2E` background, `#181825` sidebar, `#24273A` cards, `#313244` borders) with cool-blue accent states (`#89B4FA` / `#74C7EC` / `#B4BEFE`). **Home** uses a segmented control for Control / Log.
 - **Analytics**: **Matplotlib** figures embedded via **TkAgg**; persisted aggregates in **`analytics.json`** next to **`config.json`**.
-- Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`; schedule uses `user32.GetLastInputInfo` with `kernel32.GetTickCount` for idle time
+- Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`; **Natural** mode may also call `mouse_event` for rare left clicks and wheel deltas. Schedule uses `user32.GetLastInputInfo` with `kernel32.GetTickCount` for idle time
 - Tray: **pystray**; icon: **Pillow** (shared PNG for window, tray, and—when rebuilt—[`packaging/app.ico`](packaging/app.ico) for the `.exe`; see [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md))
 
 ## Limitations

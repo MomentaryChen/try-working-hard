@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import random
 from unittest.mock import MagicMock
 
-from mouse_jiggler.cursor_nudge import nudge_horizontal, nudge_trajectory
+from mouse_jiggler.cursor_nudge import nudge_horizontal, nudge_natural, nudge_trajectory
 
 
 def test_nudge_horizontal_zero_no_io() -> None:
@@ -91,3 +92,19 @@ def test_nudge_pattern_zero_or_negative_no_set_pos() -> None:
     get_pos.assert_not_called()
     set_pos.assert_not_called()
     sleep.assert_not_called()
+
+
+def test_nudge_natural_restores_start() -> None:
+    get_pos = MagicMock(return_value=(100, 200))
+    set_pos = MagicMock()
+    sleep = MagicMock()
+    rng = random.Random(42)
+    nudge_natural(
+        24,
+        5,
+        get_pos=get_pos,
+        set_pos=set_pos,
+        sleep=sleep,
+        rng=rng,
+    )
+    set_pos.assert_called_with(100, 200)
