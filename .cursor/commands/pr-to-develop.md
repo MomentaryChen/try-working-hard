@@ -25,3 +25,11 @@ pwsh -NoProfile -File scripts/open-pr-to-develop.ps1
 - Not on `develop`, `master`, or `main`
 
 Uncommitted changes are warned and are **not** included until you commit and run again.
+
+## Summary example for this task
+
+Use this when the task is the Contact Us dialog improvement:
+
+- Added a confirmation dialog for `Contact us` before opening GitHub Issues.
+- Updated zh/en copy to include clearer support guidance and contact details (`Momentary (Victor Chen)`, `zzser15963`).
+- Kept one-click issue opening behavior after explicit user confirmation.

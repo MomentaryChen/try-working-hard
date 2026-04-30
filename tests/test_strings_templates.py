@@ -18,7 +18,7 @@ def test_status_running_min_template(lang: str) -> None:
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_status_running_sec_template(lang: str) -> None:
     s = STRINGS[lang]["status_running_sec"]
-    out = s.format(v=30.0, cd="0:12")
+    out = s.format(v=30.0, md=10, cd="0:12")
     assert "0:12" in out
     assert len(out) > 10
 
@@ -26,39 +26,48 @@ def test_status_running_sec_template(lang: str) -> None:
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_error_templates(lang: str) -> None:
     assert "0.1" in STRINGS[lang]["err_minutes"].format(min=0.1)
-    assert STRINGS[lang]["err_seconds"].format(min=6.0)
-    assert STRINGS[lang]["err_jitter"].format(max=3600)
+    assert STRINGS[lang]["err_seconds"].format(min=5.0, max=600.0)
+    assert STRINGS[lang]["err_jitter"].format(max=600)
     assert STRINGS[lang]["err_pixels"].format(lo=0, hi=500)
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_log_started_min_template(lang: str) -> None:
     line = STRINGS[lang]["log_started_min"].format(
-        v=2, sec=120, pat="circle", px=50, ps=7
+        v=2, sec=120, pat="circle", px=50, ps=7, md=150
     )
     assert "50" in line
     assert "7" in line
+    assert "150" in line
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_log_started_sec_template(lang: str) -> None:
     line = STRINGS[lang]["log_started_sec"].format(
-        v=30, pat="line", px=50, ps=5
+        v=30, pat="line", px=50, ps=5, md=100
     )
     assert "50" in line
     assert "5" in line
+    assert "100" in line
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
 def test_log_started_jitter_templates(lang: str) -> None:
     m = STRINGS[lang]["log_started_min_jitter"].format(
-        v=5, sec=300, j=60, pat="line", px=10, ps=5
+        v=5, sec=300, j=60, pat="line", px=10, ps=5, md=100
     )
     assert "60" in m or "60" in m.replace(" ", "")
     s = STRINGS[lang]["log_started_sec_jitter"].format(
-        v=30, j=5, pat="line", px=10, ps=5
+        v=30, j=5, pat="line", px=10, ps=5, md=200
     )
     assert "5" in s
+    assert "200" in s
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_motion_duration_templates(lang: str) -> None:
+    assert STRINGS[lang]["err_motion_duration"].format(lo=1, hi=60)
+    assert STRINGS[lang]["motion_duration_hint"].format(lo=1, hi=60)
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
@@ -69,10 +78,17 @@ def test_status_schedule_wait_template(lang: str) -> None:
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])
+def test_status_motion_burst_template(lang: str) -> None:
+    out = STRINGS[lang]["status_motion_burst"].format(md=12, cd="0:08")
+    assert "12" in out
+    assert "0:08" in out
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
 def test_path_speed_templates(lang: str) -> None:
-    assert STRINGS[lang]["err_path_speed"].format(lo=1, hi=10)
-    assert STRINGS[lang]["path_speed_hint"].format(lo=1, hi=10)
-    assert STRINGS[lang]["path_speed_hint_natural"].format(lo=1, hi=10)
+    assert STRINGS[lang]["err_path_speed"].format(lo=0, hi=30)
+    assert STRINGS[lang]["path_speed_hint"].format(lo=0, hi=30)
+    assert STRINGS[lang]["path_speed_hint_natural"].format(lo=0, hi=30)
 
 
 @pytest.mark.parametrize("lang", ["zh", "en"])

@@ -1,9 +1,9 @@
-# try-working-hard
+# 二次努力
 
-![try-working-hard 介面示意](img/try-working-hard-v.1.2.0.gif)
+![二次努力 介面示意](img/try-working-hard-v2.0.0.gif)
 
 **語言：** [English](README.md) · 正體中文（本頁）
-Windows 桌面工具：只有在真實閒置達門檻時才微動游標。
+**二次努力**（開發／套件名稱 `try-working-hard`）為 Windows 桌面工具：只有在真實閒置達門檻時才微動游標。
 模式：`路徑模式`（直線/圓形/方形）或 `自然模式`（不規則微移）。
 每次微動後游標會回到原位置。
 請僅用於合法且符合規範的個人情境。
@@ -18,14 +18,22 @@ Windows 桌面工具：只有在真實閒置達門檻時才微動游標。
 
 ## 目錄
 
-- [環境需求](#環境需求)
-- [安裝與執行](#安裝與執行)
-- [使用方式](#使用方式)
-- [常見問題（快速版）](#常見問題快速版)
-- [技術說明](#技術說明)
-- [限制與注意](#限制與注意)
-- [免責聲明](#免責聲明)
-- [授權](#授權)
+- [二次努力](#二次努力)
+  - [目錄](#目錄)
+  - [環境需求](#環境需求)
+  - [安裝與執行](#安裝與執行)
+    - [Windows 單檔執行檔（不需安裝 Python）](#windows-單檔執行檔不需安裝-python)
+    - [鍵盤與無障礙](#鍵盤與無障礙)
+  - [使用方式](#使用方式)
+    - [快速開始（建議）](#快速開始建議)
+    - [最常用設定](#最常用設定)
+    - [快捷鍵與操作習慣](#快捷鍵與操作習慣)
+    - [詳細參考](#詳細參考)
+  - [常見問題（快速版）](#常見問題快速版)
+  - [技術說明](#技術說明)
+  - [限制與注意](#限制與注意)
+  - [免責聲明](#免責聲明)
+  - [授權](#授權)
 
 ## 環境需求
 
@@ -50,7 +58,7 @@ uv run python -m mouse_jiggler
 
 ### Windows 單檔執行檔（不需安裝 Python）
 
-在 **GitHub Releases** 會提供含版本號的單一執行檔：`try-working-hard-vX.Y.Z.exe`（例如 `try-working-hard-v1.3.0.exe`，PyInstaller 打包、無主控台視窗）。請到對應版本的 **Assets** 下載後直接執行。
+在 **GitHub Releases** 會提供含版本號的單一執行檔：`try-working-hard-vX.Y.Z.exe`（例如 `try-working-hard-v2.0.0.exe`，PyInstaller 打包、無主控台視窗）。請到對應版本的 **Assets** 下載後直接執行。
 
 - 自行或 CI 如何建置：見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)（含 SmartScreen／防毒說明，以及 Briefcase 等替代方案簡介）。
 - **發佈方式：** 推送 `v*` 標籤（例如 `v1.0.0`），[`.github/workflows/release.yml`](.github/workflows/release.yml) 會跑測試、建置並上傳至該 GitHub Release。

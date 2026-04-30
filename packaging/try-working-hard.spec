@@ -8,6 +8,7 @@ from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_sub
 _sp = os.path.abspath(SPECPATH)
 _spec_dir = _sp if os.path.isdir(_sp) else os.path.dirname(_sp)
 _ROOT = os.path.normpath(os.path.join(_spec_dir, ".."))
+_VERSION_FILE = os.environ.get("TWH_PYI_VERSION_FILE")
 
 
 datas: list = []
@@ -64,4 +65,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon=_ICO if os.path.isfile(_ICO) else None,
+    version=_VERSION_FILE if (_VERSION_FILE and os.path.isfile(_VERSION_FILE)) else None,
 )

@@ -1,8 +1,11 @@
 # try-working-hard
 
-![try-working-hard UI demo](img/try-working-hard-v.1.2.0.gif)
+![try-working-hard UI demo](/img/try-working-hard-v2.0.0.gif)
 
 **Languages:** English (this file) · [正體中文](README.zh-TW.md)
+
+**Chinese product name:** **二次努力** (shown in the Traditional Chinese UI, installer, and [README.zh-TW.md](README.zh-TW.md); repository and PyPI package remain `try-working-hard`).
+
 Windows desktop utility that nudges the cursor only after real idle time.
 Modes: `Pattern` (line/circle/square) or `Natural` (irregular micro-moves).
 Cursor returns to original position after each cycle.
@@ -18,14 +21,22 @@ Use only in lawful, compliant personal scenarios.
 
 ## Contents
 
-- [Requirements](#requirements)
-- [Install and run](#install-and-run)
-- [Usage](#usage)
-- [FAQ (quick)](#faq-quick)
-- [Technical notes](#technical-notes)
-- [Limitations](#limitations)
-- [Disclaimer](#disclaimer)
-- [License](#license)
+- [try-working-hard](#try-working-hard)
+  - [Contents](#contents)
+  - [Requirements](#requirements)
+  - [Install and run](#install-and-run)
+    - [Windows executable (no Python)](#windows-executable-no-python)
+    - [Keyboard and accessibility](#keyboard-and-accessibility)
+  - [Usage](#usage)
+    - [Quick start (recommended)](#quick-start-recommended)
+    - [Most used settings](#most-used-settings)
+    - [Keyboard and workflow shortcuts](#keyboard-and-workflow-shortcuts)
+    - [Detailed reference](#detailed-reference)
+  - [FAQ (quick)](#faq-quick)
+  - [Technical notes](#technical-notes)
+  - [Limitations](#limitations)
+  - [Disclaimer](#disclaimer)
+  - [License](#license)
 
 ## Requirements
 
@@ -50,7 +61,7 @@ uv run python -m mouse_jiggler
 
 ### Windows executable (no Python)
 
-Tagged releases on **GitHub** attach a **single-file** build named with the tag version: `try-working-hard-vX.Y.Z.exe` (for example `try-working-hard-v1.3.0.exe`, PyInstaller one-file, no console). Download the asset for your target release and run it directly.
+Tagged releases on **GitHub** attach a **single-file** build named with the tag version: `try-working-hard-vX.Y.Z.exe` (for example `try-working-hard-v2.0.0.exe`, PyInstaller one-file, no console). Download the asset for your target release and run it directly.
 
 - How the `.exe` is built locally or in CI: [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md) (also covers SmartScreen, alternatives such as Briefcase at a high level).
 - **Tag a release:** push a `v*` tag (for example `v1.0.0`); [`.github/workflows/release.yml`](.github/workflows/release.yml) runs tests, builds the executable, and uploads it to that release.

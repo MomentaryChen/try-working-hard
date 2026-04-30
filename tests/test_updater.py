@@ -55,6 +55,47 @@ def test_choose_windows_installer_asset_prefers_setup_over_plain_exe() -> None:
     asset = updater.choose_windows_installer_asset(release)
     assert asset is not None
     assert asset["name"] == "try-working-hard-setup-v1.2.0.exe"
+
+
+def test_choose_windows_installer_asset_prefers_newer_setup_when_tag_not_in_names() -> None:
+    """If several setup exes share the same score, pick the highest version in the filename."""
+    release = {
+        "tag": "v9.9.9",
+        "assets": [
+            {
+                "name": "try-working-hard-setup-v1.0.0.exe",
+                "url": "https://example.com/old-setup.exe",
+            },
+            {
+                "name": "try-working-hard-setup-v2.0.0.exe",
+                "url": "https://example.com/new-setup.exe",
+            },
+        ],
+    }
+    asset = updater.choose_windows_installer_asset(release)
+    assert asset is not None
+    assert asset["name"] == "try-working-hard-setup-v2.0.0.exe"
+
+
+def test_choose_windows_installer_asset_prefers_filename_matching_tag_over_newer_mismatch() -> None:
+    release = {
+        "tag": "v1.2.0",
+        "assets": [
+            {
+                "name": "try-working-hard-setup-v1.2.0.exe",
+                "url": "https://example.com/correct-setup.exe",
+            },
+            {
+                "name": "try-working-hard-setup-v9.0.0.exe",
+                "url": "https://example.com/stray-setup.exe",
+            },
+        ],
+    }
+    asset = updater.choose_windows_installer_asset(release)
+    assert asset is not None
+    assert asset["name"] == "try-working-hard-setup-v1.2.0.exe"
+
+
 def test_choose_windows_installer_asset_returns_none_without_exe() -> None:
     release = {
         "tag": "v1.2.0",

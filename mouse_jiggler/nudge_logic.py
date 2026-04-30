@@ -6,20 +6,26 @@ import math
 import random
 from typing import Literal
 
-MIN_MINUTES = 0.1
+MIN_MINUTES = 0.0
 DEFAULT_MINUTES = 5.0
-# Minimum interval in seconds (matches 0.1 min) so the floor is the same in both unit modes.
-MIN_SECONDS = MIN_MINUTES * 60.0
+MIN_SECONDS = 5.0
+MAX_SECONDS = 600.0
 MIN_PIXELS = 0
 MAX_PIXELS = 500
+# Natural mode may use a larger wander radius than geometric patterns.
+MAX_NATURAL_PIXELS = 1000
 DEFAULT_PIXELS = 100
-# Path trace speed 1–10: higher = faster along line / circle / square.
-MIN_PATH_SPEED = 1
-MAX_PATH_SPEED = 10
+# Scales every cursor step delay relative to the default duration (10 sec = 1x).
+MIN_MOTION_DURATION_SECONDS = 1
+MAX_MOTION_DURATION_SECONDS = 60
+DEFAULT_MOTION_DURATION_SECONDS = 10
+# Path trace speed 0–30: higher = faster along line / circle / square.
+MIN_PATH_SPEED = 0
+MAX_PATH_SPEED = 30
 DEFAULT_PATH_SPEED = 5
 LOG_TRIM_LINES = 48
 # Upper bound for ± jitter (seconds) in the UI and config.
-MAX_INTERVAL_JITTER_SEC = 3600.0
+MAX_INTERVAL_JITTER_SEC = 600.0
 
 
 def parse_minutes_string(raw: str, *, min_minutes: float = MIN_MINUTES) -> float | None:
@@ -37,26 +43,33 @@ def parse_minutes_string(raw: str, *, min_minutes: float = MIN_MINUTES) -> float
 IntervalUnit = Literal["min", "sec"]
 
 
-def parse_seconds_string(raw: str, *, min_seconds: float = MIN_SECONDS) -> float | None:
-    """Parse interval seconds; ``None`` if invalid or below ``min_seconds``."""
+def parse_seconds_string(
+    raw: str, *, min_seconds: float = MIN_SECONDS, max_seconds: float = MAX_SECONDS
+) -> float | None:
+    """Parse interval seconds; ``None`` if invalid or outside ``[min_seconds, max_seconds]``."""
     s = raw.strip().replace(",", ".")
     try:
         sec = float(s)
     except ValueError:
         return None
-    if not math.isfinite(sec) or sec < min_seconds:
+    if not math.isfinite(sec) or sec < min_seconds or sec > max_seconds:
         return None
     return sec
 
 
 def parse_interval_to_seconds(
-    raw: str, unit: IntervalUnit, *, min_minutes: float = MIN_MINUTES, min_seconds: float = MIN_SECONDS
+    raw: str,
+    unit: IntervalUnit,
+    *,
+    min_minutes: float = MIN_MINUTES,
+    min_seconds: float = MIN_SECONDS,
+    max_seconds: float = MAX_SECONDS,
 ) -> float | None:
     """User-facing interval → seconds, or ``None`` if the value is not allowed for ``unit``."""
     if unit == "min":
         m = parse_minutes_string(raw, min_minutes=min_minutes)
         return None if m is None else m * 60.0
-    s = parse_seconds_string(raw, min_seconds=min_seconds)
+    s = parse_seconds_string(raw, min_seconds=min_seconds, max_seconds=max_seconds)
     return None if s is None else s
 
 
@@ -78,6 +91,26 @@ def parse_path_speed_string(
     if p < min_sp or p > max_sp:
         return None
     return p
+
+
+def parse_motion_duration_seconds_string(
+    raw: str,
+    *,
+    min_seconds: int = MIN_MOTION_DURATION_SECONDS,
+    max_seconds: int = MAX_MOTION_DURATION_SECONDS,
+) -> int | None:
+    """Parse motion duration as integer seconds ``min_seconds``–``max_seconds``; ``None`` if invalid."""
+    s = raw.strip().replace(",", ".")
+    try:
+        f = float(s)
+        if not math.isfinite(f):
+            return None
+        s = int(f)
+    except (ValueError, OverflowError):
+        return None
+    if s < min_seconds or s > max_seconds:
+        return None
+    return s
 
 
 def parse_pixels_string(raw: str, *, min_px: int = MIN_PIXELS, max_px: int = MAX_PIXELS) -> int | None:

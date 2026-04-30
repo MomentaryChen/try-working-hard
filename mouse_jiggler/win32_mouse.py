@@ -8,7 +8,8 @@ import sys
 import time
 from ctypes import wintypes
 
-from .cursor_nudge import MotionPattern, nudge_natural, nudge_trajectory
+from . import nudge_logic
+from .cursor_nudge import MotionInterrupted, MotionPattern, NaturalIntensity, nudge_natural, nudge_trajectory
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -94,43 +95,60 @@ def _mouse_wheel(delta: int) -> None:
 
 
 def jiggle_mouse(
-    delta_pixels: int, pattern: MotionPattern = "horizontal", *, path_speed: int = 5
-) -> None:
+    delta_pixels: int,
+    pattern: MotionPattern = "horizontal",
+    *,
+    path_speed: int = 5,
+    motion_duration_seconds: int = nudge_logic.DEFAULT_MOTION_DURATION_SECONDS,
+) -> bool:
     """
-    Nudge the cursor along a path. ``path_speed`` (1–10) controls how fast the path runs.
+    Nudge the cursor along a path. ``path_speed`` (1–10) controls how fast the path runs;
+    ``motion_duration_seconds`` is the approximate total time for one movement cycle.
     """
     _require_windows()
-    nudge_trajectory(
-        pattern,
-        delta_pixels,
-        path_speed,
-        get_pos=_get_cursor_xy,
-        set_pos=lambda x, y: user32.SetCursorPos(int(x), int(y)),
-        sleep=time.sleep,
-    )
+    try:
+        return nudge_trajectory(
+            pattern,
+            delta_pixels,
+            path_speed,
+            motion_duration_seconds=float(motion_duration_seconds),
+            get_pos=_get_cursor_xy,
+            set_pos=lambda x, y: user32.SetCursorPos(int(x), int(y)),
+            sleep=time.sleep,
+        )
+    except MotionInterrupted:
+        return False
 
 
 def jiggle_natural(
     delta_pixels: int,
     *,
     path_speed: int = 5,
+    motion_duration_seconds: int = nudge_logic.DEFAULT_MOTION_DURATION_SECONDS,
+    intensity: NaturalIntensity = "standard",
     rare_click: bool = False,
     rare_scroll: bool = False,
-) -> None:
+) -> bool:
     """
     Irregular micro-moves within ``delta_pixels`` of the start, then optional low-rate
     left click and/or wheel delta at the restored position.
     """
     rng = random.Random()
-    nudge_natural(
-        delta_pixels,
-        path_speed,
-        get_pos=_get_cursor_xy,
-        set_pos=lambda x, y: user32.SetCursorPos(int(x), int(y)),
-        sleep=time.sleep,
-        rng=rng,
-    )
+    try:
+        completed = nudge_natural(
+            delta_pixels,
+            path_speed,
+            motion_duration_seconds=float(motion_duration_seconds),
+            intensity=intensity,
+            get_pos=_get_cursor_xy,
+            set_pos=lambda x, y: user32.SetCursorPos(int(x), int(y)),
+            sleep=time.sleep,
+            rng=rng,
+        )
+    except MotionInterrupted:
+        return False
     if rare_click and rng.random() < 0.12:
         _mouse_click_left()
     if rare_scroll and rng.random() < 0.14:
         _mouse_wheel(int(rng.choice((120, -120, 240, -240))))
+    return completed
