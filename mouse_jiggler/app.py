@@ -1766,12 +1766,19 @@ class MouseJigglerApp:
 
     def _on_contact_us(self) -> None:
         url = "https://github.com/MomentaryChen/try-working-hard/issues/new/choose"
-        messagebox.showinfo(
+        should_open = messagebox.askyesno(
             self._t("btn_contact_us"),
-            self._t("contact_us_body", url=url),
+            self._t(
+                "contact_us_body",
+                url=url,
+                desc=self._t("contact_us_desc_default"),
+                email="zzser15963",
+                name="Momentary (Victor Chen)",
+            ),
             parent=self.root,
         )
-        webbrowser.open(url, new=2)
+        if should_open:
+            webbrowser.open(url, new=2)
 
     def _maybe_auto_check_updates(self) -> None:
         if self._shutting_down:
