@@ -90,7 +90,13 @@ def fetch_latest_release(timeout_sec: float = 4.0) -> dict[str, Any]:
 
 
 def choose_windows_installer_asset(release: dict[str, Any]) -> dict[str, str] | None:
-    """Pick the best-matching Windows installer (.exe) from release assets."""
+    """Pick the best-matching Windows installer (.exe) from release assets.
+
+    Prefer assets whose filename contains the release ``tag``, then a setup-style
+    name, then the highest version-like tuple parsed from the filename. This
+    avoids picking an older stray ``*-setup-*.exe`` when scores tied only on
+    length (GitHub releases should not mix versions, but mis-uploads happen).
+    """
     tag = str(release.get("tag") or "").strip().lower()
     assets = release.get("assets")
     if not isinstance(assets, list):
@@ -109,18 +115,16 @@ def choose_windows_installer_asset(release: dict[str, Any]) -> dict[str, str] | 
     if not candidates:
         return None
 
-    def _score(asset: dict[str, str]) -> tuple[int, int]:
+    def _rank(asset: dict[str, str]) -> tuple[int, int, int, tuple[int, ...], int]:
         lower = asset["name"].lower()
-        score = 0
-        if "try-working-hard" in lower:
-            score += 3
-        if tag and tag in lower:
-            score += 2
-        if "installer" in lower or "setup" in lower:
-            score += 4
-        return (score, -len(lower))
+        tag_hit = 1 if (tag and tag in lower) else 0
+        setup_hit = 1 if ("installer" in lower or "setup" in lower) else 0
+        project_hit = 1 if "try-working-hard" in lower else 0
+        ver = _version_tuple(lower)
+        # Prefer shorter names only when everything else ties (stable, deterministic).
+        return (tag_hit, setup_hit, project_hit, ver, -len(lower))
 
-    return sorted(candidates, key=_score, reverse=True)[0]
+    return max(candidates, key=_rank)
 
 
 def choose_checksum_asset(release: dict[str, Any]) -> dict[str, str] | None:
