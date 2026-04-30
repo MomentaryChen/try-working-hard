@@ -8,7 +8,7 @@ Lang = Literal["zh", "en"]
 
 STRINGS: dict[Lang, dict[str, str]] = {
     "zh": {
-        "window_title": "try-working-hard",
+        "window_title": "二次努力",
         "app_subtitle": "try-working-hard",
         "seg_control": "控制面板",
         "seg_log": "紀錄",
@@ -172,7 +172,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "startup_choice_title": "啟動提示",
         "startup_lang_label": "啟動語言",
         "startup_lang_hint": "先選擇慣用語言，後續提示與教學會即時切換。",
-        "startup_choice_body": "try-working-hard {version}\n\n"
+        "startup_choice_body": "二次努力 {version}\n\n"
         "選擇是否開啟「操作流程簡介」。",
         "startup_choice_note": "你可以先看 UI 教學再開始操作；若不需要，也可直接略過並關閉後續提示。",
         "startup_choice_cta_guide": "開啟流程簡介",
@@ -192,19 +192,19 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "guide_cta_next": "下一步",
         "guide_cta_done": "開始使用",
         "startup_notice_title": "用途提醒",
-        "startup_notice_body": "try-working-hard {version}\n\n"
+        "startup_notice_body": "二次努力 {version}\n\n"
         "本工具僅可用於合法且合規的生產力情境（例如簡報或閱讀時避免螢幕休眠）。\n\n"
         "禁止用於規避公司、學校或服務平台的安全、監控與稽核機制。按下「確定」以繼續。",
         "motion_pattern_log_line": "直線",
         "motion_pattern_log_circle": "圓形",
         "motion_pattern_log_square": "方形",
-        "intro_body": "try-working-hard {version}\n\n"
+        "intro_body": "二次努力 {version}\n\n"
         "本程式會在鍵盤與滑鼠皆無輸入達您設定的時間後微動游標再還原：可選路徑模式（直線、圓形、方形）或自然模式（不規則微移，可選低機率點擊／捲動），可用於簡報或閱讀時避免螢幕休眠（Windows 以系統閒置時間為準）。\n\n"
         "請僅在合法、符合公司／學校規定與服務條款的前提下使用；勿用於規避安全或監控機制。\n\n"
         "按 F1 可開啟鍵盤與無障礙說明。您的偏好設定會儲存在本機，下次開啟時自動載入。\n\n"
         "點選「確定」後不會再顯示本視窗（除非刪除設定檔）。",
         "a11y_help_title": "鍵盤與無障礙說明",
-        "a11y_help_body": "try-working-hard {version}\n\n"
+        "a11y_help_body": "二次努力 {version}\n\n"
         "鍵盤：\n"
         "· F1 本說明\n"
         "· F2 / F3 / F4 首頁、設定、分析\n"

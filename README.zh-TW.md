@@ -1,9 +1,9 @@
-# try-working-hard
+# 二次努力
 
-![try-working-hard 介面示意](img/try-working-hard-v.1.2.0.gif)
+![二次努力 介面示意](img/try-working-hard-v.1.2.0.gif)
 
 **語言：** [English](README.md) · 正體中文（本頁）
-Windows 桌面工具：只有在真實閒置達門檻時才微動游標。
+**二次努力**（開發／套件名稱 `try-working-hard`）為 Windows 桌面工具：只有在真實閒置達門檻時才微動游標。
 模式：`路徑模式`（直線/圓形/方形）或 `自然模式`（不規則微移）。
 每次微動後游標會回到原位置。
 請僅用於合法且符合規範的個人情境。
