@@ -55,6 +55,8 @@ To see stderr when something fails at launch, add a second spec (or one-off comm
    ```
 3. The **Release** workflow builds `try-working-hard.exe`, renames it to `try-working-hard-vX.Y.Z.exe`, then also builds an Inno Setup installer `try-working-hard-setup-vX.Y.Z.exe`. Both files plus `try-working-hard-vX.Y.Z-checksums.txt` are attached to the GitHub **Release**.
 
+In [`packaging/try-working-hard.iss`](../packaging/try-working-hard.iss), **`AppName`** (Start Menu label, uninstaller listing, and default install directory under Program Files) is the Chinese product name **二次努力**; the installed executable on disk remains **`try-working-hard.exe`** so scripts, updater selection, and PyInstaller output stay aligned with the repository name.
+
 ## Briefcase and other toolchains
 
 [Beeware Briefcase](https://briefcase.readthedocs.io/) packages Python apps (often with a **Toga** or other native UI) into installers or platform-specific bundles. It is a valid choice for *new* projects or when you add a second UI layer. This codebase targets **CustomTkinter + PyInstaller**; Briefcase is **not** wired in the repo, but you can use it in parallel if you maintain a separate entry point and metadata—see the Briefcase documentation for Windows packaging.
