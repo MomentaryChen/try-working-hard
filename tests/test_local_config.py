@@ -16,6 +16,7 @@ def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
     assert cfg["interval_jitter_text"] == "0"
     assert cfg["pixels_text"] == "100"
     assert cfg["path_speed_text"] == "5"
+    assert cfg["motion_duration_percent_text"] == "100"
     assert cfg["motion_pattern"] == "horizontal"
     assert cfg["activity_style"] == "pattern"
     assert cfg["natural_rare_click"] is False

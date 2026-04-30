@@ -54,6 +54,10 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "path_speed_hint": "幾何路徑繪製快慢 · {lo}–{hi}（數字愈大愈快）",
         "path_speed_label_natural": "微動速度",
         "path_speed_hint_natural": "自然模式各微動步驟的間隔快慢 · {lo}–{hi}（數字愈大愈快）",
+        "motion_duration_label": "移動持續時間（%）",
+        "motion_duration_hint": "縮放每次微動的步驟延遲 · {lo}–{hi}（100＝預設；數值愈大，游標移動愈久）",
+        "log_start_fail_motion_duration": "開始失敗：移動持續時間無效。",
+        "err_motion_duration": "請輸入有效的移動持續時間（整數 {lo}–{hi}）。",
         "log_start_fail_path_speed": "開始失敗：路徑速度無效。",
         "err_path_speed": "請輸入有效路徑速度（整數，{lo}–{hi}）。",
         "status_motion_burst": "狀態：執行中 · 持續微動 · 約 {cd}",
@@ -84,10 +88,10 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "log_ready": "程式已就緒。",
         "log_start_fail_interval": "開始失敗：間隔設定無效。",
         "log_start_fail_pixels": "開始失敗：位移設定無效。",
-        "log_started_min": "已開始，鍵盤／滑鼠無輸入達 {v:g} 分鐘（約 {sec:.0f} 秒）後微動、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
-        "log_started_min_jitter": "已開始，鍵盤／滑鼠無輸入約 {v:g} 分鐘（基準 ~{sec:.0f} 秒）、±{j:g} 秒隨機間隔、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
-        "log_started_sec": "已開始，鍵盤／滑鼠無輸入達 {v:g} 秒後微動、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
-        "log_started_sec_jitter": "已開始，鍵盤／滑鼠無輸入約 {v:g} 秒（基準）、±{j:g} 秒隨機間隔、路徑 {pat}、位移 {px} px、路徑速度 {ps}。",
+        "log_started_min": "已開始，鍵盤／滑鼠無輸入達 {v:g} 分鐘（約 {sec:.0f} 秒）後微動、路徑 {pat}、位移 {px} px、路徑速度 {ps}、移動持續 {md}%。",
+        "log_started_min_jitter": "已開始，鍵盤／滑鼠無輸入約 {v:g} 分鐘（基準 ~{sec:.0f} 秒）、±{j:g} 秒隨機間隔、路徑 {pat}、位移 {px} px、路徑速度 {ps}、移動持續 {md}%。",
+        "log_started_sec": "已開始，鍵盤／滑鼠無輸入達 {v:g} 秒後微動、路徑 {pat}、位移 {px} px、路徑速度 {ps}、移動持續 {md}%。",
+        "log_started_sec_jitter": "已開始，鍵盤／滑鼠無輸入約 {v:g} 秒（基準）、±{j:g} 秒隨機間隔、路徑 {pat}、位移 {px} px、路徑速度 {ps}、移動持續 {md}%。",
         "log_stopped": "已手動停止。",
         "log_nudge": "已執行游標微動。",
         "log_nudge_zero": "已觸發排程（位移 0，未移動游標）。",
@@ -207,7 +211,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5 停止\n"
         "· Enter 開始、Esc 停止（僅主視窗顯示時；條件同 F5／Shift+F5）\n"
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
-        "可點擊「間隔」「間隔隨機」「位移」「路徑速度」「活動模式」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」；「間隔」指鍵盤與滑鼠皆無輸入需累積的時間（與主控台狀態列、Windows 系統閒置時間一致）。欄位下方有 30s／1m／5m／10m 快速按鈕。自然模式以非幾何軌跡微移游標，可選低機率點擊或捲動。\n\n"
+        "可點擊「間隔」「間隔隨機」「位移」「路徑速度」「移動持續時間」「活動模式」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」；「間隔」指鍵盤與滑鼠皆無輸入需累積的時間（與主控台狀態列、Windows 系統閒置時間一致）。欄位下方有 30s／1m／5m／10m 快速按鈕。自然模式以非幾何軌跡微移游標，可選低機率點擊或捲動。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
     },
     "en": {
@@ -257,6 +261,10 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "path_speed_hint": "How fast to trace the path · {lo}–{hi} (higher = faster)",
         "path_speed_label_natural": "Motion speed",
         "path_speed_hint_natural": "Delay between natural micro-move steps · {lo}–{hi} (higher = faster)",
+        "motion_duration_label": "Motion duration (%)",
+        "motion_duration_hint": "Scales delay between cursor steps · {lo}–{hi} (100 = default; higher = slower motion)",
+        "log_start_fail_motion_duration": "Start failed: invalid motion duration.",
+        "err_motion_duration": "Enter a valid motion duration (integer, {lo}–{hi}).",
         "log_start_fail_path_speed": "Start failed: invalid path speed.",
         "err_path_speed": "Enter a valid path speed (integer, {lo}–{hi}).",
         "status_motion_burst": "Status: running · active motion · ~{cd} left",
@@ -287,10 +295,10 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "log_ready": "Ready.",
         "log_start_fail_interval": "Start failed: invalid interval.",
         "log_start_fail_pixels": "Start failed: invalid nudge size.",
-        "log_started_min": "Started: nudge after {v:g} min (~{sec:.0f} s) with no keyboard/mouse input, path {pat}, nudge {px} px, path speed {ps}.",
-        "log_started_min_jitter": "Started: nudge after ~{v:g} min base (~{sec:.0f} s idle) with ±{j:g} s jitter between waits, path {pat}, nudge {px} px, path speed {ps}.",
-        "log_started_sec": "Started: nudge after {v:g} s with no keyboard/mouse input, path {pat}, nudge {px} px, path speed {ps}.",
-        "log_started_sec_jitter": "Started: nudge after ~{v:g} s base idle with ±{j:g} s jitter between waits, path {pat}, nudge {px} px, path speed {ps}.",
+        "log_started_min": "Started: nudge after {v:g} min (~{sec:.0f} s) with no keyboard/mouse input, path {pat}, nudge {px} px, path speed {ps}, motion duration {md}%.",
+        "log_started_min_jitter": "Started: nudge after ~{v:g} min base (~{sec:.0f} s idle) with ±{j:g} s jitter between waits, path {pat}, nudge {px} px, path speed {ps}, motion duration {md}%.",
+        "log_started_sec": "Started: nudge after {v:g} s with no keyboard/mouse input, path {pat}, nudge {px} px, path speed {ps}, motion duration {md}%.",
+        "log_started_sec_jitter": "Started: nudge after ~{v:g} s base idle with ±{j:g} s jitter between waits, path {pat}, nudge {px} px, path speed {ps}, motion duration {md}%.",
         "log_stopped": "Stopped manually.",
         "log_nudge": "Cursor nudge executed.",
         "log_nudge_zero": "Tick fired (0 px — cursor not moved).",
@@ -410,7 +418,7 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· Shift+F5  Stop\n"
         "· Enter / Esc  Start / Stop (main window visible only; same rules as F5 / Shift+F5)\n"
         "· F6  Home: toggle Control / Log\n\n"
-        "Click the Interval, Interval jitter, Nudge (pixels), Path speed, Activity, or Path label to move focus to that field. Choose min or sec for the interval: Interval is the required idle time with no keyboard or mouse input before a nudge (status line uses the same idle time as Windows GetLastInputInfo). Use 30s / 1m / 5m / 10m under the field for a quick set. Natural mode uses non-geometric micro-moves; optional click and scroll fire rarely.\n\n"
+        "Click the Interval, Interval jitter, Nudge (pixels), Path speed, Motion duration (%), Activity, or Path label to move focus to that field. Choose min or sec for the interval: Interval is the required idle time with no keyboard or mouse input before a nudge (status line uses the same idle time as Windows GetLastInputInfo). Use 30s / 1m / 5m / 10m under the field for a quick set. Natural mode uses non-geometric micro-moves; optional click and scroll fire rarely.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
         "Tab / Shift+Tab move focus; tooltips are not used for the canvas controls.",
     },

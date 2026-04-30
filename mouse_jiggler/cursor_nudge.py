@@ -21,10 +21,18 @@ def _step_delay(base: float, path_speed: int) -> float:
     return max(0.002, min(0.12, t))
 
 
+def _sleep_scaled(
+    sleep: Callable[[float], object], delay: float, *, motion_duration_mult: float
+) -> None:
+    m = motion_duration_mult if math.isfinite(motion_duration_mult) and motion_duration_mult > 0 else 1.0
+    sleep(max(0.0005, float(delay) * m))
+
+
 def nudge_horizontal(
     delta_pixels: int,
     *,
     path_speed: int = 5,
+    motion_duration_mult: float = 1.0,
     get_pos: Callable[[], tuple[int, int] | None],
     set_pos: Callable[[int, int], object],
     sleep: Callable[[float], object],
@@ -41,7 +49,11 @@ def nudge_horizontal(
         return
     x, y = pos
     set_pos(x + d, y)
-    sleep(_step_delay(_HORIZ_BASE_SLEEP, path_speed))
+    _sleep_scaled(
+        sleep,
+        _step_delay(_HORIZ_BASE_SLEEP, path_speed),
+        motion_duration_mult=motion_duration_mult,
+    )
     set_pos(x, y)
 
 
@@ -50,6 +62,7 @@ def nudge_trajectory(
     pixels: int,
     path_speed: int,
     *,
+    motion_duration_mult: float = 1.0,
     get_pos: Callable[[], tuple[int, int] | None],
     set_pos: Callable[[int, int], object],
     sleep: Callable[[float], object],
@@ -63,6 +76,7 @@ def nudge_trajectory(
         nudge_horizontal(
             pixels,
             path_speed=path_speed,
+            motion_duration_mult=motion_duration_mult,
             get_pos=get_pos,
             set_pos=set_pos,
             sleep=sleep,
@@ -78,12 +92,28 @@ def nudge_trajectory(
     sx, sy = pos
 
     if pattern == "circle":
-        _trace_circle(sx, sy, r, path_speed, set_pos=set_pos, sleep=sleep)
+        _trace_circle(
+            sx,
+            sy,
+            r,
+            path_speed,
+            motion_duration_mult=motion_duration_mult,
+            set_pos=set_pos,
+            sleep=sleep,
+        )
         set_pos(sx, sy)
         return
 
     if pattern == "square":
-        _trace_square(sx, sy, r, path_speed, set_pos=set_pos, sleep=sleep)
+        _trace_square(
+            sx,
+            sy,
+            r,
+            path_speed,
+            motion_duration_mult=motion_duration_mult,
+            set_pos=set_pos,
+            sleep=sleep,
+        )
         set_pos(sx, sy)
 
 
@@ -93,6 +123,7 @@ def _trace_circle(
     radius: int,
     path_speed: int,
     *,
+    motion_duration_mult: float,
     set_pos: Callable[[int, int], object],
     sleep: Callable[[float], object],
 ) -> None:
@@ -103,7 +134,7 @@ def _trace_circle(
         x = int(round(cx + radius * math.cos(theta)))
         y = int(round(cy + radius * math.sin(theta)))
         set_pos(x, y)
-        sleep(step)
+        _sleep_scaled(sleep, step, motion_duration_mult=motion_duration_mult)
 
 
 def _trace_square(
@@ -112,6 +143,7 @@ def _trace_square(
     side: int,
     path_speed: int,
     *,
+    motion_duration_mult: float,
     set_pos: Callable[[int, int], object],
     sleep: Callable[[float], object],
 ) -> None:
@@ -128,7 +160,7 @@ def _trace_square(
             x = int(round(prev_x + (tx - prev_x) * a))
             y = int(round(prev_y + (ty - prev_y) * a))
             set_pos(x, y)
-            sleep(step)
+            _sleep_scaled(sleep, step, motion_duration_mult=motion_duration_mult)
         prev_x, prev_y = tx, ty
 
 
@@ -136,6 +168,7 @@ def nudge_natural(
     max_offset: int,
     path_speed: int,
     *,
+    motion_duration_mult: float = 1.0,
     get_pos: Callable[[], tuple[int, int] | None],
     set_pos: Callable[[int, int], object],
     sleep: Callable[[float], object],
@@ -144,6 +177,9 @@ def nudge_natural(
     """
     Irregular micro-moves that stay within ``max_offset`` pixels of the starting point,
     then return to the exact start. Meant to avoid obvious geometric traces.
+
+    Each invocation picks a random wander cap up to ``max_offset`` so successive nudges
+    vary in reach while respecting the configured ceiling.
     """
     r = rng or random.Random()
     mo = int(max_offset)
@@ -153,16 +189,21 @@ def nudge_natural(
     if pos is None:
         return
     sx, sy = int(pos[0]), int(pos[1])
+    cap = mo if mo < 3 else r.randint(max(2, int(mo * 0.15)), mo)
     step_delay = _step_delay(_TRAJECTORY_BASE_SLEEP * 0.9, path_speed)
-    n_steps = r.randint(16, 28)
-    pull = 0.14
-    max_step = max(1.0, float(mo) * 0.22)
+    n_steps = r.randint(20, 52)
+    pull = r.uniform(0.08, 0.22)
+    max_step = max(1.0, float(cap) * r.uniform(0.16, 0.34))
     cx, cy = float(sx), float(sy)
 
     for i in range(n_steps):
         if i == n_steps - 1:
             set_pos(sx, sy)
-            sleep(step_delay * r.uniform(0.85, 1.15))
+            _sleep_scaled(
+                sleep,
+                step_delay * r.uniform(0.75, 1.35),
+                motion_duration_mult=motion_duration_mult,
+            )
             break
         rx = (r.random() - 0.5) * 2.0 * max_step
         ry = (r.random() - 0.5) * 2.0 * max_step
@@ -170,9 +211,13 @@ def nudge_natural(
         cy = cy + ry + (sy - cy) * pull
         dx, dy = cx - sx, cy - sy
         dist = math.hypot(dx, dy)
-        if dist > mo and dist > 1e-6:
-            scale = mo / dist
+        if dist > cap and dist > 1e-6:
+            scale = cap / dist
             cx = sx + dx * scale
             cy = sy + dy * scale
         set_pos(int(round(cx)), int(round(cy)))
-        sleep(step_delay * r.uniform(0.85, 1.15))
+        _sleep_scaled(
+            sleep,
+            step_delay * r.uniform(0.75, 1.35),
+            motion_duration_mult=motion_duration_mult,
+        )

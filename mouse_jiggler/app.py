@@ -251,6 +251,10 @@ class MouseJigglerApp:
     MIN_PATH_SPEED = nudge_logic.MIN_PATH_SPEED
     MAX_PATH_SPEED = nudge_logic.MAX_PATH_SPEED
     DEFAULT_PATH_SPEED = nudge_logic.DEFAULT_PATH_SPEED
+    MAX_NATURAL_PIXELS = nudge_logic.MAX_NATURAL_PIXELS
+    MIN_MOTION_DURATION_PERCENT = nudge_logic.MIN_MOTION_DURATION_PERCENT
+    MAX_MOTION_DURATION_PERCENT = nudge_logic.MAX_MOTION_DURATION_PERCENT
+    DEFAULT_MOTION_DURATION_PERCENT = nudge_logic.DEFAULT_MOTION_DURATION_PERCENT
     MAX_INTERVAL_JITTER_SEC = int(nudge_logic.MAX_INTERVAL_JITTER_SEC)
     _LOG_TRIM_LINES = nudge_logic.LOG_TRIM_LINES
     _SIDEBAR_WIDTH = 200
@@ -367,6 +371,7 @@ class MouseJigglerApp:
             "entry_minutes",
             "entry_pixels",
             "entry_path_speed",
+            "entry_motion_duration",
             "entry_interval_jitter",
             "entry_schedule_start",
             "entry_schedule_end",
@@ -562,6 +567,7 @@ class MouseJigglerApp:
             "_lbl_interval_presets",
             "_lbl_pixels",
             "_lbl_path_speed",
+            "_lbl_motion_duration",
             "_lbl_activity_style",
             "_lbl_motion_pattern",
             "_lbl_chart_triggers",
@@ -588,6 +594,7 @@ class MouseJigglerApp:
         for name in (
             "_lbl_pixels_hint",
             "_lbl_path_speed_hint",
+            "_lbl_motion_duration_hint",
             "_hint_tray",
             "_hint_autostart",
             "_hint_schedule",
@@ -1088,6 +1095,24 @@ class MouseJigglerApp:
             pass
         self._sync_path_speed_labels_for_mode()
         self._sync_motion_pattern_label_for_mode()
+        self._sync_pixels_hint()
+
+    def _pixels_cap_for_activity(self) -> int:
+        return self.MAX_NATURAL_PIXELS if self._activity_style == "natural" else self.MAX_PIXELS
+
+    def _sync_pixels_hint(self) -> None:
+        if not hasattr(self, "_lbl_pixels_hint"):
+            return
+        try:
+            self._lbl_pixels_hint.configure(
+                text=self._t(
+                    "pixels_hint",
+                    lo=self.MIN_PIXELS,
+                    hi=self._pixels_cap_for_activity(),
+                )
+            )
+        except (tk.TclError, AttributeError):
+            pass
 
     def _sync_path_speed_labels_for_mode(self) -> None:
         if not hasattr(self, "_lbl_path_speed"):
@@ -1156,6 +1181,14 @@ class MouseJigglerApp:
         self.var_path_speed.set(
             str(cfg.get("path_speed_text", str(int(self.DEFAULT_PATH_SPEED))))
         )
+        self.var_motion_duration.set(
+            str(
+                cfg.get(
+                    "motion_duration_percent_text",
+                    str(int(self.DEFAULT_MOTION_DURATION_PERCENT)),
+                )
+            )
+        )
         mp = cfg.get("motion_pattern", "horizontal")
         self._motion_pattern = mp if mp in ("horizontal", "circle", "square") else "horizontal"
         ast = cfg.get("activity_style", "pattern")
@@ -1208,6 +1241,7 @@ class MouseJigglerApp:
             "interval_jitter_text": self.var_interval_jitter.get(),
             "pixels_text": self.var_pixels.get(),
             "path_speed_text": self.var_path_speed.get(),
+            "motion_duration_percent_text": self.var_motion_duration.get(),
             "motion_pattern": self._motion_pattern,
             "activity_style": self._activity_style,
             "natural_rare_click": bool(self.var_natural_rare_click.get()),
@@ -1676,6 +1710,7 @@ class MouseJigglerApp:
             self.var_interval_jitter.trace_add("write", _on_write)
             self.var_pixels.trace_add("write", _on_write)
             self.var_path_speed.trace_add("write", _on_write)
+            self.var_motion_duration.trace_add("write", _on_write)
             self.var_schedule_window.trace_add("write", _on_schedule_flag)
             self.var_schedule_start.trace_add("write", _on_schedule_times_write)
             self.var_schedule_end.trace_add("write", _on_schedule_times_write)
@@ -2347,9 +2382,16 @@ class MouseJigglerApp:
             self._lbl_natural_opts_hint.configure(text=self._t("natural_opts_hint"))
         self._refresh_activity_dependent_widgets()
         self._lbl_pixels.configure(text=self._t("pixels_label"))
-        self._lbl_pixels_hint.configure(
-            text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS)
-        )
+        self._sync_pixels_hint()
+        if hasattr(self, "_lbl_motion_duration"):
+            self._lbl_motion_duration.configure(text=self._t("motion_duration_label"))
+            self._lbl_motion_duration_hint.configure(
+                text=self._t(
+                    "motion_duration_hint",
+                    lo=self.MIN_MOTION_DURATION_PERCENT,
+                    hi=self.MAX_MOTION_DURATION_PERCENT,
+                )
+            )
         self._refresh_run_toggle_text()
         self._lbl_tray_sw.configure(text=self._t("tray_switch_title"))
         tray_hint = self._t("tray_switch_hint")
@@ -3672,7 +3714,7 @@ class MouseJigglerApp:
         _try_takefocus(self.entry_pixels, 1)
         self._lbl_pixels_hint = ctk.CTkLabel(
             row3,
-            text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS),
+            text=self._t("pixels_hint", lo=self.MIN_PIXELS, hi=self._pixels_cap_for_activity()),
             font=self._font_body,
             text_color=self._TEXT_MUTED,
         )
@@ -3716,6 +3758,45 @@ class MouseJigglerApp:
         self._lbl_path_speed_hint.pack(side="left", padx=(12, 0))
         self._a11y_label_focus_entry(self._lbl_path_speed, self.entry_path_speed)
 
+        self._lbl_motion_duration = ctk.CTkLabel(
+            card,
+            text=self._t("motion_duration_label"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+        )
+        self._lbl_motion_duration.grid(row=11, column=0, sticky="w", padx=p, pady=(p, p))
+        row_motion_duration = ctk.CTkFrame(card, fg_color="transparent")
+        row_motion_duration.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.var_motion_duration = tk.StringVar(
+            value=str(int(self.DEFAULT_MOTION_DURATION_PERCENT))
+        )
+        self.entry_motion_duration = ctk.CTkEntry(
+            row_motion_duration,
+            textvariable=self.var_motion_duration,
+            width=120,
+            height=40,
+            corner_radius=_R,
+            font=self._font_body,
+            fg_color=self._ENTRY_BG,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            border_width=1,
+            border_color=self._ENTRY_BORDER,
+        )
+        self.entry_motion_duration.pack(side="left")
+        _try_takefocus(self.entry_motion_duration, 1)
+        self._lbl_motion_duration_hint = ctk.CTkLabel(
+            row_motion_duration,
+            text=self._t(
+                "motion_duration_hint",
+                lo=self.MIN_MOTION_DURATION_PERCENT,
+                hi=self.MAX_MOTION_DURATION_PERCENT,
+            ),
+            font=self._font_body,
+            text_color=self._TEXT_MUTED,
+        )
+        self._lbl_motion_duration_hint.pack(side="left", padx=(12, 0))
+        self._a11y_label_focus_entry(self._lbl_motion_duration, self.entry_motion_duration)
+
         self.var_natural_rare_click = tk.BooleanVar(value=False)
         self.var_natural_rare_scroll = tk.BooleanVar(value=False)
 
@@ -3725,9 +3806,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_activity_style.grid(row=11, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_activity_style.grid(row=13, column=0, sticky="w", padx=p, pady=(p, p))
         row_activity = ctk.CTkFrame(card, fg_color="transparent")
-        row_activity.grid(row=12, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_activity.grid(row=14, column=0, sticky="ew", padx=p, pady=(0, p))
         self.seg_activity_style = ctk.CTkSegmentedButton(
             row_activity,
             values=[
@@ -3752,7 +3833,7 @@ class MouseJigglerApp:
         self._a11y_label_focus_entry(self._lbl_activity_style, self.seg_activity_style)
 
         self.row_natural_opts = ctk.CTkFrame(card, fg_color="transparent")
-        self.row_natural_opts.grid(row=13, column=0, sticky="ew", padx=p, pady=(0, p))
+        self.row_natural_opts.grid(row=15, column=0, sticky="ew", padx=p, pady=(0, p))
         col_nat = ctk.CTkFrame(self.row_natural_opts, fg_color="transparent")
         col_nat.pack(side="left", fill="x", expand=True)
         self.swt_natural_click = ctk.CTkSwitch(
@@ -3789,9 +3870,9 @@ class MouseJigglerApp:
             font=self._font_body_bold,
             text_color=(self._TEXT_BODY, self._TEXT_BODY),
         )
-        self._lbl_motion_pattern.grid(row=14, column=0, sticky="w", padx=p, pady=(p, p))
+        self._lbl_motion_pattern.grid(row=16, column=0, sticky="w", padx=p, pady=(p, p))
         row_pattern = ctk.CTkFrame(card, fg_color="transparent")
-        row_pattern.grid(row=15, column=0, sticky="ew", padx=p, pady=(0, p))
+        row_pattern.grid(row=17, column=0, sticky="ew", padx=p, pady=(0, p))
         self.seg_motion_pattern = ctk.CTkSegmentedButton(
             row_pattern,
             values=[
@@ -3959,7 +4040,16 @@ class MouseJigglerApp:
 
     def _parse_pixels(self) -> int | None:
         return nudge_logic.parse_pixels_string(
-            self.var_pixels.get(), min_px=self.MIN_PIXELS, max_px=self.MAX_PIXELS
+            self.var_pixels.get(),
+            min_px=self.MIN_PIXELS,
+            max_px=self._pixels_cap_for_activity(),
+        )
+
+    def _parse_motion_duration_percent(self) -> int | None:
+        return nudge_logic.parse_motion_duration_percent_string(
+            self.var_motion_duration.get(),
+            min_pct=self.MIN_MOTION_DURATION_PERCENT,
+            max_pct=self.MAX_MOTION_DURATION_PERCENT,
         )
 
     def _parse_path_speed(self) -> int | None:
@@ -3974,6 +4064,7 @@ class MouseJigglerApp:
         pixels: int,
         pattern: MotionPattern,
         path_speed: int,
+        motion_duration_percent: int,
         *,
         activity_style: ActivityStyle,
         natural_rare_click: bool,
@@ -3985,12 +4076,18 @@ class MouseJigglerApp:
                 jiggle_natural(
                     pixels,
                     path_speed=path_speed,
+                    motion_duration_percent=motion_duration_percent,
                     rare_click=natural_rare_click,
                     rare_scroll=natural_rare_scroll,
                 )
                 rec_key = "natural"
             else:
-                jiggle_mouse(pixels, pattern, path_speed=path_speed)
+                jiggle_mouse(
+                    pixels,
+                    pattern,
+                    path_speed=path_speed,
+                    motion_duration_percent=motion_duration_percent,
+                )
                 rec_key = pattern
             if not log_success:
                 return
@@ -4092,7 +4189,11 @@ class MouseJigglerApp:
         if pixels is None:
             messagebox.showerror(
                 self._t("err_title"),
-                self._t("err_pixels", lo=self.MIN_PIXELS, hi=self.MAX_PIXELS),
+                self._t(
+                    "err_pixels",
+                    lo=self.MIN_PIXELS,
+                    hi=self._pixels_cap_for_activity(),
+                ),
                 parent=self.root,
             )
             self._log(self._t("log_start_fail_pixels"))
@@ -4105,6 +4206,19 @@ class MouseJigglerApp:
                 parent=self.root,
             )
             self._log(self._t("log_start_fail_path_speed"))
+            return
+        motion_duration_pct = self._parse_motion_duration_percent()
+        if motion_duration_pct is None:
+            messagebox.showerror(
+                self._t("err_title"),
+                self._t(
+                    "err_motion_duration",
+                    lo=self.MIN_MOTION_DURATION_PERCENT,
+                    hi=self.MAX_MOTION_DURATION_PERCENT,
+                ),
+                parent=self.root,
+            )
+            self._log(self._t("log_start_fail_motion_duration"))
             return
         if self._worker is not None and self._worker.is_alive():
             return
@@ -4139,6 +4253,7 @@ class MouseJigglerApp:
                 jitter_sec,
                 pixels,
                 path_speed,
+                motion_duration_pct,
                 run_activity,
                 run_pattern,
                 n_click,
@@ -4156,6 +4271,7 @@ class MouseJigglerApp:
         self.entry_minutes.configure(state="disabled")
         self.entry_pixels.configure(state="disabled")
         self.entry_path_speed.configure(state="disabled")
+        self.entry_motion_duration.configure(state="disabled")
         self.entry_interval_jitter.configure(state="disabled")
         self._set_interval_preset_widgets_state("disabled")
         try:
@@ -4198,6 +4314,7 @@ class MouseJigglerApp:
                         pat=pat,
                         px=pixels,
                         ps=path_speed,
+                        md=motion_duration_pct,
                     )
                 )
             else:
@@ -4209,6 +4326,7 @@ class MouseJigglerApp:
                         pat=pat,
                         px=pixels,
                         ps=path_speed,
+                        md=motion_duration_pct,
                     )
                 )
         elif jitter_sec > 0.0:
@@ -4220,6 +4338,7 @@ class MouseJigglerApp:
                     pat=pat,
                     px=pixels,
                     ps=path_speed,
+                    md=motion_duration_pct,
                 )
             )
         else:
@@ -4230,6 +4349,7 @@ class MouseJigglerApp:
                     pat=pat,
                     px=pixels,
                     ps=path_speed,
+                    md=motion_duration_pct,
                 )
             )
         if self._run_schedule_window:
@@ -4268,6 +4388,7 @@ class MouseJigglerApp:
         self.entry_minutes.configure(state="normal")
         self.entry_pixels.configure(state="normal")
         self.entry_path_speed.configure(state="normal")
+        self.entry_motion_duration.configure(state="normal")
         self.entry_interval_jitter.configure(state="normal")
         self._set_interval_preset_widgets_state("normal")
         try:
@@ -4307,6 +4428,7 @@ class MouseJigglerApp:
         jitter_sec: float,
         pixels: int,
         path_speed: int,
+        motion_duration_percent: int,
         activity_style: ActivityStyle,
         pattern: MotionPattern,
         natural_rare_click: bool,
@@ -4337,6 +4459,7 @@ class MouseJigglerApp:
                 pixels,
                 pattern,
                 path_speed,
+                motion_duration_percent,
                 activity_style=activity_style,
                 natural_rare_click=natural_rare_click,
                 natural_rare_scroll=natural_rare_scroll,
