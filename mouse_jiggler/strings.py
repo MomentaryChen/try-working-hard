@@ -214,6 +214,9 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "· F6 首頁切換「控制面板」/「紀錄」\n\n"
         "可點擊「間隔」「間隔隨機」「位移」「路徑速度」「移動持續時間」「活動模式」或「移動路徑」標籤，將焦點移到該欄位。間隔可選「分鐘」或「秒」；「間隔」指鍵盤與滑鼠皆無輸入需累積的時間（與主控台狀態列、Windows 系統閒置時間一致）。欄位下方有 30s／1m／5m／10m 快速按鈕。自然模式以非幾何軌跡微移游標，可選低機率點擊或捲動。\n\n"
         "注意：CustomTkinter 多數控制項以畫布繪製，部分螢幕閱讀器可能無法宣讀所有元件。視窗標題與本對話框採用系統標準外觀。",
+        "dialog_btn_ok": "確定",
+        "dialog_btn_yes": "是",
+        "dialog_btn_no": "否",
     },
     "en": {
         "window_title": "try-working-hard",
@@ -423,5 +426,8 @@ STRINGS: dict[Lang, dict[str, str]] = {
         "Click the Interval, Interval jitter, Nudge (pixels), Path speed, Motion duration (%), Activity, or Path label to move focus to that field. Choose min or sec for the interval: Interval is the required idle time with no keyboard or mouse input before a nudge (status line uses the same idle time as Windows GetLastInputInfo). Use 30s / 1m / 5m / 10m under the field for a quick set. Natural mode uses non-geometric micro-moves; optional click and scroll fire rarely.\n\n"
         "Note: CustomTkinter draws most controls on a canvas, so not every control is exposed to all screen readers. The window title and this dialog use standard toolkit UIs.\n"
         "Tab / Shift+Tab move focus; tooltips are not used for the canvas controls.",
+        "dialog_btn_ok": "OK",
+        "dialog_btn_yes": "Yes",
+        "dialog_btn_no": "No",
     },
 }

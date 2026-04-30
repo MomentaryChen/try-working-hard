@@ -14,7 +14,6 @@ from datetime import date, datetime, time as dtime
 from importlib.metadata import PackageNotFoundError, version as pkg_version
 from importlib.resources import files
 from pathlib import Path
-from tkinter import messagebox
 from typing import Any, Literal
 
 import customtkinter as ctk
@@ -843,10 +842,9 @@ class MouseJigglerApp:
             pass
 
     def _a11y_help(self, _e: object | None = None) -> str | None:
-        messagebox.showinfo(
+        self._show_info_dialog(
             self._t("a11y_help_title"),
             self._t("a11y_help_body", version=self._pkg_version()),
-            parent=self.root,
         )
         return "break"
 
@@ -1682,6 +1680,149 @@ class MouseJigglerApp:
         except tk.TclError:
             dialog.geometry(f"{width}x{height}")
 
+    def _dialog_layout_for_body(self, body: str) -> tuple[int, int, int]:
+        lines = body.splitlines() or [body]
+        line_count = max(1, len(lines))
+        longest_line = max((len(line) for line in lines), default=0)
+        body_len = len(body)
+
+        width = 620 + min(260, max(0, longest_line - 60) * 3)
+        height = 370 + min(220, max(0, line_count - 8) * 10) + min(90, body_len // 260 * 14)
+
+        width = max(620, min(920, width))
+        height = max(380, min(680, height))
+        wraplength = max(560, width - 72)
+        return width, height, wraplength
+
+    def _fit_dialog_to_screen(
+        self, dialog: ctk.CTkToplevel, width: int, height: int
+    ) -> tuple[int, int]:
+        try:
+            screen_w = int(dialog.winfo_screenwidth())
+            screen_h = int(dialog.winfo_screenheight())
+        except tk.TclError:
+            return width, height
+        max_w = max(520, int(screen_w * 0.85))
+        max_h = max(360, int(screen_h * 0.85))
+        return min(width, max_w), min(height, max_h)
+
+    def _show_custom_dialog(
+        self,
+        *,
+        title: str,
+        body: str,
+        kind: Literal["info", "error"] = "info",
+        confirm: bool = False,
+    ) -> bool:
+        if self._shutting_down:
+            return False
+        result = {"approved": False}
+        try:
+            width, height, wraplength = self._dialog_layout_for_body(body)
+            dialog = ctk.CTkToplevel(self.root)
+            dialog.title(title)
+            dialog.transient(self.root)
+            dialog.resizable(False, False)
+            dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+            width, height = self._fit_dialog_to_screen(dialog, width, height)
+            wraplength = max(420, width - 72)
+            self._center_dialog(dialog, width, height)
+
+            frame = ctk.CTkFrame(
+                dialog,
+                corner_radius=_R,
+                fg_color=self._CARD_BG,
+                border_width=1,
+                border_color=self._BORDER,
+            )
+            frame.pack(fill="both", expand=True, padx=16, pady=(16, 24))
+            frame.grid_columnconfigure(0, weight=1)
+
+            title_color = self._STATUS_TEXT_ERROR if kind == "error" else self._TEXT_TITLE
+            header = ctk.CTkLabel(
+                frame,
+                text=title,
+                anchor="w",
+                font=self._font_title,
+                text_color=(title_color, title_color),
+            )
+            header.grid(row=0, column=0, sticky="ew", padx=16, pady=(16, 8))
+
+            content = ctk.CTkLabel(
+                frame,
+                text=body,
+                anchor="w",
+                justify="left",
+                wraplength=wraplength,
+                font=self._font_body,
+                text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            )
+            content.grid(row=1, column=0, sticky="ew", padx=16, pady=(0, 16))
+
+            actions = ctk.CTkFrame(frame, fg_color="transparent")
+            actions.grid(row=2, column=0, sticky="", padx=16, pady=(6, 26))
+            actions.grid_columnconfigure(0, weight=1)
+            actions.grid_columnconfigure(1, weight=1)
+
+            if confirm:
+                btn_no = self._btn(
+                    actions,
+                    text=self._t("dialog_btn_no"),
+                    command=dialog.destroy,
+                    fg_color=self._BTN_SECONDARY,
+                    hover_color=self._BTN_SECONDARY_HOVER,
+                    text_color=(self._TEXT_BODY, self._TEXT_BODY),
+                    border_width=2,
+                    border_color=self._BORDER,
+                    width=108,
+                )
+                btn_no.grid(row=0, column=0, padx=(0, 6), sticky="e")
+
+                def _approve() -> None:
+                    result["approved"] = True
+                    dialog.destroy()
+
+                btn_yes = self._btn(
+                    actions,
+                    text=self._t("dialog_btn_yes"),
+                    command=_approve,
+                    fg_color=self._ACCENT,
+                    hover_color=self._ACCENT_HOVER,
+                    text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+                    width=108,
+                )
+                btn_yes.grid(row=0, column=1, padx=(6, 0), sticky="w")
+                dialog.after(0, btn_yes.focus_set)
+            else:
+                btn_ok = self._btn(
+                    actions,
+                    text=self._t("dialog_btn_ok"),
+                    command=dialog.destroy,
+                    fg_color=self._ACCENT,
+                    hover_color=self._ACCENT_HOVER,
+                    text_color=(self._TEXT_ON_ACCENT, self._TEXT_ON_ACCENT),
+                    width=108,
+                )
+                btn_ok.grid(row=0, column=0, columnspan=2)
+                dialog.after(0, btn_ok.focus_set)
+
+            dialog.after(0, dialog.lift)
+            dialog.after(0, dialog.focus_force)
+            dialog.grab_set()
+            self.root.wait_window(dialog)
+            return result["approved"] if confirm else True
+        except tk.TclError:
+            return False
+
+    def _show_info_dialog(self, title: str, body: str) -> None:
+        self._show_custom_dialog(title=title, body=body, kind="info", confirm=False)
+
+    def _show_error_dialog(self, title: str, body: str) -> None:
+        self._show_custom_dialog(title=title, body=body, kind="error", confirm=False)
+
+    def _ask_yes_no_dialog(self, title: str, body: str) -> bool:
+        return self._show_custom_dialog(title=title, body=body, kind="info", confirm=True)
+
     def _register_config_persistence(self) -> None:
         def _on_write(*_a: object) -> None:
             self._schedule_save_config()
@@ -1754,19 +1895,19 @@ class MouseJigglerApp:
             if hasattr(os, "startfile"):
                 os.startfile(str(path.resolve()))
             else:
-                messagebox.showinfo(
+                self._show_info_dialog(
                     self._t("settings_title"),
                     self._t("open_config_path_only", path=str(path.resolve())),
                 )
         except OSError as e:
-            messagebox.showerror(
+            self._show_error_dialog(
                 self._t("err_title"),
                 self._t("err_open_config_file", err=str(e)),
             )
 
     def _on_contact_us(self) -> None:
         url = "https://github.com/MomentaryChen/try-working-hard/issues/new/choose"
-        should_open = messagebox.askyesno(
+        should_open = self._ask_yes_no_dialog(
             self._t("btn_contact_us"),
             self._t(
                 "contact_us_body",
@@ -1775,7 +1916,6 @@ class MouseJigglerApp:
                 email="zzser15963",
                 name="Momentary (Victor Chen)",
             ),
-            parent=self.root,
         )
         if should_open:
             webbrowser.open(url, new=2)
@@ -1939,7 +2079,7 @@ class MouseJigglerApp:
             latest=latest_tag,
             installer=installer_name,
         )
-        approved = messagebox.askyesno(title, body, parent=self.root)
+        approved = self._ask_yes_no_dialog(title, body)
         if not approved:
             return
         self._start_installer_download(
@@ -2154,10 +2294,9 @@ class MouseJigglerApp:
                 "update_checksum_verified_hint",
                 digest=self._short_digest(checksum_digest),
             )
-        approved = messagebox.askyesno(
+        approved = self._ask_yes_no_dialog(
             self._t("update_install_prompt_title"),
             self._t("update_install_prompt_body", path=str(path), verify_hint=digest_hint),
-            parent=self.root,
         )
         if not approved:
             return
@@ -2168,10 +2307,9 @@ class MouseJigglerApp:
                 webbrowser.open(path.resolve().as_uri(), new=2)
             self._show_info_banner(self._t("update_install_started"))
         except OSError as exc:
-            messagebox.showerror(
+            self._show_error_dialog(
                 self._t("update_install_prompt_title"),
                 self._t("update_install_failed", err=str(exc)),
-                parent=self.root,
             )
 
     def _on_installer_download_failed(self, *, err: str) -> None:
@@ -2179,10 +2317,9 @@ class MouseJigglerApp:
         self._close_installer_progress_dialog()
         if self._shutting_down:
             return
-        messagebox.showerror(
+        self._show_error_dialog(
             self._t("update_download_failed_title"),
             self._t("update_download_failed_body", err=err),
-            parent=self.root,
         )
 
     def _on_installer_download_cancelled(self) -> None:
@@ -4175,55 +4312,50 @@ class MouseJigglerApp:
                 err_body = self._t("err_minutes", min=self.MIN_MINUTES)
             else:
                 err_body = self._t("err_seconds", min=nudge_logic.MIN_SECONDS)
-            messagebox.showerror(
+            self._show_error_dialog(
                 self._t("err_title"),
                 err_body,
-                parent=self.root,
             )
             self._log(self._t("log_start_fail_interval"))
             return
         ival, iu = parsed
         jitter_sec = self._parse_interval_jitter()
         if jitter_sec is None:
-            messagebox.showerror(
+            self._show_error_dialog(
                 self._t("err_title"),
                 self._t("err_jitter", max=self.MAX_INTERVAL_JITTER_SEC),
-                parent=self.root,
             )
             self._log(self._t("log_start_fail_jitter"))
             return
         pixels = self._parse_pixels()
         if pixels is None:
-            messagebox.showerror(
+            self._show_error_dialog(
                 self._t("err_title"),
                 self._t(
                     "err_pixels",
                     lo=self.MIN_PIXELS,
                     hi=self._pixels_cap_for_activity(),
                 ),
-                parent=self.root,
             )
             self._log(self._t("log_start_fail_pixels"))
             return
         path_speed = self._parse_path_speed()
         if path_speed is None:
-            messagebox.showerror(
+            self._show_error_dialog(
                 self._t("err_title"),
                 self._t("err_path_speed", lo=self.MIN_PATH_SPEED, hi=self.MAX_PATH_SPEED),
-                parent=self.root,
             )
             self._log(self._t("log_start_fail_path_speed"))
             return
         motion_duration_pct = self._parse_motion_duration_percent()
         if motion_duration_pct is None:
-            messagebox.showerror(
+            self._show_error_dialog(
                 self._t("err_title"),
                 self._t(
                     "err_motion_duration",
                     lo=self.MIN_MOTION_DURATION_PERCENT,
                     hi=self.MAX_MOTION_DURATION_PERCENT,
                 ),
-                parent=self.root,
             )
             self._log(self._t("log_start_fail_motion_duration"))
             return
@@ -4233,10 +4365,9 @@ class MouseJigglerApp:
         if bool(self.var_schedule_window.get()):
             psched = self._build_schedule_spec()
             if psched is None:
-                messagebox.showerror(
+                self._show_error_dialog(
                     self._t("err_title"),
                     self._t("err_schedule_bounds"),
-                    parent=self.root,
                 )
                 self._log(self._t("log_start_fail_schedule_bounds"))
                 return
