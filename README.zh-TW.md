@@ -1,6 +1,6 @@
 # try-working-hard
 
-![try-working-hard-v1.2.0 demo](img/try-working-hard-v.1.2.0.gif)
+![try-working-hard 介面示意](img/try-working-hard-v.1.2.0.gif)
 
 **語言：** [English](README.md) · 正體中文（本頁）  
 Windows 桌面工具：只有在真實閒置達門檻時才微動游標。  
@@ -50,7 +50,7 @@ uv run python -m mouse_jiggler
 
 ### Windows 單檔執行檔（不需安裝 Python）
 
-在 **GitHub Releases** 會提供含版本號的單一執行檔：`try-working-hard-vX.Y.Z.exe`（例如 `try-working-hard-v1.2.0.exe`，PyInstaller 打包、無主控台視窗）。請到對應版本的 **Assets** 下載後直接執行。
+在 **GitHub Releases** 會提供含版本號的單一執行檔：`try-working-hard-vX.Y.Z.exe`（例如 `try-working-hard-v1.3.0.exe`，PyInstaller 打包、無主控台視窗）。請到對應版本的 **Assets** 下載後直接執行。
 
 - 自行或 CI 如何建置：見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)（含 SmartScreen／防毒說明，以及 Briefcase 等替代方案簡介）。
 - **發佈方式：** 推送 `v*` 標籤（例如 `v1.0.0`），[`.github/workflows/release.yml`](.github/workflows/release.yml) 會跑測試、建置並上傳至該 GitHub Release。

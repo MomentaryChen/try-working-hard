@@ -12,6 +12,6 @@ from .app import MouseJigglerApp, main
 try:
     __version__ = package_version("try-working-hard")
 except Exception:  # noqa: S110
-    __version__ = "1.0.0"
+    __version__ = "1.3.0"
 
 __all__ = ["MouseJigglerApp", "__version__", "main"]
