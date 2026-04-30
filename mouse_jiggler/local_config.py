@@ -11,6 +11,7 @@ from . import nudge_logic, schedule_window
 from .cursor_nudge import ActivityStyle, MotionPattern
 
 Lang = Literal["zh", "en"]
+NaturalPresetName = Literal["conservative", "standard", "aggressive"]
 
 CONFIG_VERSION = 1
 
@@ -28,16 +29,50 @@ def _defaults() -> dict[str, Any]:
         "version": CONFIG_VERSION,
         "lang": "en",
         "ui_theme": "dark",
-        "interval_text": str(int(nudge_logic.DEFAULT_MINUTES)),
-        "interval_unit": "min",
+        "interval_text": str(int(nudge_logic.DEFAULT_MINUTES * 60)),
+        "interval_unit": "sec",
         "interval_jitter_text": "0",
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
         "path_speed_text": str(nudge_logic.DEFAULT_PATH_SPEED),
-        "motion_duration_percent_text": str(nudge_logic.DEFAULT_MOTION_DURATION_PERCENT),
+        "motion_duration_seconds_text": str(nudge_logic.DEFAULT_MOTION_DURATION_SECONDS),
         "motion_pattern": "horizontal",
         "activity_style": "pattern",
+        "natural_intensity": "standard",
         "natural_rare_click": False,
         "natural_rare_scroll": False,
+        "natural_preset_selected": "standard",
+        "natural_presets": {
+            "conservative": {
+                "interval_text": "300",
+                "interval_unit": "sec",
+                "interval_jitter_text": "15",
+                "pixels_text": "60",
+                "path_speed_text": "4",
+                "motion_duration_seconds_text": "14",
+                "natural_rare_click": False,
+                "natural_rare_scroll": False,
+            },
+            "standard": {
+                "interval_text": str(int(nudge_logic.DEFAULT_MINUTES * 60)),
+                "interval_unit": "sec",
+                "interval_jitter_text": "0",
+                "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
+                "path_speed_text": str(nudge_logic.DEFAULT_PATH_SPEED),
+                "motion_duration_seconds_text": str(nudge_logic.DEFAULT_MOTION_DURATION_SECONDS),
+                "natural_rare_click": False,
+                "natural_rare_scroll": False,
+            },
+            "aggressive": {
+                "interval_text": "60",
+                "interval_unit": "sec",
+                "interval_jitter_text": "30",
+                "pixels_text": "180",
+                "path_speed_text": "8",
+                "motion_duration_seconds_text": "8",
+                "natural_rare_click": True,
+                "natural_rare_scroll": True,
+            },
+        },
         "close_to_tray": False,
         "intro_acknowledged": False,
         "schedule_window": False,
@@ -94,7 +129,7 @@ def _sanitize_pixels_text(raw: object, *, fallback: str) -> str:
         return fallback
     s = raw.strip()[:32]
     if nudge_logic.parse_pixels_string(
-        s, min_px=nudge_logic.MIN_PIXELS, max_px=nudge_logic.MAX_PIXELS
+        s, min_px=nudge_logic.MIN_PIXELS, max_px=nudge_logic.MAX_NATURAL_PIXELS
     ) is None:
         return fallback
     return s
@@ -118,6 +153,66 @@ def _sanitize_natural_flag(raw: object) -> bool | None:
     return None
 
 
+def _sanitize_natural_intensity(raw: object) -> str | None:
+    if raw in ("conservative", "standard", "strong"):
+        return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_natural_preset_name(raw: object) -> NaturalPresetName | None:
+    if raw in ("conservative", "standard", "aggressive"):
+        return raw  # type: ignore[return-value]
+    return None
+
+
+def _sanitize_natural_preset_entry(
+    raw: object, *, fallback: dict[str, Any]
+) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        return dict(fallback)
+    unit = _sanitize_interval_unit(raw.get("interval_unit")) or fallback["interval_unit"]
+    click = _sanitize_natural_flag(raw.get("natural_rare_click"))
+    scroll = _sanitize_natural_flag(raw.get("natural_rare_scroll"))
+    return {
+        "interval_text": _sanitize_interval_text(
+            raw.get("interval_text"), unit, fallback=fallback["interval_text"]
+        ),
+        "interval_unit": unit,
+        "interval_jitter_text": _sanitize_interval_jitter_text(
+            raw.get("interval_jitter_text"),
+            fallback=fallback["interval_jitter_text"],
+        ),
+        "pixels_text": _sanitize_pixels_text(
+            raw.get("pixels_text"),
+            fallback=fallback["pixels_text"],
+        ),
+        "path_speed_text": _sanitize_path_speed_text(
+            raw.get("path_speed_text"),
+            fallback=fallback["path_speed_text"],
+        ),
+        "motion_duration_seconds_text": _sanitize_motion_duration_seconds_text(
+            raw.get("motion_duration_seconds_text"),
+            fallback=fallback["motion_duration_seconds_text"],
+        ),
+        "natural_rare_click": (
+            click if click is not None else fallback["natural_rare_click"]
+        ),
+        "natural_rare_scroll": (
+            scroll if scroll is not None else fallback["natural_rare_scroll"]
+        ),
+    }
+
+
+def _sanitize_natural_presets(raw: object, *, fallback: dict[str, Any]) -> dict[str, Any]:
+    out: dict[str, Any] = {}
+    raw_dict = raw if isinstance(raw, dict) else {}
+    for name in ("conservative", "standard", "aggressive"):
+        out[name] = _sanitize_natural_preset_entry(
+            raw_dict.get(name), fallback=fallback[name]
+        )
+    return out
+
+
 def _sanitize_path_speed_text(raw: object, *, fallback: str) -> str:
     if not isinstance(raw, str):
         return fallback
@@ -131,11 +226,11 @@ def _sanitize_path_speed_text(raw: object, *, fallback: str) -> str:
     return s
 
 
-def _sanitize_motion_duration_percent_text(raw: object, *, fallback: str) -> str:
+def _sanitize_motion_duration_seconds_text(raw: object, *, fallback: str) -> str:
     if not isinstance(raw, str):
         return fallback
     s = raw.strip()[:32]
-    if nudge_logic.parse_motion_duration_percent_string(s) is None:
+    if nudge_logic.parse_motion_duration_seconds_string(s) is None:
         return fallback
     return s
 
@@ -248,9 +343,24 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     else:
         out["path_speed_text"] = fb_ps
 
-    fb_md = out["motion_duration_percent_text"]
-    out["motion_duration_percent_text"] = _sanitize_motion_duration_percent_text(
-        raw.get("motion_duration_percent_text", fb_md), fallback=fb_md
+    fb_md = out["motion_duration_seconds_text"]
+    md_raw = raw.get("motion_duration_seconds_text")
+    if md_raw is None and isinstance(raw.get("motion_duration_percent_text"), str):
+        legacy = raw["motion_duration_percent_text"].strip().replace(",", ".")
+        try:
+            legacy_pct = int(float(legacy))
+        except (TypeError, ValueError):
+            legacy_pct = -1
+        if legacy_pct > 0:
+            mapped = max(
+                nudge_logic.MIN_MOTION_DURATION_SECONDS,
+                min(nudge_logic.MAX_MOTION_DURATION_SECONDS, int(round(legacy_pct / 10.0))),
+            )
+            md_raw = str(mapped)
+        else:
+            md_raw = fb_md
+    out["motion_duration_seconds_text"] = _sanitize_motion_duration_seconds_text(
+        md_raw if md_raw is not None else fb_md, fallback=fb_md
     )
 
     mp = _sanitize_motion_pattern(raw.get("motion_pattern"))
@@ -260,12 +370,21 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     ast = _sanitize_activity_style(raw.get("activity_style"))
     if ast is not None:
         out["activity_style"] = ast
+    ni = _sanitize_natural_intensity(raw.get("natural_intensity"))
+    if ni is not None:
+        out["natural_intensity"] = ni
     nrc = _sanitize_natural_flag(raw.get("natural_rare_click"))
     if nrc is not None:
         out["natural_rare_click"] = nrc
     nrs = _sanitize_natural_flag(raw.get("natural_rare_scroll"))
     if nrs is not None:
         out["natural_rare_scroll"] = nrs
+    nps = _sanitize_natural_preset_name(raw.get("natural_preset_selected"))
+    if nps is not None:
+        out["natural_preset_selected"] = nps
+    out["natural_presets"] = _sanitize_natural_presets(
+        raw.get("natural_presets"), fallback=out["natural_presets"]
+    )
 
     ctt = _sanitize_close_to_tray(raw.get("close_to_tray"))
     if ctt is not None:
@@ -317,6 +436,8 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     acu = _sanitize_auto_check_updates(data.get("auto_check_updates"))
     nrc = _sanitize_natural_flag(data.get("natural_rare_click"))
     nrs = _sanitize_natural_flag(data.get("natural_rare_scroll"))
+    ni = _sanitize_natural_intensity(data.get("natural_intensity"))
+    nps = _sanitize_natural_preset_name(data.get("natural_preset_selected"))
     unit = _sanitize_interval_unit(data.get("interval_unit")) or base["interval_unit"]
     fb_start = base["schedule_window_start_text"]
     fb_end = base["schedule_window_end_text"]
@@ -340,16 +461,24 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         "path_speed_text": _sanitize_path_speed_text(
             data.get("path_speed_text"), fallback=base["path_speed_text"]
         ),
-        "motion_duration_percent_text": _sanitize_motion_duration_percent_text(
-            data.get("motion_duration_percent_text"),
-            fallback=base["motion_duration_percent_text"],
+        "motion_duration_seconds_text": _sanitize_motion_duration_seconds_text(
+            data.get("motion_duration_seconds_text"),
+            fallback=base["motion_duration_seconds_text"],
         ),
         "motion_pattern": _sanitize_motion_pattern(data.get("motion_pattern"))
         or base["motion_pattern"],
         "activity_style": _sanitize_activity_style(data.get("activity_style"))
         or base["activity_style"],
+        "natural_intensity": ni if ni is not None else base["natural_intensity"],
         "natural_rare_click": nrc if nrc is not None else base["natural_rare_click"],
         "natural_rare_scroll": nrs if nrs is not None else base["natural_rare_scroll"],
+        "natural_preset_selected": (
+            nps if nps is not None else base["natural_preset_selected"]
+        ),
+        "natural_presets": _sanitize_natural_presets(
+            data.get("natural_presets"),
+            fallback=base["natural_presets"],
+        ),
         "close_to_tray": ctt if ctt is not None else base["close_to_tray"],
         "intro_acknowledged": ia if ia is not None else base["intro_acknowledged"],
         "schedule_window": sw if sw is not None else base["schedule_window"],
