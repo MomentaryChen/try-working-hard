@@ -33,6 +33,7 @@ def _defaults() -> dict[str, Any]:
         "interval_jitter_text": "0",
         "pixels_text": str(nudge_logic.DEFAULT_PIXELS),
         "path_speed_text": str(nudge_logic.DEFAULT_PATH_SPEED),
+        "motion_duration_percent_text": str(nudge_logic.DEFAULT_MOTION_DURATION_PERCENT),
         "motion_pattern": "horizontal",
         "activity_style": "pattern",
         "natural_rare_click": False,
@@ -126,6 +127,15 @@ def _sanitize_path_speed_text(raw: object, *, fallback: str) -> str:
         min_sp=nudge_logic.MIN_PATH_SPEED,
         max_sp=nudge_logic.MAX_PATH_SPEED,
     ) is None:
+        return fallback
+    return s
+
+
+def _sanitize_motion_duration_percent_text(raw: object, *, fallback: str) -> str:
+    if not isinstance(raw, str):
+        return fallback
+    s = raw.strip()[:32]
+    if nudge_logic.parse_motion_duration_percent_string(s) is None:
         return fallback
     return s
 
@@ -238,6 +248,11 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     else:
         out["path_speed_text"] = fb_ps
 
+    fb_md = out["motion_duration_percent_text"]
+    out["motion_duration_percent_text"] = _sanitize_motion_duration_percent_text(
+        raw.get("motion_duration_percent_text", fb_md), fallback=fb_md
+    )
+
     mp = _sanitize_motion_pattern(raw.get("motion_pattern"))
     if mp is not None:
         out["motion_pattern"] = mp
@@ -324,6 +339,10 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
         ),
         "path_speed_text": _sanitize_path_speed_text(
             data.get("path_speed_text"), fallback=base["path_speed_text"]
+        ),
+        "motion_duration_percent_text": _sanitize_motion_duration_percent_text(
+            data.get("motion_duration_percent_text"),
+            fallback=base["motion_duration_percent_text"],
         ),
         "motion_pattern": _sanitize_motion_pattern(data.get("motion_pattern"))
         or base["motion_pattern"],

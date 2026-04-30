@@ -112,6 +112,27 @@ def test_parse_path_speed_invalid(raw: str) -> None:
 
 
 @pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("10", 10),
+        ("100", 100),
+        ("500", 500),
+        (" 250 ", 250),
+    ],
+)
+def test_parse_motion_duration_percent_valid(raw: str, expected: int) -> None:
+    assert nudge_logic.parse_motion_duration_percent_string(raw) == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["", "abc", "9", "501", "0", "-1", "nan", "inf"],
+)
+def test_parse_motion_duration_percent_invalid(raw: str) -> None:
+    assert nudge_logic.parse_motion_duration_percent_string(raw) is None
+
+
+@pytest.mark.parametrize(
     ("total_sec", "expected"),
     [
         (0, "0:00"),

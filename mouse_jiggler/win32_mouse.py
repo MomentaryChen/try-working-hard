@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import ctypes
+import math
 import random
 import sys
 import time
 from ctypes import wintypes
 
+from . import nudge_logic
 from .cursor_nudge import MotionPattern, nudge_natural, nudge_trajectory
 
 IS_WINDOWS = sys.platform == "win32"
@@ -93,17 +95,33 @@ def _mouse_wheel(delta: int) -> None:
     user32.mouse_event(MOUSEEVENTF_WHEEL, 0, 0, ctypes.c_uint(int(delta)), 0)
 
 
+def _motion_duration_mult(percent: int) -> float:
+    lo = float(nudge_logic.MIN_MOTION_DURATION_PERCENT)
+    hi = float(nudge_logic.MAX_MOTION_DURATION_PERCENT)
+    p = float(percent)
+    if not math.isfinite(p):
+        return 1.0
+    p = max(lo, min(hi, p))
+    return p / 100.0
+
+
 def jiggle_mouse(
-    delta_pixels: int, pattern: MotionPattern = "horizontal", *, path_speed: int = 5
+    delta_pixels: int,
+    pattern: MotionPattern = "horizontal",
+    *,
+    path_speed: int = 5,
+    motion_duration_percent: int = nudge_logic.DEFAULT_MOTION_DURATION_PERCENT,
 ) -> None:
     """
-    Nudge the cursor along a path. ``path_speed`` (1–10) controls how fast the path runs.
+    Nudge the cursor along a path. ``path_speed`` (1–10) controls how fast the path runs;
+    ``motion_duration_percent`` scales every step delay (100 = default).
     """
     _require_windows()
     nudge_trajectory(
         pattern,
         delta_pixels,
         path_speed,
+        motion_duration_mult=_motion_duration_mult(motion_duration_percent),
         get_pos=_get_cursor_xy,
         set_pos=lambda x, y: user32.SetCursorPos(int(x), int(y)),
         sleep=time.sleep,
@@ -114,6 +132,7 @@ def jiggle_natural(
     delta_pixels: int,
     *,
     path_speed: int = 5,
+    motion_duration_percent: int = nudge_logic.DEFAULT_MOTION_DURATION_PERCENT,
     rare_click: bool = False,
     rare_scroll: bool = False,
 ) -> None:
@@ -125,6 +144,7 @@ def jiggle_natural(
     nudge_natural(
         delta_pixels,
         path_speed,
+        motion_duration_mult=_motion_duration_mult(motion_duration_percent),
         get_pos=_get_cursor_xy,
         set_pos=lambda x, y: user32.SetCursorPos(int(x), int(y)),
         sleep=time.sleep,

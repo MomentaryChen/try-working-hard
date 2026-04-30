@@ -12,7 +12,13 @@ DEFAULT_MINUTES = 5.0
 MIN_SECONDS = MIN_MINUTES * 60.0
 MIN_PIXELS = 0
 MAX_PIXELS = 500
+# Natural mode may use a larger wander radius than geometric patterns.
+MAX_NATURAL_PIXELS = 1000
 DEFAULT_PIXELS = 100
+# Scales every cursor step delay (100 = app default timing; higher = longer motion).
+MIN_MOTION_DURATION_PERCENT = 10
+MAX_MOTION_DURATION_PERCENT = 500
+DEFAULT_MOTION_DURATION_PERCENT = 100
 # Path trace speed 1–10: higher = faster along line / circle / square.
 MIN_PATH_SPEED = 1
 MAX_PATH_SPEED = 10
@@ -76,6 +82,26 @@ def parse_path_speed_string(
     except (ValueError, OverflowError):
         return None
     if p < min_sp or p > max_sp:
+        return None
+    return p
+
+
+def parse_motion_duration_percent_string(
+    raw: str,
+    *,
+    min_pct: int = MIN_MOTION_DURATION_PERCENT,
+    max_pct: int = MAX_MOTION_DURATION_PERCENT,
+) -> int | None:
+    """Parse motion duration scale as integer percent ``min_pct``–``max_pct``; ``None`` if invalid."""
+    s = raw.strip().replace(",", ".")
+    try:
+        f = float(s)
+        if not math.isfinite(f):
+            return None
+        p = int(f)
+    except (ValueError, OverflowError):
+        return None
+    if p < min_pct or p > max_pct:
         return None
     return p
 
