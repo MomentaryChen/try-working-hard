@@ -1,6 +1,6 @@
 # 二次努力
 
-![二次努力 介面示意](img/try-working-hard-v.2.0.0.gif)
+![二次努力 介面示意](img/try-working-hard-v2.0.0.gif)
 
 **語言：** [English](README.md) · 正體中文（本頁）
 **二次努力**（開發／套件名稱 `try-working-hard`）為 Windows 桌面工具：只有在真實閒置達門檻時才微動游標。

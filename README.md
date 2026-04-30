@@ -1,6 +1,6 @@
 # try-working-hard
 
-![try-working-hard UI demo](/img/try-working-hard-v.2.0.0.gif)
+![try-working-hard UI demo](/img/try-working-hard-v2.0.0.gif)
 
 **Languages:** English (this file) · [正體中文](README.zh-TW.md)
 
