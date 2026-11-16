@@ -48,6 +48,8 @@ _UI_PALETTES: dict[UiTheme, dict[str, str]] = {
         "STATUS_STRIP_BORDER_SCHEDULE": "#89DCEB",
         "STATUS_LED_SCHEDULE": "#89DCEB",
         "STATUS_TEXT_SCHEDULE": "#89DCEB",
+        # Title color of error dialogs (_show_custom_dialog with kind="error").
+        "STATUS_TEXT_ERROR": "#F38BA8",
     },
     "light": {
         "MAIN_BG": "#F7F9FC",
@@ -88,6 +90,7 @@ _UI_PALETTES: dict[UiTheme, dict[str, str]] = {
         "STATUS_STRIP_BORDER_SCHEDULE": "#6A89A8",
         "STATUS_LED_SCHEDULE": "#6A89A8",
         "STATUS_TEXT_SCHEDULE": "#5D7996",
+        "STATUS_TEXT_ERROR": "#A3545B",
     },
 }
 

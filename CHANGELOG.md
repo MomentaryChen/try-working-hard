@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Error dialogs were blank (since 2.0.0)**: every error dialog (for example an invalid interval on **Start**, or a failed update download) referenced a palette color that was never defined, so it opened as an empty window and the code after it — such as the "start failed" log line — never ran. The missing `STATUS_TEXT_ERROR` color is now defined for both themes, and a test checks that every palette token the UI uses exists in both themes.
+- **Installer download errors**: when downloading the update installer failed, the error callback raised `NameError` (the exception variable was already unbound when Tk ran it), so the progress dialog stayed at "Preparing download… 0%" and the failure message never appeared. The error is now shown as intended.
 - **Analytics file safety**: `analytics.json` is now written atomically (temp file + replace), so a crash or power loss mid-write cannot leave a truncated file that resets all stats.
 - **Tests**: the analytics round-trip test no longer fails once its hard-coded date falls outside the 120-day retention window.
 

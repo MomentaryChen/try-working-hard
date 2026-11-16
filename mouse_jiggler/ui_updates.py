@@ -376,7 +376,10 @@ class UpdatesMixin:
             except updater.DownloadCancelledError:
                 self.root.after(0, self._on_installer_download_cancelled)
             except Exception as exc:
-                self.root.after(0, lambda: self._on_installer_download_failed(err=str(exc)))
+                # Bind the message now: Python unbinds ``exc`` when the except block ends,
+                # long before Tk runs this callback on the main thread.
+                err = str(exc)
+                self.root.after(0, lambda: self._on_installer_download_failed(err=err))
 
         threading.Thread(target=_worker, daemon=True).start()
 
