@@ -24,6 +24,7 @@ def test_jiggle_mouse_zero_is_noop() -> None:
             jiggle_mouse(0)
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="wintypes sizes differ off Windows")
 def test_input_struct_matches_win32_layout() -> None:
     import ctypes
 
