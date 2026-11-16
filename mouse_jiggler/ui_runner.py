@@ -352,13 +352,21 @@ class RunnerMixin:
             return not self._stop.is_set()
         waited = False
         while not self._stop.is_set():
+            # Clear before reading the settings so a change made from here on wakes us.
+            self._schedule_changed.clear()
             now = datetime.now()
             spec = self._build_schedule_spec()
             if spec is None:
-                return False
+                if not waited:
+                    return False
+                # Settings became invalid while waiting (e.g. a half-typed time):
+                # keep waiting until they change again instead of ending the worker.
+                self._schedule_changed.wait(timeout=30.0)
+                continue
             if schedule_window.is_within_schedule(now, spec):
                 if waited:
                     self._ui_invoke(lambda: self._log(self._t("log_schedule_resumed")))
+                    self._ui_invoke(self._ui_exit_schedule_wait)
                 return not self._stop.is_set()
             waited = True
             resume_at = schedule_window.next_schedule_start(now, spec)
@@ -369,11 +377,16 @@ class RunnerMixin:
                 if left <= 0:
                     break
                 step = min(30.0, left)
-                if self._stop.wait(timeout=step):
+                # Stop also sets _schedule_changed, so this wakes on either.
+                changed = self._schedule_changed.wait(timeout=step)
+                if self._stop.is_set():
                     return False
                 if not self._run_schedule_window:
                     self._ui_invoke(self._ui_exit_schedule_wait)
                     return not self._stop.is_set()
+                if changed:
+                    # Re-evaluate the schedule right away with the new settings.
+                    break
             if self._stop.is_set():
                 return False
         return False
@@ -569,6 +582,9 @@ class RunnerMixin:
         self._cancel_analytics_runtime_flush()
         self._stop.set()
         self._release_keep_awake()
+        # Wake a worker that is waiting for the next schedule window.
+        self._schedule_changed.set()
+        analytics_store.flush()
         self._cancel_countdown_tick()
         self._current_interval_sec = 0.0
         self._countdown_phase = "interval"

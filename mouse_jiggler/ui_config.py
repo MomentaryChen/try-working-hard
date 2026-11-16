@@ -67,6 +67,7 @@ class ConfigMixin:
         self._schedule_include_weekends = bool(cfg.get("schedule_include_weekends", False))
         self._schedule_cron_text = str(cfg.get("schedule_cron_text", ""))
         self._sync_schedule_times_from_vars()
+        self._schedule_changed.set()
         self._run_schedule_window = bool(self.var_schedule_window.get())
         self._intro_acknowledged = bool(cfg.get("intro_acknowledged", True))
         self._lang_seg.set("繁中" if self._lang == "zh" else "English")
@@ -122,6 +123,7 @@ class ConfigMixin:
         def _on_schedule_flag(*_a: object) -> None:
             self._run_schedule_window = bool(self.var_schedule_window.get())
             self._sync_schedule_times_from_vars()
+            self._schedule_changed.set()
             self._schedule_save_config()
             self._refresh_schedule_banner()
 
