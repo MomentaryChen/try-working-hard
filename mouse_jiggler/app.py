@@ -14,6 +14,7 @@ from typing import Any, Literal
 import customtkinter as ctk
 
 from . import (
+    analytics_store,
     local_config,
     nudge_logic,
     schedule_window,
@@ -107,6 +108,9 @@ class MouseJigglerApp(
         self._nav_icons = self._build_nav_icons()
 
         self._stop = threading.Event()
+        # Set by the UI whenever schedule settings change so a worker waiting for the
+        # next schedule window re-evaluates immediately (also set on stop/shutdown).
+        self._schedule_changed = threading.Event()
         self._worker: threading.Thread | None = None
         self._next_jiggle_monotonic = 0.0
         self._interval_unit: nudge_logic.IntervalUnit = "sec"
@@ -422,11 +426,14 @@ class MouseJigglerApp(
         self._flush_runtime_segment()
 
         self._stop.set()
+        self._schedule_changed.set()
         self._cancel_countdown_tick()
 
         w = self._worker
         if w is not None and w.is_alive():
             w.join(timeout=3.0)
+        # After the worker joined, so a nudge recorded during shutdown is not lost.
+        analytics_store.flush()
 
         self._stop_tray()
         t = self._tray.thread

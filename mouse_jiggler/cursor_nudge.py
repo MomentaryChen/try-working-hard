@@ -46,15 +46,20 @@ def _sleep_interruptible(
     delay: float,
     *,
     should_abort: Callable[[], bool],
-    quantum: float = 0.01,
+    quantum: float = 0.025,
 ) -> None:
+    """Sleep ``delay`` in ``quantum`` slices, checking ``should_abort`` after each slice.
+
+    The check after the last slice means the caller does not need to re-check the
+    cursor before its next ``set_pos``.
+    """
     remain = max(0.0005, float(delay))
     while remain > 0:
-        if should_abort():
-            raise MotionInterrupted()
         step = min(remain, quantum)
         sleep(step)
         remain -= step
+        if should_abort():
+            raise MotionInterrupted()
 
 
 def _target_step_delay(base_delay: float, *, steps: int, motion_duration_seconds: float) -> float:
@@ -197,8 +202,7 @@ def _trace_circle(
         theta = 2.0 * math.pi * k / n
         x = int(round(cx + radius * math.cos(theta)))
         y = int(round(cy + radius * math.sin(theta)))
-        if k > 0 and _position_changed_since(get_pos, (x_prev, y_prev)):
-            raise MotionInterrupted()
+        # The previous step's interruptible sleep already checked the cursor.
         set_pos(x, y)
         _sleep_interruptible(
             sleep,
@@ -240,8 +244,7 @@ def _trace_square(
             a = t / steps_per_edge
             x = int(round(prev_x + (tx - prev_x) * a))
             y = int(round(prev_y + (ty - prev_y) * a))
-            if _position_changed_since(get_pos, (x_prev, y_prev)):
-                raise MotionInterrupted()
+            # The previous step's interruptible sleep already checked the cursor.
             set_pos(x, y)
             _sleep_interruptible(
                 sleep,
@@ -331,8 +334,6 @@ def nudge_natural(
 
     for i in range(n_steps):
         if i == n_steps - 1:
-            if _position_changed_since(get_pos, (last_set_x, last_set_y)):
-                raise MotionInterrupted()
             set_pos(sx, sy)
             _sleep_interruptible(
                 sleep,
@@ -353,8 +354,6 @@ def nudge_natural(
             scale = cap / dist
             cx = sx + dx * scale
             cy = sy + dy * scale
-        if _position_changed_since(get_pos, (last_set_x, last_set_y)):
-            raise MotionInterrupted()
         target_x, target_y = int(round(cx)), int(round(cy))
         seg_delay = max(0.0005, delays[i] / substeps)
         sx0, sy0 = last_set_x, last_set_y
@@ -362,8 +361,7 @@ def nudge_natural(
             a = j / substeps
             set_x = int(round(sx0 + (target_x - sx0) * a))
             set_y = int(round(sy0 + (target_y - sy0) * a))
-            if _position_changed_since(get_pos, (last_set_x, last_set_y)):
-                raise MotionInterrupted()
+            # The previous sub-step's interruptible sleep already checked the cursor.
             set_pos(set_x, set_y)
             last_set_x, last_set_y = set_x, set_y
             _sleep_interruptible(

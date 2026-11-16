@@ -5,7 +5,14 @@ from __future__ import annotations
 import random
 from unittest.mock import MagicMock
 
-from mouse_jiggler.cursor_nudge import nudge_horizontal, nudge_natural, nudge_trajectory
+import pytest
+
+from mouse_jiggler.cursor_nudge import (
+    MotionInterrupted,
+    nudge_horizontal,
+    nudge_natural,
+    nudge_trajectory,
+)
 
 
 def _mock_pos_io(x: int, y: int) -> tuple[MagicMock, MagicMock]:
@@ -138,3 +145,54 @@ def test_nudge_natural_restores_start() -> None:
         rng=rng,
     )
     set_pos.assert_called_with(100, 200)
+
+
+def _mock_pos_io_with_user_move(x: int, y: int) -> tuple[MagicMock, MagicMock, MagicMock]:
+    """Like ``_mock_pos_io`` but the user moves the cursor during the first sleep slice."""
+    state = [x, y]
+
+    def _set(nx: int, ny: int) -> None:
+        state[0], state[1] = int(nx), int(ny)
+
+    def _sleep(_sec: float) -> None:
+        if sleep.call_count == 1:
+            state[0] += 50
+            state[1] += 50
+
+    get_pos = MagicMock(side_effect=lambda: tuple(state))
+    set_pos = MagicMock(side_effect=_set)
+    sleep = MagicMock(side_effect=_sleep)
+    return get_pos, set_pos, sleep
+
+
+@pytest.mark.parametrize("pattern", ["horizontal", "circle", "square"])
+def test_pattern_interrupted_by_user_move_stops_before_next_step(pattern: str) -> None:
+    get_pos, set_pos, sleep = _mock_pos_io_with_user_move(100, 100)
+    with pytest.raises(MotionInterrupted):
+        nudge_trajectory(
+            pattern,  # type: ignore[arg-type]
+            10,
+            5,
+            get_pos=get_pos,
+            set_pos=set_pos,
+            sleep=sleep,
+            motion_duration_seconds=0.05,
+        )
+    # Only the first step was commanded; the move during its sleep aborted the rest.
+    assert set_pos.call_count == 1
+    assert sleep.call_count == 1
+
+
+def test_natural_interrupted_by_user_move_stops_before_next_step() -> None:
+    get_pos, set_pos, sleep = _mock_pos_io_with_user_move(100, 200)
+    with pytest.raises(MotionInterrupted):
+        nudge_natural(
+            24,
+            5,
+            get_pos=get_pos,
+            set_pos=set_pos,
+            sleep=sleep,
+            rng=random.Random(42),
+        )
+    assert set_pos.call_count == 1
+    assert sleep.call_count == 1

@@ -94,10 +94,13 @@ class SettingsMixin:
         )
 
     def _sync_schedule_times_from_vars(self) -> None:
+        before = (self._schedule_ws, self._schedule_we, self._schedule_segments_text)
         self._schedule_ws, self._schedule_we = self._effective_schedule_bounds()
         self._schedule_segments_text = (
             f"{self.var_schedule_start.get().strip()}-{self.var_schedule_end.get().strip()}"
         )
+        if (self._schedule_ws, self._schedule_we, self._schedule_segments_text) != before:
+            self._schedule_changed.set()
 
     def _build_schedule_spec(self) -> schedule_window.ScheduleSpec | None:
         return schedule_window.build_schedule_spec(
