@@ -98,6 +98,8 @@ uv run python -m mouse_jiggler
 - 設定頁可調整主題（`ui_theme`）、語言、自動檢查更新（`auto_check_updates`）、排程摘要與開啟 `config.json`。
 - 分析頁提供 Matplotlib 圖表，統計資料存於與 `config.json` 同目錄的 `analytics.json`。
 - 可用 `uv run python -m mouse_jiggler --start-in-tray`（或 `.exe` 同旗標）直接以僅系統匣啟動。
+- 同一時間只會執行一份：再次啟動（開始功能表、捷徑、`.exe`）時，會把已在執行的視窗帶到最前面（即使它縮在系統匣），而不會開第二份。除錯時可加 `--allow-multiple` 略過此限制。
+- 更新橫幅的 **立即下載** 只有在安裝程式與 release 附帶的 SHA256 校驗檔相符時才會執行。若 release 沒有校驗檔、校驗檔下載失敗，或校驗檔中沒有該安裝程式的項目，會刪除已下載的檔案並顯示錯誤，不會執行安裝程式。
 
 ## 常見問題（快速版）
 
@@ -105,6 +107,7 @@ uv run python -m mouse_jiggler
 - **游標會飄移嗎？** 不會，每次微動後會回到原位置。
 - **不裝 Python 能用嗎？** 可以，下載 release 的 `.exe`。
 - **可以直接縮在系統匣啟動嗎？** 可以，使用 `--start-in-tray`。
+- **為什麼再次啟動不會開新視窗？** 程式只允許單一執行個體，會改為顯示已在執行的視窗。若要再開一份，請使用 `--allow-multiple`。
 - **能用來規避公司規範嗎？** 不可以。
 
 ## 技術說明

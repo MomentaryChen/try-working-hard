@@ -329,6 +329,10 @@ class UpdatesMixin:
         if self._update_download_in_progress:
             self._show_info_banner(self._t("update_download_in_progress"))
             return
+        if not checksum_url:
+            # Never download (let alone run) an installer that cannot be verified.
+            self._show_checksum_error(updater.ChecksumError("missing_asset"))
+            return
         self._update_download_in_progress = True
         self._update_download_cancel_requested = False
         self._update_download_started_at = time.monotonic()
@@ -346,32 +350,18 @@ class UpdatesMixin:
                     progress_cb=_progress,
                     cancel_cb=lambda: self._update_download_cancel_requested,
                 )
-                expected_sha256 = ""
-                actual_sha256 = ""
-                checksum_verified = False
-                if checksum_url:
-                    checksum_text = updater.fetch_text(checksum_url)
-                    digest = updater.parse_sha256_from_text(checksum_text, installer_name)
-                    if digest:
-                        expected_sha256 = digest
-                if expected_sha256:
-                    actual_sha256 = updater.sha256_file(out)
-                    if actual_sha256.lower() != expected_sha256.lower():
-                        raise RuntimeError(
-                            self._t(
-                                "update_checksum_mismatch_error",
-                                expected=self._short_digest(expected_sha256),
-                                actual=self._short_digest(actual_sha256),
-                            )
-                        )
-                    checksum_verified = True
+                try:
+                    digest = updater.verify_installer_checksum(
+                        out, installer_name=installer_name, checksum_url=checksum_url
+                    )
+                except updater.ChecksumError as exc:
+                    updater.discard_file(out)
+                    checksum_err = exc
+                    self.root.after(0, lambda: self._on_installer_checksum_failed(checksum_err))
+                    return
                 self.root.after(
                     0,
-                    lambda: self._on_installer_download_done(
-                        path=out,
-                        checksum_verified=checksum_verified,
-                        checksum_digest=(actual_sha256 or expected_sha256),
-                    ),
+                    lambda: self._on_installer_download_done(path=out, checksum_digest=digest),
                 )
             except updater.DownloadCancelledError:
                 self.root.after(0, self._on_installer_download_cancelled)
@@ -387,19 +377,16 @@ class UpdatesMixin:
         self,
         *,
         path: Path,
-        checksum_verified: bool = False,
-        checksum_digest: str = "",
+        checksum_digest: str,
     ) -> None:
         self._update_download_in_progress = False
         self._close_installer_progress_dialog()
         if self._shutting_down:
             return
-        digest_hint = ""
-        if checksum_verified and checksum_digest:
-            digest_hint = self._t(
-                "update_checksum_verified_hint",
-                digest=self._short_digest(checksum_digest),
-            )
+        digest_hint = self._t(
+            "update_checksum_verified_hint",
+            digest=self._short_digest(checksum_digest),
+        )
         approved = self._ask_yes_no_dialog(
             self._t("update_install_prompt_title"),
             self._t("update_install_prompt_body", path=str(path), verify_hint=digest_hint),
@@ -426,6 +413,27 @@ class UpdatesMixin:
         self._show_error_dialog(
             self._t("update_download_failed_title"),
             self._t("update_download_failed_body", err=err),
+        )
+
+    def _on_installer_checksum_failed(self, exc: updater.ChecksumError) -> None:
+        self._update_download_in_progress = False
+        self._close_installer_progress_dialog()
+        if self._shutting_down:
+            return
+        self._show_checksum_error(exc)
+
+    def _show_checksum_error(self, exc: updater.ChecksumError) -> None:
+        if exc.reason == "mismatch":
+            detail = self._t(
+                "update_checksum_mismatch_error",
+                expected=self._short_digest(exc.expected),
+                actual=self._short_digest(exc.actual),
+            )
+        else:
+            detail = self._t(f"update_checksum_{exc.reason}_error")
+        self._show_error_dialog(
+            self._t("update_checksum_failed_title"),
+            self._t("update_checksum_failed_body", detail=detail),
         )
 
     def _on_installer_download_cancelled(self) -> None:

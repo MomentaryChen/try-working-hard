@@ -17,6 +17,8 @@ from . import (
     local_config,
     nudge_logic,
     schedule_window,
+    single_instance,
+    win_dpi,
 )
 from .app_icon import load_app_icon_rgba
 from .cursor_nudge import ActivityStyle, MotionPattern, NaturalIntensity
@@ -75,8 +77,16 @@ class MouseJigglerApp(
     _AUTO_UPDATE_INTERVAL_MS = 1 * 60 * 60 * 1000
     _AUTO_UPDATE_RETRY_MS = 15 * 60 * 1000
 
-    def __init__(self, start_in_tray: bool = False) -> None:
+    _SHOW_REQUEST_POLL_MS = 300
+
+    def __init__(
+        self,
+        start_in_tray: bool = False,
+        instance_guard: single_instance.InstanceGuard | None = None,
+    ) -> None:
         self._start_in_tray = bool(start_in_tray) and bool(HAS_TRAY)
+        self._instance_guard = instance_guard
+        self._show_request_after_id: str | None = None
 
         _cfg0 = local_config.load_config()
         _ut = _cfg0.get("ui_theme")
@@ -90,6 +100,7 @@ class MouseJigglerApp(
 
         # CTkFont requires an existing Tk root or tkinter raises RuntimeError
         self.root = ctk.CTk()
+        win_dpi.keep_legacy_tk_scaling(self.root)
         self._font_title = ctk.CTkFont(family=_FONT_INTER, size=28, weight="bold")
         self._font_brand = ctk.CTkFont(family=_FONT_INTER, size=20, weight="bold")
         self._font_body = ctk.CTkFont(family=_FONT_INTER, size=14)
@@ -193,6 +204,25 @@ class MouseJigglerApp(
 
         self.root.after(4500, self._tick_analytics_charts_loop)
         self._schedule_auto_update_check(self._AUTO_UPDATE_STARTUP_DELAY_MS)
+        if self._instance_guard is not None:
+            self._show_request_after_id = self.root.after(
+                self._SHOW_REQUEST_POLL_MS, self._poll_show_request
+            )
+
+    def _poll_show_request(self) -> None:
+        """Show the window when a second launch signalled the single-instance event."""
+        self._show_request_after_id = None
+        if self._shutting_down or self._instance_guard is None:
+            return
+        if self._instance_guard.show_requested():
+            self._show_from_tray()
+            try:
+                single_instance.bring_to_front(int(self.root.wm_frame(), 16))
+            except (tk.TclError, ValueError):
+                pass
+        self._show_request_after_id = self.root.after(
+            self._SHOW_REQUEST_POLL_MS, self._poll_show_request
+        )
 
     def _bootstrap_tray_start(self) -> None:
         if self._shutting_down or not HAS_TRAY:
@@ -418,6 +448,12 @@ class MouseJigglerApp(
 
         self._cancel_analytics_runtime_flush()
         self._cancel_auto_update_check()
+        if self._show_request_after_id is not None:
+            try:
+                self.root.after_cancel(self._show_request_after_id)
+            except tk.TclError:
+                pass
+            self._show_request_after_id = None
         self._close_installer_progress_dialog()
         self._flush_runtime_segment()
 
@@ -482,6 +518,8 @@ class MouseJigglerApp(
 
 
 def main() -> None:
+    # Before anything creates a Tk window (see win_dpi for why per-monitor v1).
+    win_dpi.enable_dpi_awareness()
     p = argparse.ArgumentParser(
         prog="mouse_jiggler",
         description="Mouse nudge on a schedule (CustomTkinter UI).",
@@ -491,5 +529,16 @@ def main() -> None:
         action="store_true",
         help="Start with the main window in the system tray (requires pystray).",
     )
+    p.add_argument(
+        "--allow-multiple",
+        action="store_true",
+        help="Skip the single-instance check and allow another copy to run (for debugging).",
+    )
     a = p.parse_args()
-    MouseJigglerApp(start_in_tray=bool(a.start_in_tray)).run()
+    guard: single_instance.InstanceGuard | None = None
+    if not a.allow_multiple:
+        guard = single_instance.acquire()
+        if guard is None:
+            # Another instance is running and has been asked to show its window.
+            return
+    MouseJigglerApp(start_in_tray=bool(a.start_in_tray), instance_guard=guard).run()

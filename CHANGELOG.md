@@ -6,14 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Single instance**: launching the app while it is already running no longer opens a second copy; the running window is shown and brought to the front instead, including when it is hidden in the system tray (named mutex plus a named event the running instance polls). Use the new `--allow-multiple` flag to bypass this for debugging.
+
 ### Changed
 
+- **DPI awareness is set at the very start of `main`**: the process is made per-monitor DPI aware before Tk creates its root window, instead of only inside `ctk.CTk()` after the root already exists. Per-monitor v1 is used (the same level CustomTkinter sets) because CustomTkinter documents that per-monitor v2 makes fixed-size dialogs grow on monitors with a different scale; Tk's point scaling is kept at its previous value so the UI stays the same size.
 - **Code structure (no behavior change)**: `mouse_jiggler/app.py` (about 5,000 lines) is split into mixin modules — `ui_theme`, `ui_a11y`, `ui_control_state`, `ui_control_panel`, `ui_config`, `ui_dialogs`, `ui_updates`, `ui_layout`, `ui_analytics`, `ui_settings`, `ui_runner` — plus shared helpers in `ui_common` and `win_autostart`. `app.py` keeps `MouseJigglerApp` (constructor, language, tray and shutdown) and `main`; the public imports `mouse_jiggler.MouseJigglerApp` / `mouse_jiggler.main` are unchanged.
 - **Faster startup**: the Analytics page (matplotlib and its three charts) is now built the first time you open it instead of at launch, so the main window appears about a second sooner. The first visit shows a brief "Loading charts…" placeholder; if the charts cannot be loaded, an error message is shown and opening the page again retries.
 - **Lower idle CPU and disk I/O**: the Analytics page no longer rewrites `analytics.json` on every 5-second refresh, and it skips re-reading and redrawing its three charts when the data, language, theme, and range are unchanged (or when the window is hidden in the tray). While running, the status strip re-applies its colors only when the phase or theme changes instead of every 500 ms.
 
 ### Fixed
 
+- **Updater now requires a matching checksum**: the downloaded installer is only offered to run after its SHA256 matches the release `try-working-hard-<tag>-checksums.txt`. A missing checksum asset, a failed checksum download, or no line for the installer (previously ignored, so the installer ran unverified) and a mismatch (which left the file behind) now delete the download and show an error dialog. Checksum lines must name the installer exactly instead of merely containing its name.
 - **Error dialogs were blank (since 2.0.0)**: every error dialog (for example an invalid interval on **Start**, or a failed update download) referenced a palette color that was never defined, so it opened as an empty window and the code after it — such as the "start failed" log line — never ran. The missing `STATUS_TEXT_ERROR` color is now defined for both themes, and a test checks that every palette token the UI uses exists in both themes.
 - **Installer download errors**: when downloading the update installer failed, the error callback raised `NameError` (the exception variable was already unbound when Tk ran it), so the progress dialog stayed at "Preparing download… 0%" and the failure message never appeared. The error is now shown as intended.
 - **Analytics file safety**: `analytics.json` is now written atomically (temp file + replace), so a crash or power loss mid-write cannot leave a truncated file that resets all stats.
