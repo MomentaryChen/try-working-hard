@@ -82,7 +82,9 @@ uv run python -m mouse_jiggler
 
 - **間隔：** 觸發一次微動前，需累積的閒置時間。
 - **間隔隨機：** 讓每次間隔在 `間隔 ± N 秒` 內隨機化。
-- **位移 / 路徑速度：** 控制移動距離與微動速度。
+- **位移 / 路徑速度 / 移動持續時間：** 距離、速度與每次微動的大約時長。圓形與方形會重複繞完整圈直到填滿持續時間，速度愈快繞愈多圈（大圖形配慢速時，可能超過較短的持續時間一圈）。自然模式以速度決定微動的密度與快慢。水平模式只在持續時間內停在位移點，不使用路徑速度。
+- **自然模式偶發左鍵點擊：** 預設關閉（內建 Preset 也是）。開啟後會在**目前游標位置真的按下左鍵**，可能按到游標下的按鈕。
+- **執行中保持螢幕喚醒**（設定頁，`keep_display_awake`，預設開啟）：執行期間要求 Windows 不要關閉螢幕或進入睡眠；按下**停止**或結束程式時解除。
 - **排程時段：** 可設定 `HH:MM` 開始/結束，也可在 `config.json` 用多段或 cron 進階規則。
 - **系統匣行為：** 預設關閉視窗即停止並離開；可改成縮到系統匣持續執行。
 
@@ -95,7 +97,8 @@ uv run python -m mouse_jiggler
 ### 詳細參考
 
 - 一般啟動（非 `--start-in-tray`）會顯示啟動提示，可開啟流程簡介，且「不再顯示」會存到 `config.json` 的 `intro_acknowledged`。
-- 設定頁可調整主題（`ui_theme`）、語言、自動檢查更新（`auto_check_updates`）、排程摘要與開啟 `config.json`。
+- 設定頁可調整主題（`ui_theme`）、語言、自動檢查更新（`auto_check_updates`）、保持螢幕喚醒（`keep_display_awake`）、排程摘要與開啟 `config.json`。
+- 每次完成微動後會以 `SendInput` 送出 1 px 的移動再移回。只用 `SetCursorPos` 移動游標不會重設 Windows 閒置計時（螢幕鎖定與「離開」狀態依此判斷），少了這一步螢幕仍可能鎖定。微動途中若你移動滑鼠，微動會停止並寫入紀錄。
 - 分析頁提供 Matplotlib 圖表，統計資料存於與 `config.json` 同目錄的 `analytics.json`。
 - 可用 `uv run python -m mouse_jiggler --start-in-tray`（或 `.exe` 同旗標）直接以僅系統匣啟動。
 
@@ -111,7 +114,7 @@ uv run python -m mouse_jiggler
 
 - GUI：**CustomTkinter**—**淺色**改為更乾淨的 SaaS 色票（背景 **#F5F7FB**、側欄/卡片 **#FFFFFF**、邊框 **#E2E8F0**），主色互動為 **#3B82F6 / #2563EB / #1D4ED8**；**深色**改為現代深色系（背景 **#1E1E2E**、側欄 **#181825**、卡片 **#24273A**、邊框 **#313244**），主色互動為 **#89B4FA / #74C7EC / #B4BEFE**。**首頁**內以分段切換 **控制面板 / 紀錄**。
 - **分析**：以 **Matplotlib**（TkAgg）嵌入；統計資料存於 **`analytics.json`**（與 **`config.json`** 同目錄）。
-- 滑鼠：**ctypes** 呼叫 `user32.GetCursorPos` / `SetCursorPos`；自然模式可額外以 `mouse_event` 送左鍵與滾輪；排程以 `GetLastInputInfo` 與 `GetTickCount` 取得閒置時間
+- 滑鼠：**ctypes** 呼叫 `user32.GetCursorPos` / `SetCursorPos` 繪製路徑，並以 `user32.SendInput` 重設閒置計時，自然模式另以它送偶發左鍵與滾輪；閒置時間以 `GetLastInputInfo` 與 `GetTickCount` 取得；保持喚醒使用 `kernel32.SetThreadExecutionState`
 - 系統匣：**pystray**、圖示繪製：**Pillow**（主視窗與匣區共用 PNG；重建 `.exe` 時另以 [`packaging/app.ico`](packaging/app.ico) 作為檔案圖示，見 [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md)）
 
 ## 限制與注意

@@ -69,7 +69,8 @@ def _defaults() -> dict[str, Any]:
                 "pixels_text": "180",
                 "path_speed_text": "8",
                 "motion_duration_seconds_text": "8",
-                "natural_rare_click": True,
+                # Rare click sends a real left click at the cursor; never on by default.
+                "natural_rare_click": False,
                 "natural_rare_scroll": True,
             },
         },
@@ -79,6 +80,7 @@ def _defaults() -> dict[str, Any]:
         "schedule_window_start_text": "09:00",
         "schedule_window_end_text": "18:00",
         "auto_check_updates": True,
+        "keep_display_awake": True,
         "schedule_window_segments_text": "09:00-18:00",
         "schedule_include_weekends": False,
         "schedule_cron_text": "",
@@ -259,6 +261,12 @@ def _sanitize_auto_check_updates(raw: object) -> bool | None:
     return None
 
 
+def _sanitize_keep_display_awake(raw: object) -> bool | None:
+    if isinstance(raw, bool):
+        return raw
+    return None
+
+
 def _sanitize_hhmm_text(raw: object, *, fallback: str) -> str:
     if not isinstance(raw, str):
         return fallback
@@ -410,6 +418,9 @@ def load_config(path: Path | None = None) -> dict[str, Any]:
     acu = _sanitize_auto_check_updates(raw.get("auto_check_updates"))
     if acu is not None:
         out["auto_check_updates"] = acu
+    kda = _sanitize_keep_display_awake(raw.get("keep_display_awake"))
+    if kda is not None:
+        out["keep_display_awake"] = kda
     fb_segments = out["schedule_window_segments_text"]
     out["schedule_window_segments_text"] = _sanitize_schedule_segments_text(
         raw.get("schedule_window_segments_text"), fallback=fb_segments
@@ -434,6 +445,7 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
     ia = _sanitize_intro_acknowledged(data.get("intro_acknowledged"))
     sw = _sanitize_schedule_window(data.get("schedule_window"))
     acu = _sanitize_auto_check_updates(data.get("auto_check_updates"))
+    kda = _sanitize_keep_display_awake(data.get("keep_display_awake"))
     nrc = _sanitize_natural_flag(data.get("natural_rare_click"))
     nrs = _sanitize_natural_flag(data.get("natural_rare_scroll"))
     ni = _sanitize_natural_intensity(data.get("natural_intensity"))
@@ -489,6 +501,7 @@ def save_config(data: dict[str, Any], path: Path | None = None) -> None:
             data.get("schedule_window_end_text"), fallback=fb_end
         ),
         "auto_check_updates": acu if acu is not None else base["auto_check_updates"],
+        "keep_display_awake": kda if kda is not None else base["keep_display_awake"],
         "schedule_window_segments_text": _sanitize_schedule_segments_text(
             data.get("schedule_window_segments_text"), fallback=fb_segments
         ),

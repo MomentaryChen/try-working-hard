@@ -15,8 +15,13 @@ from . import (
     nudge_logic,
     schedule_window,
 )
-from .cursor_nudge import ActivityStyle, MotionPattern
-from .win32_mouse import get_seconds_since_last_user_input, jiggle_mouse, jiggle_natural
+from .cursor_nudge import ActivityStyle, MotionInterrupted, MotionPattern
+from .win32_mouse import (
+    get_seconds_since_last_user_input,
+    jiggle_mouse,
+    jiggle_natural,
+    set_keep_awake,
+)
 
 
 class RunnerMixin:
@@ -256,6 +261,7 @@ class RunnerMixin:
                     intensity=self._natural_intensity,
                     rare_click=natural_rare_click,
                     rare_scroll=natural_rare_scroll,
+                    propagate_interrupt=True,
                 )
                 rec_key = "natural"
             else:
@@ -264,6 +270,7 @@ class RunnerMixin:
                     pattern,
                     path_speed=path_speed,
                     motion_duration_seconds=motion_duration_seconds,
+                    propagate_interrupt=True,
                 )
                 rec_key = pattern
             if not completed:
@@ -275,6 +282,8 @@ class RunnerMixin:
                 self._log(self._t("log_nudge"))
             else:
                 self._log(self._t("log_nudge_zero"))
+        except MotionInterrupted:
+            self._log(self._t("log_nudge_interrupted"))
         except OSError as e:
             self._log(self._t("log_nudge_fail", err=e))
         finally:
@@ -356,6 +365,26 @@ class RunnerMixin:
             if self._stop.is_set():
                 return False
         return False
+
+    def _apply_keep_awake(self) -> None:
+        """
+        Keep the system and display awake while a run is active and the setting is on.
+
+        Always called on the Tk main thread, because ``SetThreadExecutionState`` is per thread.
+        """
+        running = (
+            self._worker is not None and self._worker.is_alive() and not self._stop.is_set()
+        )
+        want = running and not self._shutting_down and bool(self.var_keep_display_awake.get())
+        if want == getattr(self, "_keep_awake_active", False):
+            return
+        set_keep_awake(want)
+        self._keep_awake_active = want
+
+    def _release_keep_awake(self) -> None:
+        if getattr(self, "_keep_awake_active", False):
+            set_keep_awake(False)
+            self._keep_awake_active = False
 
     def _on_start(self) -> None:
         interval_sec = self._parse_interval()
@@ -453,6 +482,7 @@ class RunnerMixin:
             daemon=True,
         )
         self._worker.start()
+        self._apply_keep_awake()
 
         self._analytics_runtime_anchor = time.monotonic()
         self._schedule_next_runtime_flush()
@@ -541,6 +571,7 @@ class RunnerMixin:
         self._flush_runtime_segment()
         self._cancel_analytics_runtime_flush()
         self._stop.set()
+        self._release_keep_awake()
         self._cancel_countdown_tick()
         self._current_interval_sec = 0.0
         self._countdown_phase = "interval"

@@ -135,6 +135,7 @@ class MouseJigglerApp(
         self._intro_acknowledged = True
         self._motion_pattern: MotionPattern = "horizontal"
         self._auto_check_updates = True
+        self._keep_awake_active = False
         self._update_check_in_progress = False
         self._update_check_after_id: str | None = None
         self._update_notice_url = ""
@@ -343,6 +344,10 @@ class MouseJigglerApp(
             self._lbl_auto_updates_sw.configure(text=self._t("auto_check_updates_title"))
         if hasattr(self, "_hint_auto_updates"):
             self._hint_auto_updates.configure(text=self._t("auto_check_updates_hint"))
+        if hasattr(self, "_lbl_keep_awake_sw"):
+            self._lbl_keep_awake_sw.configure(text=self._t("keep_display_awake_title"))
+        if hasattr(self, "_hint_keep_awake"):
+            self._hint_keep_awake.configure(text=self._t("keep_display_awake_hint"))
         if hasattr(self, "btn_update_notice_open"):
             self.btn_update_notice_open.configure(text=self._t("update_banner_open"))
         if hasattr(self, "btn_update_notice_close"):
@@ -422,6 +427,7 @@ class MouseJigglerApp(
         self._flush_runtime_segment()
 
         self._stop.set()
+        self._release_keep_awake()
         self._cancel_countdown_tick()
 
         w = self._worker

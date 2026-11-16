@@ -6,7 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- **Keep display awake while running** (Settings, default on, saved as `keep_display_awake`): while a run is active the app calls `SetThreadExecutionState` so Windows does not turn off the display or sleep; the request is cleared on **Stop** and on exit.
+- **Interrupted nudges are logged**: when you move the mouse during a nudge, the log now shows "Nudge stopped: user moved the mouse." instead of nothing.
+
 ### Changed
+
+- **Mouse input uses `SendInput`**: the deprecated `mouse_event` calls (natural-mode rare click and scroll) are replaced by `SendInput` with proper 64-bit `INPUT` structures.
+- **Rare click is clearly labeled and off in every preset**: the natural-mode "Occasional left click" switch now says it really clicks at the current cursor position, and the built-in **Aggressive** preset no longer turns it on.
 
 - **Code structure (no behavior change)**: `mouse_jiggler/app.py` (about 5,000 lines) is split into mixin modules — `ui_theme`, `ui_a11y`, `ui_control_state`, `ui_control_panel`, `ui_config`, `ui_dialogs`, `ui_updates`, `ui_layout`, `ui_analytics`, `ui_settings`, `ui_runner` — plus shared helpers in `ui_common` and `win_autostart`. `app.py` keeps `MouseJigglerApp` (constructor, language, tray and shutdown) and `main`; the public imports `mouse_jiggler.MouseJigglerApp` / `mouse_jiggler.main` are unchanged.
 - **Faster startup**: the Analytics page (matplotlib and its three charts) is now built the first time you open it instead of at launch, so the main window appears about a second sooner. The first visit shows a brief "Loading charts…" placeholder; if the charts cannot be loaded, an error message is shown and opening the page again retries.
@@ -14,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- **Path speed had no effect**: the per-step delay was rescaled so the motion always took exactly the motion duration, which cancelled path speed out. Now path speed sets the step delay: circle and square repeat whole laps (at least one, ending at the start) until the duration is filled, so higher speed means more laps, and natural mode derives its step count from duration / speed, so higher speed means a denser, faster wander. Horizontal still holds the offset for the duration. Real sleep overhead no longer stretches fast runs past the duration.
+- **Screen could still lock while running**: moving the cursor with `SetCursorPos` does not reset the Windows idle timer (measured: `GetLastInputInfo` kept counting through 1 s of `SetCursorPos` moves, while a `SendInput` move reset it to about 0). Each completed nudge now ends with a 1 px `SendInput` move and back, so screen lock and "Away" presence see activity. The next nudge still waits the full interval.
 - **Error dialogs were blank (since 2.0.0)**: every error dialog (for example an invalid interval on **Start**, or a failed update download) referenced a palette color that was never defined, so it opened as an empty window and the code after it — such as the "start failed" log line — never ran. The missing `STATUS_TEXT_ERROR` color is now defined for both themes, and a test checks that every palette token the UI uses exists in both themes.
 - **Installer download errors**: when downloading the update installer failed, the error callback raised `NameError` (the exception variable was already unbound when Tk ran it), so the progress dialog stayed at "Preparing download… 0%" and the failure message never appeared. The error is now shown as intended.
 - **Analytics file safety**: `analytics.json` is now written atomically (temp file + replace), so a crash or power loss mid-write cannot leave a truncated file that resets all stats.
