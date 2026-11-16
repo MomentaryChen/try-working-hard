@@ -2,7 +2,6 @@
 """Generate app_icon.png and app.ico for Windows exe / UI (run from repo root: uv run python packaging/generate_icons.py)."""
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
@@ -51,7 +50,7 @@ def draw_app_icon(size: int = 256) -> Image.Image:
     )
 
     # Motion hint: three small circles trailing left
-    for i, (cx, cy, rad) in enumerate(
+    for _i, (cx, cy, rad) in enumerate(
         [
             (int(56 * s), int(118 * s), int(10 * s)),
             (int(38 * s), int(100 * s), int(7 * s)),

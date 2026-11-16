@@ -193,6 +193,7 @@ def _trace_circle(
         motion_duration_seconds=motion_duration_seconds,
     )
     x_last, y_last = cx, cy
+    x_prev, y_prev = cx, cy
     for k in range(n):
         theta = 2.0 * math.pi * k / n
         x = int(round(cx + radius * math.cos(theta)))
