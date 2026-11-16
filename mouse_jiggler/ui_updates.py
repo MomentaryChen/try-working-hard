@@ -359,6 +359,10 @@ class UpdatesMixin:
                     checksum_err = exc
                     self.root.after(0, lambda: self._on_installer_checksum_failed(checksum_err))
                     return
+                except Exception:
+                    # Fail closed: never leave an unverified installer behind.
+                    updater.discard_file(out)
+                    raise
                 self.root.after(
                     0,
                     lambda: self._on_installer_download_done(path=out, checksum_digest=digest),
