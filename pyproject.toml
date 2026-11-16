@@ -32,9 +32,42 @@ packages = ["mouse_jiggler"]
 [dependency-groups]
 dev = [
     "pre-commit>=4.2.0",
+    "pyright>=1.1.414",
     "pytest>=8.0",
+    "ruff>=0.17.5",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py310"
+# Most existing lines stay under 100 characters; E501 is ignored below, so this
+# only guides editors and any future formatter.
+line-length = 100
+
+[tool.ruff.lint]
+# Lint for real bugs only (pyflakes, pycodestyle errors/warnings, bugbear).
+# Left out on purpose, to avoid touching many lines while other branches are in flight:
+#   I  (import sorting)    - would reorder imports in several modules.
+#   UP (pyupgrade)         - would rewrite typing imports (e.g. typing.Callable).
+select = ["E", "F", "W", "B"]
+ignore = [
+    "E501", # line-too-long: ~90 existing long lines (mostly strings and UI calls).
+    "E741", # ambiguous-variable-name: style only (e.g. `l` for "light").
+]
+
+[tool.pyright]
+# Lenient baseline. The UI is built from mixins (ui_*.py) that use attributes
+# defined on other mixins / MouseJigglerApp, which pyright cannot see, so
+# attribute-access checks are off. Remaining categories are downgraded to
+# warnings so `uv run pyright` exits 0 and new *errors* fail CI; tighten these
+# back to errors as the warnings are fixed.
+pythonVersion = "3.10"
+include = ["mouse_jiggler", "tests"]
+typeCheckingMode = "basic"
+reportAttributeAccessIssue = false
+reportArgumentType = "warning"
+reportOptionalMemberAccess = "warning"
+reportOperatorIssue = "warning"
