@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Changed
 
+- **Faster startup**: the Analytics page (matplotlib and its three charts) is now built the first time you open it instead of at launch, so the main window appears about a second sooner. The first visit shows a brief "Loading charts…" placeholder; if the charts cannot be loaded, an error message is shown and opening the page again retries.
 - **Lower idle CPU and disk I/O**: the Analytics page no longer rewrites `analytics.json` on every 5-second refresh, and it skips re-reading and redrawing its three charts when the data, language, theme, and range are unchanged (or when the window is hidden in the tray). While running, the status strip re-applies its colors only when the phase or theme changes instead of every 500 ms.
 
 ### Fixed

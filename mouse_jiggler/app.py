@@ -15,12 +15,16 @@ from datetime import date, datetime, time as dtime
 from importlib.metadata import PackageNotFoundError, version as pkg_version
 from importlib.resources import files
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import customtkinter as ctk
 
+# analytics_charts pulls in matplotlib (~1.5 s of import time). It is imported lazily
+# the first time the Analytics page is opened; see _build_analytics_page_deferred.
+if TYPE_CHECKING:
+    from . import analytics_charts
+
 from . import (
-    analytics_charts,
     analytics_store,
     local_config,
     nudge_logic,
@@ -626,6 +630,8 @@ class MouseJigglerApp:
             self._lbl_interval_hint.configure(text_color=self._TEXT_MUTED)
         if hasattr(self, "_lbl_analytics_sub"):
             self._lbl_analytics_sub.configure(text_color=self._TEXT_MUTED)
+        if getattr(self, "_lbl_analytics_loading", None) is not None:
+            self._lbl_analytics_loading.configure(text_color=self._TEXT_MUTED)
         if hasattr(self, "_lbl_interval_presets"):
             self._lbl_interval_presets.configure(
                 text_color=(self._TEXT_MUTED, self._TEXT_MUTED)
@@ -2767,7 +2773,10 @@ class MouseJigglerApp:
         if hasattr(self, "btn_open_config"):
             self.btn_open_config.configure(text=self._t("btn_open_config_file"))
         self._lbl_analytics_title.configure(text=self._t("analytics_title"))
-        self._lbl_analytics_sub.configure(text=self._t("analytics_subtitle"))
+        if hasattr(self, "_lbl_analytics_sub"):
+            self._lbl_analytics_sub.configure(text=self._t("analytics_subtitle"))
+        if self._lbl_analytics_loading is not None:
+            self._lbl_analytics_loading.configure(text=self._t(self._analytics_loading_key))
         if hasattr(self, "_lbl_chart_triggers"):
             self._lbl_chart_triggers.configure(text=self._t("analytics_chart_triggers"))
             self._lbl_chart_runtime.configure(text=self._t("analytics_chart_runtime"))
@@ -3210,7 +3219,11 @@ class MouseJigglerApp:
         )
         self._lbl_analytics_title.grid(row=0, column=0, sticky="w")
 
-        self._fill_analytics_panel(self.page_analytics)
+        # The chart panel (matplotlib import + three figures) is built on first visit.
+        self._analytics_built = False
+        self._analytics_build_pending = False
+        self._lbl_analytics_loading: ctk.CTkLabel | None = None
+        self._analytics_loading_key = "analytics_loading"
 
         self.page_settings.grid_remove()
         self.page_analytics.grid_remove()
@@ -3228,8 +3241,79 @@ class MouseJigglerApp:
             self.page_settings.grid(row=0, column=0, sticky="nsew")
         else:
             self.page_analytics.grid(row=0, column=0, sticky="nsew")
+            if not self._analytics_built:
+                self._schedule_analytics_page_build()
+                return
             self._sync_analytics_log_from_main()
             self._refresh_analytics_charts()
+
+    def _schedule_analytics_page_build(self) -> None:
+        """Show a placeholder, then build the chart panel after the UI has repainted."""
+        if self._analytics_build_pending:
+            return
+        self._analytics_build_pending = True
+        self._analytics_loading_key = "analytics_loading"
+        if self._lbl_analytics_loading is None:
+            self._lbl_analytics_loading = ctk.CTkLabel(
+                self.page_analytics,
+                text=self._t("analytics_loading"),
+                font=self._font_body,
+                text_color=self._TEXT_MUTED,
+            )
+            self._lbl_analytics_loading.grid(row=1, column=0, sticky="n", pady=(self._UI_PAD * 2, 0))
+        else:
+            # Retrying after an earlier failure.
+            self._lbl_analytics_loading.configure(text=self._t("analytics_loading"))
+        # A short delay lets Tk paint the page and placeholder before the blocking import.
+        self.root.after(30, self._build_analytics_page_deferred)
+
+    def _build_analytics_page_deferred(self) -> None:
+        self._analytics_build_pending = False
+        if self._analytics_built or self._shutting_down:
+            return
+        try:
+            self._fill_analytics_panel(self.page_analytics)
+        except (ImportError, OSError, RuntimeError, ValueError, tk.TclError):
+            _LOG.exception("Failed to build the Analytics page")
+            self._discard_partial_analytics_panel()
+            self._analytics_loading_key = "analytics_load_failed"
+            if self._lbl_analytics_loading is not None:
+                self._lbl_analytics_loading.configure(text=self._t(self._analytics_loading_key))
+            return
+        self._analytics_built = True
+        if self._lbl_analytics_loading is not None:
+            self._lbl_analytics_loading.destroy()
+            self._lbl_analytics_loading = None
+        self._sync_analytics_log_from_main()
+
+    # Attributes created by _fill_analytics_panel; other code feature-tests them with hasattr.
+    _ANALYTICS_PANEL_ATTRS = (
+        "analytics_scroll",
+        "_lbl_analytics_sub",
+        "_lbl_chart_triggers",
+        "_lbl_chart_runtime",
+        "_lbl_chart_patterns",
+        "_seg_analytics_range",
+        "_fig_trigger",
+        "_mpl_canvas_trigger",
+        "_fig_runtime",
+        "_mpl_canvas_runtime",
+        "_fig_patterns",
+        "_mpl_canvas_patterns",
+        "analytics_log",
+    )
+
+    def _discard_partial_analytics_panel(self) -> None:
+        """Undo a failed build so a later visit can retry cleanly."""
+        scroll = getattr(self, "analytics_scroll", None)
+        if scroll is not None:
+            try:
+                scroll.destroy()
+            except tk.TclError:
+                pass
+        for name in self._ANALYTICS_PANEL_ATTRS:
+            if name in self.__dict__:
+                delattr(self, name)
 
     def _sync_nav_highlight(self) -> None:
         for key, btn in (
@@ -3671,6 +3755,8 @@ class MouseJigglerApp:
     def _fill_analytics_panel(self, card: ctk.CTkFrame) -> None:
         from matplotlib.figure import Figure
 
+        from . import analytics_charts
+
         p = self._UI_PAD
         card.grid_columnconfigure(0, weight=1)
         card.grid_rowconfigure(1, weight=1)
@@ -3794,6 +3880,8 @@ class MouseJigglerApp:
         self.analytics_log.see("end")
 
     def _palette_for_charts(self) -> analytics_charts.ChartPalette:
+        from . import analytics_charts
+
         return analytics_charts.ChartPalette(
             fig_face=self._CARD_BG,
             ax_face=self._ENTRY_BG,
@@ -3819,6 +3907,8 @@ class MouseJigglerApp:
         )
         if signature == getattr(self, "_analytics_chart_signature", None):
             return
+        from . import analytics_charts
+
         self._analytics_chart_signature = None
         try:
             days_map = analytics_store.load_days_copy()
@@ -4440,7 +4530,9 @@ class MouseJigglerApp:
         ts = datetime.now().strftime("%H:%M:%S")
         line = f"[{ts}] {message}\n"
         self._append_log_line_trim(self.log_text, line)
-        self._append_log_line_trim(self.analytics_log, line)
+        # Before the Analytics page is built, its log is filled from log_text on first visit.
+        if hasattr(self, "analytics_log"):
+            self._append_log_line_trim(self.analytics_log, line)
 
     def _parse_interval(self) -> float | None:
         raw = self.var_minutes.get()
