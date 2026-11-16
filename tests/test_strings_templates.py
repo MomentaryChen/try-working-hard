@@ -131,3 +131,20 @@ def test_update_info_banner_templates(lang: str) -> None:
 def test_startup_notice_body_includes_version(lang: str) -> None:
     body = STRINGS[lang]["startup_notice_body"].format(version="2.0.0")
     assert "2.0.0" in body
+
+
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_update_checksum_failure_strings(lang: str) -> None:
+    from typing import get_args
+
+    from mouse_jiggler.updater import ChecksumFailure
+
+    s = STRINGS[lang]
+    assert s["update_checksum_failed_title"]
+    for reason in get_args(ChecksumFailure):
+        if reason == "mismatch":
+            detail = s["update_checksum_mismatch_error"].format(expected="aa", actual="bb")
+        else:
+            detail = s[f"update_checksum_{reason}_error"]
+        assert detail
+        assert detail in s["update_checksum_failed_body"].format(detail=detail)

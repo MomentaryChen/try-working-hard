@@ -39,6 +39,3 @@ Thumbs.db
 
 # OS / app local
 *.log
-
-# uv
-uv.lock

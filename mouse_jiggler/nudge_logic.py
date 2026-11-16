@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import random
-from typing import Literal
+from typing import Literal, overload
 
 MIN_MINUTES = 0.0
 DEFAULT_MINUTES = 5.0
@@ -28,16 +28,41 @@ LOG_TRIM_LINES = 48
 MAX_INTERVAL_JITTER_SEC = 600.0
 
 
-def parse_minutes_string(raw: str, *, min_minutes: float = MIN_MINUTES) -> float | None:
-    """Parse interval minutes from user input; ``None`` if invalid or below ``min_minutes``."""
+@overload
+def _parse_number(
+    raw: str, *, lo: float, hi: float | None, as_int: Literal[True]
+) -> int | None: ...
+
+
+@overload
+def _parse_number(
+    raw: str, *, lo: float, hi: float | None, as_int: Literal[False]
+) -> float | None: ...
+
+
+def _parse_number(raw: str, *, lo: float, hi: float | None, as_int: bool) -> float | int | None:
+    """
+    Shared numeric parser: strip, accept ``,`` as decimal separator, reject non-finite.
+
+    With ``as_int`` the value is truncated toward zero (``int(float(...))``) *before* the
+    ``[lo, hi]`` range check. ``hi=None`` means no upper bound. ``None`` if invalid.
+    """
     s = raw.strip().replace(",", ".")
     try:
-        m = float(s)
-    except ValueError:
+        f = float(s)
+        if not math.isfinite(f):
+            return None
+        v: float | int = int(f) if as_int else f
+    except (ValueError, OverflowError):
         return None
-    if not math.isfinite(m) or m < min_minutes:
+    if v < lo or (hi is not None and v > hi):
         return None
-    return m
+    return v
+
+
+def parse_minutes_string(raw: str, *, min_minutes: float = MIN_MINUTES) -> float | None:
+    """Parse interval minutes from user input; ``None`` if invalid or below ``min_minutes``."""
+    return _parse_number(raw, lo=min_minutes, hi=None, as_int=False)
 
 
 IntervalUnit = Literal["min", "sec"]
@@ -47,14 +72,7 @@ def parse_seconds_string(
     raw: str, *, min_seconds: float = MIN_SECONDS, max_seconds: float = MAX_SECONDS
 ) -> float | None:
     """Parse interval seconds; ``None`` if invalid or outside ``[min_seconds, max_seconds]``."""
-    s = raw.strip().replace(",", ".")
-    try:
-        sec = float(s)
-    except ValueError:
-        return None
-    if not math.isfinite(sec) or sec < min_seconds or sec > max_seconds:
-        return None
-    return sec
+    return _parse_number(raw, lo=min_seconds, hi=max_seconds, as_int=False)
 
 
 def parse_interval_to_seconds(
@@ -80,17 +98,7 @@ def parse_path_speed_string(
     max_sp: int = MAX_PATH_SPEED,
 ) -> int | None:
     """Parse path speed as integer ``min_sp``–``max_sp``; ``None`` if invalid."""
-    s = raw.strip().replace(",", ".")
-    try:
-        f = float(s)
-        if not math.isfinite(f):
-            return None
-        p = int(f)
-    except (ValueError, OverflowError):
-        return None
-    if p < min_sp or p > max_sp:
-        return None
-    return p
+    return _parse_number(raw, lo=min_sp, hi=max_sp, as_int=True)
 
 
 def parse_motion_duration_seconds_string(
@@ -100,32 +108,12 @@ def parse_motion_duration_seconds_string(
     max_seconds: int = MAX_MOTION_DURATION_SECONDS,
 ) -> int | None:
     """Parse motion duration as integer seconds ``min_seconds``–``max_seconds``; ``None`` if invalid."""
-    s = raw.strip().replace(",", ".")
-    try:
-        f = float(s)
-        if not math.isfinite(f):
-            return None
-        s = int(f)
-    except (ValueError, OverflowError):
-        return None
-    if s < min_seconds or s > max_seconds:
-        return None
-    return s
+    return _parse_number(raw, lo=min_seconds, hi=max_seconds, as_int=True)
 
 
 def parse_pixels_string(raw: str, *, min_px: int = MIN_PIXELS, max_px: int = MAX_PIXELS) -> int | None:
     """Parse nudge size in pixels; ``None`` if not an integer in ``[min_px, max_px]``."""
-    s = raw.strip().replace(",", ".")
-    try:
-        f = float(s)
-        if not math.isfinite(f):
-            return None
-        p = int(f)
-    except (ValueError, OverflowError):
-        return None
-    if p < min_px or p > max_px:
-        return None
-    return p
+    return _parse_number(raw, lo=min_px, hi=max_px, as_int=True)
 
 
 def format_countdown_display(total_sec: int) -> str:
@@ -177,14 +165,7 @@ def parse_interval_jitter_seconds_string(
     max_jitter: float = MAX_INTERVAL_JITTER_SEC,
 ) -> float | None:
     """Parse non-negative jitter in seconds; ``None`` if out of range or invalid."""
-    s = raw.strip().replace(",", ".")
-    try:
-        v = float(s)
-    except ValueError:
-        return None
-    if not math.isfinite(v) or v < 0.0 or v > max_jitter:
-        return None
-    return v
+    return _parse_number(raw, lo=0.0, hi=max_jitter, as_int=False)
 
 
 def next_wait_seconds(base_sec: float, jitter_sec: float) -> float:

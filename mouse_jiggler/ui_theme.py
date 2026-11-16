@@ -360,7 +360,7 @@ class ThemeMixin:
                     button_color="#FFFFFF",
                     button_hover_color="#E2E8F0",
                 )
-        for _swt_name in ("swt_natural_click", "swt_natural_scroll"):
+        for _swt_name in ("swt_natural_click", "swt_natural_scroll", "swt_keep_awake"):
             if hasattr(self, _swt_name):
                 _swt = getattr(self, _swt_name)
                 if self._ui_theme == "dark":
@@ -408,6 +408,7 @@ class ThemeMixin:
             "_lbl_schedule_time_end",
             "_lbl_about_updates",
             "_lbl_auto_updates_sw",
+            "_lbl_keep_awake_sw",
         ):
             if hasattr(self, name):
                 w = getattr(self, name)
@@ -424,6 +425,7 @@ class ThemeMixin:
             "_hint_autostart",
             "_hint_schedule",
             "_hint_auto_updates",
+            "_hint_keep_awake",
             "_lbl_natural_opts_hint",
         ):
             if hasattr(self, name):

@@ -243,3 +243,62 @@ def test_next_wait_seconds_with_jitter(_mock_u: object) -> None:
 @patch("mouse_jiggler.nudge_logic.random.uniform", return_value=2.0)
 def test_next_wait_seconds_clamped_to_min(_mock_u: object) -> None:
     assert nudge_logic.next_wait_seconds(10.0, 100.0) == nudge_logic.MIN_SECONDS
+
+
+_FLOAT_PARSERS = [
+    nudge_logic.parse_minutes_string,
+    nudge_logic.parse_seconds_string,
+    nudge_logic.parse_interval_jitter_seconds_string,
+]
+_INT_PARSERS = [
+    nudge_logic.parse_pixels_string,
+    nudge_logic.parse_path_speed_string,
+    nudge_logic.parse_motion_duration_seconds_string,
+]
+
+
+@pytest.mark.parametrize("parse", _FLOAT_PARSERS + _INT_PARSERS)
+@pytest.mark.parametrize("raw", ["1e400", "-1e400", "-inf", "NaN", "Infinity", "1,2,3"])
+def test_parsers_reject_non_finite_and_garbage(parse: object, raw: str) -> None:
+    assert parse(raw) is None  # type: ignore[operator]
+
+
+@pytest.mark.parametrize(
+    ("parse", "raw", "expected"),
+    [
+        (nudge_logic.parse_pixels_string, "10,9", 10),
+        (nudge_logic.parse_pixels_string, "-0.5", 0),
+        (nudge_logic.parse_pixels_string, "500.9", 500),
+        (nudge_logic.parse_path_speed_string, "30.99", 30),
+        (nudge_logic.parse_path_speed_string, " 2,5 ", 2),
+        (nudge_logic.parse_motion_duration_seconds_string, "60.5", 60),
+        (nudge_logic.parse_motion_duration_seconds_string, "1e1", 10),
+    ],
+)
+def test_int_parsers_truncate_before_range_check(parse: object, raw: str, expected: int) -> None:
+    result = parse(raw)  # type: ignore[operator]
+    assert result == expected
+    assert type(result) is int
+
+
+@pytest.mark.parametrize(
+    ("parse", "raw"),
+    [
+        (nudge_logic.parse_minutes_string, "1,5"),
+        (nudge_logic.parse_seconds_string, "10,5"),
+        (nudge_logic.parse_interval_jitter_seconds_string, "1,5"),
+    ],
+)
+def test_float_parsers_return_float(parse: object, raw: str) -> None:
+    assert type(parse(raw)) is float  # type: ignore[operator]
+
+
+def test_parse_seconds_bounds_are_inclusive() -> None:
+    assert nudge_logic.parse_seconds_string("5") == 5.0
+    assert nudge_logic.parse_seconds_string("600") == 600.0
+    assert nudge_logic.parse_interval_jitter_seconds_string("0") == 0.0
+    assert nudge_logic.parse_interval_jitter_seconds_string("600") == 600.0
+
+
+def test_parse_minutes_has_no_upper_bound() -> None:
+    assert nudge_logic.parse_minutes_string("1e300") == 1e300

@@ -6,7 +6,7 @@ import json
 import hashlib
 import re
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 from urllib import error, request
 
 LATEST_RELEASE_API = "https://api.github.com/repos/MomentaryChen/try-working-hard/releases/latest"
@@ -128,7 +128,13 @@ def choose_windows_installer_asset(release: dict[str, Any]) -> dict[str, str] | 
 
 
 def choose_checksum_asset(release: dict[str, Any]) -> dict[str, str] | None:
-    """Pick an optional checksum asset from release assets."""
+    """Pick the checksum asset from release assets.
+
+    The release workflow publishes ``try-working-hard-<tag>-checksums.txt`` (one
+    ``<sha256>  <filename>`` line per binary). ``*.sha256`` / ``*.sha256.txt`` files are
+    accepted as well. Prefer names that contain the release ``tag``, then the shortest.
+    """
+    tag = str(release.get("tag") or "").strip().lower()
     assets = release.get("assets")
     if not isinstance(assets, list):
         return None
@@ -145,23 +151,96 @@ def choose_checksum_asset(release: dict[str, Any]) -> dict[str, str] | None:
             candidates.append({"name": name, "url": url})
     if not candidates:
         return None
-    return sorted(candidates, key=lambda a: len(a["name"]))[0]
+    return min(
+        candidates,
+        key=lambda a: (0 if (tag and tag in a["name"].lower()) else 1, len(a["name"])),
+    )
+
+
+_BOM = chr(0xFEFF)
+
+# ``<digest>  <name>`` (GNU text mode) or ``<digest> *<name>`` (GNU binary mode).
+_GNU_LINE = re.compile(r"^([0-9a-fA-F]{64})\s+\*?(.+)$")
+# ``SHA256 (<name>) = <digest>`` (BSD style).
+_BSD_LINE = re.compile(r"^SHA256\s*\((.+)\)\s*=\s*([0-9a-fA-F]{64})$", re.IGNORECASE)
 
 
 def parse_sha256_from_text(checksum_text: str, target_filename: str) -> str | None:
-    """Extract sha256 digest for a target filename from checksum file content."""
+    """Extract the sha256 digest for ``target_filename`` from checksum file content.
+
+    The filename must match exactly (case-insensitive, any leading path ignored);
+    a name that merely contains the target is not accepted.
+    """
     target_lower = target_filename.strip().lower()
+    if not target_lower:
+        return None
     for raw_line in checksum_text.splitlines():
-        line = raw_line.strip()
+        # A UTF-8 BOM may precede the first line (e.g. Windows PowerShell 5 ``-Encoding utf8``).
+        line = raw_line.strip().lstrip(_BOM).strip()
         if not line:
             continue
-        m = re.search(r"\b([a-fA-F0-9]{64})\b", line)
-        if not m:
-            continue
-        digest = m.group(1).lower()
-        if target_lower in line.lower():
-            return digest
+        m = _GNU_LINE.match(line)
+        if m:
+            digest, name = m.group(1), m.group(2)
+        else:
+            m = _BSD_LINE.match(line)
+            if not m:
+                continue
+            name, digest = m.group(1), m.group(2)
+        name = name.strip().replace("\\", "/").rsplit("/", 1)[-1].lower()
+        if name == target_lower:
+            return digest.lower()
     return None
+
+
+ChecksumFailure = Literal["missing_asset", "fetch_failed", "missing_digest", "mismatch"]
+
+
+class ChecksumError(RuntimeError):
+    """Raised when a downloaded installer cannot be verified against the release checksum."""
+
+    def __init__(self, reason: ChecksumFailure, *, expected: str = "", actual: str = "") -> None:
+        super().__init__(f"Installer checksum verification failed: {reason}")
+        self.reason: ChecksumFailure = reason
+        self.expected = expected
+        self.actual = actual
+
+
+def verify_installer_checksum(
+    path: Path,
+    *,
+    installer_name: str,
+    checksum_url: str,
+    fetch: Callable[[str], str] | None = None,
+) -> str:
+    """Verify ``path`` against the release checksum file and return the verified digest.
+
+    Raises :class:`ChecksumError` when there is no checksum asset, the checksum file
+    cannot be fetched, it has no line for ``installer_name``, or the digest differs.
+    The caller is responsible for deleting the file when this raises.
+    """
+    if not checksum_url.strip():
+        raise ChecksumError("missing_asset")
+    fetcher = fetch if fetch is not None else fetch_text
+    try:
+        checksum_text = fetcher(checksum_url)
+    except Exception as exc:
+        raise ChecksumError("fetch_failed") from exc
+    expected = parse_sha256_from_text(checksum_text, installer_name)
+    if not expected:
+        raise ChecksumError("missing_digest")
+    actual = sha256_file(path)
+    if actual.lower() != expected.lower():
+        raise ChecksumError("mismatch", expected=expected, actual=actual)
+    return actual
+
+
+def discard_file(path: Path) -> None:
+    """Delete ``path`` if it exists; ignore errors (best effort cleanup)."""
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 def fetch_text(url: str, *, timeout_sec: float = 10.0) -> str:

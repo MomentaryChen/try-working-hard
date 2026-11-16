@@ -94,10 +94,13 @@ class SettingsMixin:
         )
 
     def _sync_schedule_times_from_vars(self) -> None:
+        before = (self._schedule_ws, self._schedule_we, self._schedule_segments_text)
         self._schedule_ws, self._schedule_we = self._effective_schedule_bounds()
         self._schedule_segments_text = (
             f"{self.var_schedule_start.get().strip()}-{self.var_schedule_end.get().strip()}"
         )
+        if (self._schedule_ws, self._schedule_we, self._schedule_segments_text) != before:
+            self._schedule_changed.set()
 
     def _build_schedule_spec(self) -> schedule_window.ScheduleSpec | None:
         return schedule_window.build_schedule_spec(
@@ -478,3 +481,41 @@ class SettingsMixin:
             wraplength=520,
         )
         self._hint_auto_updates.grid(row=15, column=0, sticky="ew", padx=p, pady=(0, p))
+
+        self.var_keep_display_awake = tk.BooleanVar(value=True)
+        keep_awake_row = ctk.CTkFrame(card, fg_color="transparent")
+        keep_awake_row.grid(row=16, column=0, sticky="ew", padx=p, pady=(0, 8))
+        keep_awake_row.grid_columnconfigure(0, weight=1)
+        self._lbl_keep_awake_sw = ctk.CTkLabel(
+            keep_awake_row,
+            text=self._t("keep_display_awake_title"),
+            font=self._font_body_bold,
+            text_color=(self._TEXT_BODY, self._TEXT_BODY),
+            anchor="w",
+        )
+        self._lbl_keep_awake_sw.grid(row=0, column=0, sticky="w")
+        self.swt_keep_awake = ctk.CTkSwitch(
+            keep_awake_row,
+            text="",
+            variable=self.var_keep_display_awake,
+            width=52,
+            switch_width=40,
+            switch_height=22,
+            fg_color=self._BORDER,
+            progress_color=self._ACCENT,
+            button_color="#FFFFFF",
+            button_hover_color="#E2E8F0",
+            font=self._font_body,
+        )
+        self.swt_keep_awake.grid(row=0, column=1, sticky="e", padx=(16, 0))
+        _try_takefocus(self.swt_keep_awake, 1)
+        self._hint_keep_awake = ctk.CTkLabel(
+            card,
+            text=self._t("keep_display_awake_hint"),
+            font=self._font_hint,
+            text_color=self._TEXT_MUTED,
+            anchor="w",
+            justify="left",
+            wraplength=520,
+        )
+        self._hint_keep_awake.grid(row=17, column=0, sticky="ew", padx=p, pady=(0, p))

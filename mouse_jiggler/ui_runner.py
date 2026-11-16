@@ -15,12 +15,35 @@ from . import (
     nudge_logic,
     schedule_window,
 )
-from .cursor_nudge import ActivityStyle, MotionPattern
-from .win32_mouse import get_seconds_since_last_user_input, jiggle_mouse, jiggle_natural
+from .cursor_nudge import ActivityStyle, MotionInterrupted, MotionPattern
+from .run_config import RunConfig
+from .win32_mouse import (
+    get_seconds_since_last_user_input,
+    jiggle_mouse,
+    jiggle_natural,
+    set_keep_awake,
+)
 
 
 class RunnerMixin:
     """Mixin for :class:`mouse_jiggler.app.MouseJigglerApp`; relies on its shared state."""
+
+    # Input widgets that are disabled while running and re-enabled on stop.
+    _RUN_INPUT_WIDGET_ATTRS: tuple[str, ...] = (
+        "entry_minutes",
+        "entry_pixels",
+        "entry_path_speed",
+        "entry_motion_duration",
+        "entry_interval_jitter",
+        "seg_motion_pattern",
+        "seg_activity_style",
+        "swt_natural_click",
+        "swt_natural_scroll",
+        "seg_natural_intensity",
+        "swt_schedule",
+        "entry_schedule_start",
+        "entry_schedule_end",
+    )
 
     def _truncate_status_text(self, value: str) -> str:
         text = value.strip()
@@ -234,47 +257,45 @@ class RunnerMixin:
 
     def _nudge_tick(
         self,
-        pixels: int,
-        pattern: MotionPattern,
-        path_speed: int,
-        motion_duration_seconds: int,
+        cfg: RunConfig,
         *,
-        activity_style: ActivityStyle,
-        natural_rare_click: bool,
-        natural_rare_scroll: bool,
         log_success: bool = True,
     ) -> None:
         self._ui_invoke(
-            lambda d=motion_duration_seconds: self._schedule_burst_phase(float(d))
+            lambda d=cfg.motion_duration_seconds: self._schedule_burst_phase(float(d))
         )
         try:
-            if activity_style == "natural":
+            if cfg.activity_style == "natural":
                 completed = jiggle_natural(
-                    pixels,
-                    path_speed=path_speed,
-                    motion_duration_seconds=motion_duration_seconds,
-                    intensity=self._natural_intensity,
-                    rare_click=natural_rare_click,
-                    rare_scroll=natural_rare_scroll,
+                    cfg.pixels,
+                    path_speed=cfg.path_speed,
+                    motion_duration_seconds=cfg.motion_duration_seconds,
+                    intensity=cfg.natural_intensity,
+                    rare_click=cfg.rare_click,
+                    rare_scroll=cfg.rare_scroll,
+                    propagate_interrupt=True,
                 )
                 rec_key = "natural"
             else:
                 completed = jiggle_mouse(
-                    pixels,
-                    pattern,
-                    path_speed=path_speed,
-                    motion_duration_seconds=motion_duration_seconds,
+                    cfg.pixels,
+                    cfg.pattern,
+                    path_speed=cfg.path_speed,
+                    motion_duration_seconds=cfg.motion_duration_seconds,
+                    propagate_interrupt=True,
                 )
-                rec_key = pattern
+                rec_key = cfg.pattern
             if not completed:
                 return
             if not log_success:
                 return
             analytics_store.record_nudge(rec_key)
-            if pixels > 0:
+            if cfg.pixels > 0:
                 self._log(self._t("log_nudge"))
             else:
                 self._log(self._t("log_nudge_zero"))
+        except MotionInterrupted:
+            self._log(self._t("log_nudge_interrupted"))
         except OSError as e:
             self._log(self._t("log_nudge_fail", err=e))
         finally:
@@ -331,13 +352,21 @@ class RunnerMixin:
             return not self._stop.is_set()
         waited = False
         while not self._stop.is_set():
+            # Clear before reading the settings so a change made from here on wakes us.
+            self._schedule_changed.clear()
             now = datetime.now()
             spec = self._build_schedule_spec()
             if spec is None:
-                return False
+                if not waited:
+                    return False
+                # Settings became invalid while waiting (e.g. a half-typed time):
+                # keep waiting until they change again instead of ending the worker.
+                self._schedule_changed.wait(timeout=30.0)
+                continue
             if schedule_window.is_within_schedule(now, spec):
                 if waited:
                     self._ui_invoke(lambda: self._log(self._t("log_schedule_resumed")))
+                    self._ui_invoke(self._ui_exit_schedule_wait)
                 return not self._stop.is_set()
             waited = True
             resume_at = schedule_window.next_schedule_start(now, spec)
@@ -348,14 +377,39 @@ class RunnerMixin:
                 if left <= 0:
                     break
                 step = min(30.0, left)
-                if self._stop.wait(timeout=step):
+                # Stop also sets _schedule_changed, so this wakes on either.
+                changed = self._schedule_changed.wait(timeout=step)
+                if self._stop.is_set():
                     return False
                 if not self._run_schedule_window:
                     self._ui_invoke(self._ui_exit_schedule_wait)
                     return not self._stop.is_set()
+                if changed:
+                    # Re-evaluate the schedule right away with the new settings.
+                    break
             if self._stop.is_set():
                 return False
         return False
+
+    def _apply_keep_awake(self) -> None:
+        """
+        Keep the system and display awake while a run is active and the setting is on.
+
+        Always called on the Tk main thread, because ``SetThreadExecutionState`` is per thread.
+        """
+        running = (
+            self._worker is not None and self._worker.is_alive() and not self._stop.is_set()
+        )
+        want = running and not self._shutting_down and bool(self.var_keep_display_awake.get())
+        if want == getattr(self, "_keep_awake_active", False):
+            return
+        set_keep_awake(want)
+        self._keep_awake_active = want
+
+    def _release_keep_awake(self) -> None:
+        if getattr(self, "_keep_awake_active", False):
+            set_keep_awake(False)
+            self._keep_awake_active = False
 
     def _on_start(self) -> None:
         interval_sec = self._parse_interval()
@@ -434,60 +488,33 @@ class RunnerMixin:
         self._next_jiggle_monotonic = time.monotonic() + interval_sec
         run_pattern: MotionPattern = self._motion_pattern
         run_activity: ActivityStyle = self._activity_style
-        n_click = bool(self.var_natural_rare_click.get())
-        n_scroll = bool(self.var_natural_rare_scroll.get())
+        cfg = RunConfig(
+            interval_sec=interval_sec,
+            jitter_sec=jitter_sec,
+            pixels=pixels,
+            path_speed=path_speed,
+            motion_duration_seconds=motion_duration_seconds,
+            activity_style=run_activity,
+            pattern=run_pattern,
+            natural_intensity=self._natural_intensity,
+            rare_click=bool(self.var_natural_rare_click.get()),
+            rare_scroll=bool(self.var_natural_rare_scroll.get()),
+        )
 
         self._worker = threading.Thread(
             target=self._run_loop,
-            args=(
-                interval_sec,
-                jitter_sec,
-                pixels,
-                path_speed,
-                motion_duration_seconds,
-                run_activity,
-                run_pattern,
-                n_click,
-                n_scroll,
-            ),
+            args=(cfg,),
             daemon=True,
         )
         self._worker.start()
+        self._apply_keep_awake()
 
         self._analytics_runtime_anchor = time.monotonic()
         self._schedule_next_runtime_flush()
 
         self.btn_run_toggle.configure(state="normal")
         self._refresh_run_toggle_text()
-        self.entry_minutes.configure(state="disabled")
-        self.entry_pixels.configure(state="disabled")
-        self.entry_path_speed.configure(state="disabled")
-        self.entry_motion_duration.configure(state="disabled")
-        self.entry_interval_jitter.configure(state="disabled")
-        self._set_interval_preset_widgets_state("disabled")
-        try:
-            self.seg_motion_pattern.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.seg_activity_style.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.swt_natural_click.configure(state="disabled")
-            self.swt_natural_scroll.configure(state="disabled")
-            self.seg_natural_intensity.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.swt_schedule.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.entry_schedule_start.configure(state="disabled")
-            self.entry_schedule_end.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
+        self._set_run_inputs_enabled(False)
         self._apply_status_chrome("interval")
         self._schedule_countdown_tick()
         pat = self._pattern_log_label()
@@ -537,65 +564,43 @@ class RunnerMixin:
                 )
             )
 
+    def _set_run_inputs_enabled(self, enabled: bool) -> None:
+        """Enable (stopped) or disable (running) the run settings inputs."""
+        st = "normal" if enabled else "disabled"
+        for name in self._RUN_INPUT_WIDGET_ATTRS:
+            widget = getattr(self, name, None)
+            if widget is None:
+                continue
+            try:
+                widget.configure(state=st)
+            except (tk.TclError, AttributeError):
+                pass
+        self._set_interval_preset_widgets_state(st)
+
     def _on_stop(self) -> None:
         self._flush_runtime_segment()
         self._cancel_analytics_runtime_flush()
         self._stop.set()
+        self._release_keep_awake()
+        # Wake a worker that is waiting for the next schedule window.
+        self._schedule_changed.set()
+        analytics_store.flush()
         self._cancel_countdown_tick()
         self._current_interval_sec = 0.0
         self._countdown_phase = "interval"
         self._schedule_resume_at = None
         self.btn_run_toggle.configure(state="normal")
         self._refresh_run_toggle_text()
-        self.entry_minutes.configure(state="normal")
-        self.entry_pixels.configure(state="normal")
-        self.entry_path_speed.configure(state="normal")
-        self.entry_motion_duration.configure(state="normal")
-        self.entry_interval_jitter.configure(state="normal")
-        self._set_interval_preset_widgets_state("normal")
-        try:
-            self.seg_motion_pattern.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.seg_activity_style.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.swt_natural_click.configure(state="normal")
-            self.swt_natural_scroll.configure(state="normal")
-            self.seg_natural_intensity.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.swt_schedule.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.entry_schedule_start.configure(state="normal")
-            self.entry_schedule_end.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
+        self._set_run_inputs_enabled(True)
         self.status.set(self._t("status_stopped"))
         self._apply_status_chrome("stopped")
         self._log(self._t("log_stopped"))
         self._refresh_activity_dependent_widgets()
 
-    def _run_loop(
-        self,
-        interval_sec: float,
-        jitter_sec: float,
-        pixels: int,
-        path_speed: int,
-        motion_duration_seconds: int,
-        activity_style: ActivityStyle,
-        pattern: MotionPattern,
-        natural_rare_click: bool,
-        natural_rare_scroll: bool,
-    ) -> None:
+    def _run_loop(self, cfg: RunConfig) -> None:
         last_nudge_monotonic: float | None = None
         poll = 0.2
-        active_interval = nudge_logic.next_wait_seconds(interval_sec, jitter_sec)
+        active_interval = nudge_logic.next_wait_seconds(cfg.interval_sec, cfg.jitter_sec)
         while not self._stop.is_set():
             if not self._wait_for_schedule_if_needed():
                 break
@@ -614,16 +619,7 @@ class RunnerMixin:
                 continue
             if last_nudge_monotonic is not None and (now - last_nudge_monotonic) < active_interval:
                 continue
-            self._nudge_tick(
-                pixels,
-                pattern,
-                path_speed,
-                motion_duration_seconds,
-                activity_style=activity_style,
-                natural_rare_click=natural_rare_click,
-                natural_rare_scroll=natural_rare_scroll,
-                log_success=True,
-            )
+            self._nudge_tick(cfg, log_success=True)
             # Count interval from when movement fully finishes, not from nudge start.
             last_nudge_monotonic = time.monotonic()
-            active_interval = nudge_logic.next_wait_seconds(interval_sec, jitter_sec)
+            active_interval = nudge_logic.next_wait_seconds(cfg.interval_sec, cfg.jitter_sec)

@@ -352,3 +352,5 @@ class AnalyticsMixin:
         self._analytics_runtime_anchor = 0.0
         if delta > 0:
             analytics_store.add_runtime_seconds(delta)
+        # End of a run segment (Stop / shutdown): write batched analytics now.
+        analytics_store.flush()
