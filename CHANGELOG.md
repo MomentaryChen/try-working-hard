@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-16
+
 ### Added
 
 - **Keep display awake while running** (Settings, default on, saved as `keep_display_awake`): while a run is active the app calls `SetThreadExecutionState` so Windows does not turn off the display or sleep; the request is cleared on **Stop** and on exit.
