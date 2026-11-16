@@ -1049,6 +1049,12 @@ class MouseJigglerApp:
             return text
         return text[: self.MAX_STATUS_LABEL_CHARS - 3].rstrip() + "..."
 
+    def _set_status_if_changed(self, text: str) -> None:
+        """Set the status line only when the (clipped) text differs, avoiding label redraws."""
+        if self._truncate_status_text(text) == self.status.get():
+            return
+        self.status.set(text)
+
     def _on_status_var_changed(self, *_args: object) -> None:
         if getattr(self, "_status_trace_guard", False):
             return
@@ -2827,6 +2833,12 @@ class MouseJigglerApp:
         self, kind: Literal["stopped", "interval", "burst", "schedule"]
     ) -> None:
         """Update status strip colors and LED to match schedule state."""
+        # The countdown re-applies the same state every 500 ms; each configure() makes
+        # CTk redraw its canvas, so skip when neither the state nor the theme changed.
+        chrome_key = (kind, self._ui_theme)
+        if chrome_key == getattr(self, "_status_chrome_key", None):
+            return
+        self._status_chrome_key = chrome_key
         if kind == "stopped":
             self._status_strip.configure(
                 fg_color=self._STATUS_STRIP_BG_STOP,
@@ -3795,11 +3807,23 @@ class MouseJigglerApp:
     def _refresh_analytics_charts(self) -> None:
         if not hasattr(self, "_fig_trigger"):
             return
+        today_key = date.today().isoformat()
+        # Skip re-reading JSON and redrawing all three figures when neither the data
+        # nor anything that affects rendering has changed since the last draw.
+        signature = (
+            analytics_store.data_signature(),
+            today_key,
+            self._analytics_trigger_mode,
+            self._lang,
+            self._ui_theme,
+        )
+        if signature == getattr(self, "_analytics_chart_signature", None):
+            return
+        self._analytics_chart_signature = None
         try:
             days_map = analytics_store.load_days_copy()
         except OSError:
             days_map = {}
-        today_key = date.today().isoformat()
         palette = self._palette_for_charts()
         fp = analytics_charts.prepare_chart_font(self._lang)
         mode = self._analytics_trigger_mode
@@ -3843,11 +3867,12 @@ class MouseJigglerApp:
             empty_msg=self._t("analytics_empty"),
         )
         self._mpl_canvas_patterns.draw()
+        self._analytics_chart_signature = signature
 
     def _tick_analytics_charts_loop(self) -> None:
         if self._shutting_down:
             return
-        if self._active_nav == "analytics":
+        if self._active_nav == "analytics" and self._is_main_window_visible():
             try:
                 self._refresh_analytics_charts()
             except (OSError, RuntimeError, ValueError, tk.TclError):
@@ -4373,10 +4398,10 @@ class MouseJigglerApp:
         if self._countdown_phase == "schedule" and self._schedule_resume_at is not None:
             rem = (self._schedule_resume_at - datetime.now()).total_seconds()
             countdown_str = nudge_logic.remaining_seconds_to_countdown_display(rem)
-            self.status.set(self._t("status_schedule_wait", cd=countdown_str))
+            self._set_status_if_changed(self._t("status_schedule_wait", cd=countdown_str))
             self._apply_status_chrome("schedule")
         elif self._countdown_phase == "burst":
-            self.status.set(
+            self._set_status_if_changed(
                 self._t(
                     "status_motion_burst",
                     cd=countdown_str,
@@ -4385,7 +4410,7 @@ class MouseJigglerApp:
             )
             self._apply_status_chrome("burst")
         else:
-            self.status.set(self._t_status_running(countdown_str))
+            self._set_status_if_changed(self._t_status_running(countdown_str))
             self._apply_status_chrome("interval")
         self._countdown_after_id = self.root.after(500, self._countdown_tick)
 
