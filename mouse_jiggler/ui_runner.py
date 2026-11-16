@@ -16,11 +16,29 @@ from . import (
     schedule_window,
 )
 from .cursor_nudge import ActivityStyle, MotionPattern
+from .run_config import RunConfig
 from .win32_mouse import get_seconds_since_last_user_input, jiggle_mouse, jiggle_natural
 
 
 class RunnerMixin:
     """Mixin for :class:`mouse_jiggler.app.MouseJigglerApp`; relies on its shared state."""
+
+    # Input widgets that are disabled while running and re-enabled on stop.
+    _RUN_INPUT_WIDGET_ATTRS: tuple[str, ...] = (
+        "entry_minutes",
+        "entry_pixels",
+        "entry_path_speed",
+        "entry_motion_duration",
+        "entry_interval_jitter",
+        "seg_motion_pattern",
+        "seg_activity_style",
+        "swt_natural_click",
+        "swt_natural_scroll",
+        "seg_natural_intensity",
+        "swt_schedule",
+        "entry_schedule_start",
+        "entry_schedule_end",
+    )
 
     def _truncate_status_text(self, value: str) -> str:
         text = value.strip()
@@ -234,44 +252,38 @@ class RunnerMixin:
 
     def _nudge_tick(
         self,
-        pixels: int,
-        pattern: MotionPattern,
-        path_speed: int,
-        motion_duration_seconds: int,
+        cfg: RunConfig,
         *,
-        activity_style: ActivityStyle,
-        natural_rare_click: bool,
-        natural_rare_scroll: bool,
         log_success: bool = True,
     ) -> None:
         self._ui_invoke(
-            lambda d=motion_duration_seconds: self._schedule_burst_phase(float(d))
+            lambda d=cfg.motion_duration_seconds: self._schedule_burst_phase(float(d))
         )
         try:
-            if activity_style == "natural":
+            if cfg.activity_style == "natural":
                 completed = jiggle_natural(
-                    pixels,
-                    path_speed=path_speed,
-                    motion_duration_seconds=motion_duration_seconds,
-                    intensity=self._natural_intensity,
-                    rare_click=natural_rare_click,
-                    rare_scroll=natural_rare_scroll,
+                    cfg.pixels,
+                    path_speed=cfg.path_speed,
+                    motion_duration_seconds=cfg.motion_duration_seconds,
+                    intensity=cfg.natural_intensity,
+                    rare_click=cfg.rare_click,
+                    rare_scroll=cfg.rare_scroll,
                 )
                 rec_key = "natural"
             else:
                 completed = jiggle_mouse(
-                    pixels,
-                    pattern,
-                    path_speed=path_speed,
-                    motion_duration_seconds=motion_duration_seconds,
+                    cfg.pixels,
+                    cfg.pattern,
+                    path_speed=cfg.path_speed,
+                    motion_duration_seconds=cfg.motion_duration_seconds,
                 )
-                rec_key = pattern
+                rec_key = cfg.pattern
             if not completed:
                 return
             if not log_success:
                 return
             analytics_store.record_nudge(rec_key)
-            if pixels > 0:
+            if cfg.pixels > 0:
                 self._log(self._t("log_nudge"))
             else:
                 self._log(self._t("log_nudge_zero"))
@@ -434,22 +446,22 @@ class RunnerMixin:
         self._next_jiggle_monotonic = time.monotonic() + interval_sec
         run_pattern: MotionPattern = self._motion_pattern
         run_activity: ActivityStyle = self._activity_style
-        n_click = bool(self.var_natural_rare_click.get())
-        n_scroll = bool(self.var_natural_rare_scroll.get())
+        cfg = RunConfig(
+            interval_sec=interval_sec,
+            jitter_sec=jitter_sec,
+            pixels=pixels,
+            path_speed=path_speed,
+            motion_duration_seconds=motion_duration_seconds,
+            activity_style=run_activity,
+            pattern=run_pattern,
+            natural_intensity=self._natural_intensity,
+            rare_click=bool(self.var_natural_rare_click.get()),
+            rare_scroll=bool(self.var_natural_rare_scroll.get()),
+        )
 
         self._worker = threading.Thread(
             target=self._run_loop,
-            args=(
-                interval_sec,
-                jitter_sec,
-                pixels,
-                path_speed,
-                motion_duration_seconds,
-                run_activity,
-                run_pattern,
-                n_click,
-                n_scroll,
-            ),
+            args=(cfg,),
             daemon=True,
         )
         self._worker.start()
@@ -459,35 +471,7 @@ class RunnerMixin:
 
         self.btn_run_toggle.configure(state="normal")
         self._refresh_run_toggle_text()
-        self.entry_minutes.configure(state="disabled")
-        self.entry_pixels.configure(state="disabled")
-        self.entry_path_speed.configure(state="disabled")
-        self.entry_motion_duration.configure(state="disabled")
-        self.entry_interval_jitter.configure(state="disabled")
-        self._set_interval_preset_widgets_state("disabled")
-        try:
-            self.seg_motion_pattern.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.seg_activity_style.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.swt_natural_click.configure(state="disabled")
-            self.swt_natural_scroll.configure(state="disabled")
-            self.seg_natural_intensity.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.swt_schedule.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.entry_schedule_start.configure(state="disabled")
-            self.entry_schedule_end.configure(state="disabled")
-        except (tk.TclError, AttributeError):
-            pass
+        self._set_run_inputs_enabled(False)
         self._apply_status_chrome("interval")
         self._schedule_countdown_tick()
         pat = self._pattern_log_label()
@@ -537,6 +521,19 @@ class RunnerMixin:
                 )
             )
 
+    def _set_run_inputs_enabled(self, enabled: bool) -> None:
+        """Enable (stopped) or disable (running) the run settings inputs."""
+        st = "normal" if enabled else "disabled"
+        for name in self._RUN_INPUT_WIDGET_ATTRS:
+            widget = getattr(self, name, None)
+            if widget is None:
+                continue
+            try:
+                widget.configure(state=st)
+            except (tk.TclError, AttributeError):
+                pass
+        self._set_interval_preset_widgets_state(st)
+
     def _on_stop(self) -> None:
         self._flush_runtime_segment()
         self._cancel_analytics_runtime_flush()
@@ -547,55 +544,16 @@ class RunnerMixin:
         self._schedule_resume_at = None
         self.btn_run_toggle.configure(state="normal")
         self._refresh_run_toggle_text()
-        self.entry_minutes.configure(state="normal")
-        self.entry_pixels.configure(state="normal")
-        self.entry_path_speed.configure(state="normal")
-        self.entry_motion_duration.configure(state="normal")
-        self.entry_interval_jitter.configure(state="normal")
-        self._set_interval_preset_widgets_state("normal")
-        try:
-            self.seg_motion_pattern.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.seg_activity_style.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.swt_natural_click.configure(state="normal")
-            self.swt_natural_scroll.configure(state="normal")
-            self.seg_natural_intensity.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.swt_schedule.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
-        try:
-            self.entry_schedule_start.configure(state="normal")
-            self.entry_schedule_end.configure(state="normal")
-        except (tk.TclError, AttributeError):
-            pass
+        self._set_run_inputs_enabled(True)
         self.status.set(self._t("status_stopped"))
         self._apply_status_chrome("stopped")
         self._log(self._t("log_stopped"))
         self._refresh_activity_dependent_widgets()
 
-    def _run_loop(
-        self,
-        interval_sec: float,
-        jitter_sec: float,
-        pixels: int,
-        path_speed: int,
-        motion_duration_seconds: int,
-        activity_style: ActivityStyle,
-        pattern: MotionPattern,
-        natural_rare_click: bool,
-        natural_rare_scroll: bool,
-    ) -> None:
+    def _run_loop(self, cfg: RunConfig) -> None:
         last_nudge_monotonic: float | None = None
         poll = 0.2
-        active_interval = nudge_logic.next_wait_seconds(interval_sec, jitter_sec)
+        active_interval = nudge_logic.next_wait_seconds(cfg.interval_sec, cfg.jitter_sec)
         while not self._stop.is_set():
             if not self._wait_for_schedule_if_needed():
                 break
@@ -614,16 +572,7 @@ class RunnerMixin:
                 continue
             if last_nudge_monotonic is not None and (now - last_nudge_monotonic) < active_interval:
                 continue
-            self._nudge_tick(
-                pixels,
-                pattern,
-                path_speed,
-                motion_duration_seconds,
-                activity_style=activity_style,
-                natural_rare_click=natural_rare_click,
-                natural_rare_scroll=natural_rare_scroll,
-                log_success=True,
-            )
+            self._nudge_tick(cfg, log_success=True)
             # Count interval from when movement fully finishes, not from nudge start.
             last_nudge_monotonic = time.monotonic()
-            active_interval = nudge_logic.next_wait_seconds(interval_sec, jitter_sec)
+            active_interval = nudge_logic.next_wait_seconds(cfg.interval_sec, cfg.jitter_sec)
