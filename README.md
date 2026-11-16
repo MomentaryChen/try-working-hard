@@ -104,6 +104,8 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 - Each completed nudge ends with a tiny 1 px `SendInput` move and back. Moving the cursor with `SetCursorPos` alone does not reset the Windows idle timer (what screen lock and "Away" presence watch), so without it the screen could still lock. If you move the mouse during a nudge, the nudge stops and the log says so.
 - Analytics page shows Matplotlib charts and persists usage stats to `analytics.json` next to `config.json`.
 - Start-in-tray is available via `uv run python -m mouse_jiggler --start-in-tray` (and for frozen `.exe` with the same flag).
+- Only one copy runs at a time: launching the app again (Start menu, shortcut, `.exe`) brings the running window to the front, even when it is hidden in the tray, instead of opening a second copy. Pass `--allow-multiple` to bypass this for debugging.
+- **Download now** on the update banner only runs the installer after it matches the SHA256 checksum file published with the release. If the release has no checksum file, the checksum cannot be downloaded, or it has no entry for the installer, the download is deleted and an error is shown instead.
 
 ## FAQ (quick)
 
@@ -111,6 +113,7 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 - **Does cursor position drift?** No, it restores to the original point each cycle.
 - **Can I run without Python?** Yes, use the release `.exe` asset.
 - **Can it start in tray?** Yes, launch with `--start-in-tray`.
+- **Why does a second launch not open a new window?** The app is single-instance; it shows the window that is already running. Use `--allow-multiple` to run another copy.
 - **Can it be used to bypass policy controls?** No.
 
 ## Technical notes

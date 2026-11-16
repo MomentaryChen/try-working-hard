@@ -462,6 +462,15 @@ class DialogsMixin:
             screen_h = int(dialog.winfo_screenheight())
         except tk.TclError:
             return width, height
+        # ``width``/``height`` are CustomTkinter logical units (scaled by the window DPI
+        # factor on apply), while Tk reports the screen in physical pixels once the
+        # process is DPI aware before Tk starts (see win_dpi). Compare like with like.
+        try:
+            scale = float(dialog._get_window_scaling()) or 1.0
+        except (AttributeError, TypeError, ValueError):
+            scale = 1.0
+        screen_w = int(screen_w / scale)
+        screen_h = int(screen_h / scale)
         max_w = max(520, int(screen_w * 0.85))
         max_h = max(360, int(screen_h * 0.85))
         return min(width, max_w), min(height, max_h)
