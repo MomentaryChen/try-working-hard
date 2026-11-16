@@ -72,6 +72,8 @@ class ConfigMixin:
         self._lang_seg.set("繁中" if self._lang == "zh" else "English")
         if hasattr(self, "var_auto_check_updates"):
             self.var_auto_check_updates.set(self._auto_check_updates)
+        if hasattr(self, "var_keep_display_awake"):
+            self.var_keep_display_awake.set(bool(cfg.get("keep_display_awake", True)))
 
         ut = cfg.get("ui_theme")
         if ut in ("dark", "light") and ut != self._ui_theme:
@@ -110,6 +112,7 @@ class ConfigMixin:
             "schedule_cron_text": self._schedule_cron_text,
             "intro_acknowledged": self._intro_acknowledged,
             "auto_check_updates": bool(self.var_auto_check_updates.get()),
+            "keep_display_awake": bool(self.var_keep_display_awake.get()),
         }
 
     def _register_config_persistence(self) -> None:
@@ -134,6 +137,10 @@ class ConfigMixin:
             else:
                 self._cancel_auto_update_check()
 
+        def _on_keep_awake_toggle(*_a: object) -> None:
+            _on_write()
+            self._apply_keep_awake()
+
         try:
             self.var_tray_close.trace_add("write", _on_write)
             self.var_minutes.trace_add("write", _on_write)
@@ -145,6 +152,7 @@ class ConfigMixin:
             self.var_schedule_start.trace_add("write", _on_schedule_times_write)
             self.var_schedule_end.trace_add("write", _on_schedule_times_write)
             self.var_auto_check_updates.trace_add("write", _on_auto_updates_toggle)
+            self.var_keep_display_awake.trace_add("write", _on_keep_awake_toggle)
         except (tk.TclError, AttributeError):
             pass
 

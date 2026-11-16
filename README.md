@@ -85,7 +85,9 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 
 - **Interval:** minimum idle time before a nudge.
 - **Interval jitter:** randomizes spacing (`interval ± N sec`).
-- **Nudge size / Path speed:** controls distance and movement speed.
+- **Nudge size / Path speed / Motion duration:** distance, speed, and the approximate length of one nudge. Circle and square repeat whole laps until the duration is filled, so a higher path speed draws more laps (a slow speed on a large shape can run one lap past a short duration). Natural mode uses the speed for how dense and fast the wander is. Horizontal simply holds the offset for the duration and ignores path speed.
+- **Natural: occasional left click:** off by default (also in the built-in presets). When on, it sends a **real left click at the current cursor position**, which can press whatever is under the cursor.
+- **Keep display awake while running** (Settings, `keep_display_awake`, default on): while a run is active the app asks Windows not to turn off the display or sleep; the request is released on **Stop** and on exit.
 - **Schedule window:** optional active hours (`HH:MM` start/end) plus advanced segments/cron in `config.json`.
 - **Tray behavior:** default close = stop and exit; optional close-to-tray keeps running.
 
@@ -98,7 +100,8 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 ### Detailed reference
 
 - Startup prompt includes optional quick guide and stores suppression in `config.json` (`intro_acknowledged`).
-- Settings page supports theme (`ui_theme`), language, update checks (`auto_check_updates`), schedule summary, and opening `config.json`.
+- Settings page supports theme (`ui_theme`), language, update checks (`auto_check_updates`), keep display awake (`keep_display_awake`), schedule summary, and opening `config.json`.
+- Each completed nudge ends with a tiny 1 px `SendInput` move and back. Moving the cursor with `SetCursorPos` alone does not reset the Windows idle timer (what screen lock and "Away" presence watch), so without it the screen could still lock. If you move the mouse during a nudge, the nudge stops and the log says so.
 - Analytics page shows Matplotlib charts and persists usage stats to `analytics.json` next to `config.json`.
 - Start-in-tray is available via `uv run python -m mouse_jiggler --start-in-tray` (and for frozen `.exe` with the same flag).
 
@@ -114,7 +117,7 @@ Tagged releases on **GitHub** attach a **single-file** build named with the tag 
 
 - GUI: **CustomTkinter** — **light** mode now uses a cleaner SaaS palette (`#F5F7FB` background, `#FFFFFF` sidebar/cards, `#E2E8F0` borders) with blue accent states (`#3B82F6` / `#2563EB` / `#1D4ED8`). **Dark** mode now uses a modern dark palette (`#1E1E2E` background, `#181825` sidebar, `#24273A` cards, `#313244` borders) with cool-blue accent states (`#89B4FA` / `#74C7EC` / `#B4BEFE`). **Home** uses a segmented control for Control / Log.
 - **Analytics**: **Matplotlib** figures embedded via **TkAgg**; persisted aggregates in **`analytics.json`** next to **`config.json`**.
-- Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos`; **Natural** mode may also call `mouse_event` for rare left clicks and wheel deltas. Schedule uses `user32.GetLastInputInfo` with `kernel32.GetTickCount` for idle time
+- Mouse: **ctypes** calling `user32.GetCursorPos` / `SetCursorPos` for the path, and `user32.SendInput` for the idle-timer reset and, in **Natural** mode, rare left clicks and wheel deltas. Idle time uses `user32.GetLastInputInfo` with `kernel32.GetTickCount`; keep-awake uses `kernel32.SetThreadExecutionState`
 - Tray: **pystray**; icon: **Pillow** (shared PNG for window, tray, and—when rebuilt—[`packaging/app.ico`](packaging/app.ico) for the `.exe`; see [docs/WINDOWS-BUILD.md](docs/WINDOWS-BUILD.md))
 
 ## Limitations

@@ -25,7 +25,8 @@ def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
     assert cfg["natural_preset_selected"] == "standard"
     assert cfg["natural_presets"]["conservative"]["interval_text"] == "300"
     assert cfg["natural_presets"]["standard"]["pixels_text"] == "100"
-    assert cfg["natural_presets"]["aggressive"]["natural_rare_click"] is True
+    # Rare click sends a real left click, so no built-in preset turns it on.
+    assert cfg["natural_presets"]["aggressive"]["natural_rare_click"] is False
     assert cfg["ui_theme"] == "dark"
     assert cfg["close_to_tray"] is False
     assert cfg["intro_acknowledged"] is False
@@ -33,6 +34,7 @@ def test_load_missing_file_returns_defaults(tmp_path: Path) -> None:
     assert cfg["schedule_window_start_text"] == "09:00"
     assert cfg["schedule_window_end_text"] == "18:00"
     assert cfg["auto_check_updates"] is True
+    assert cfg["keep_display_awake"] is True
     assert cfg["schedule_window_segments_text"] == "09:00-18:00"
     assert cfg["schedule_include_weekends"] is False
     assert cfg["schedule_cron_text"] == ""
@@ -52,6 +54,7 @@ def test_round_trip(tmp_path: Path) -> None:
             "natural_intensity": "strong",
             "close_to_tray": True,
             "auto_check_updates": False,
+            "keep_display_awake": False,
             "natural_preset_selected": "aggressive",
             "natural_presets": {
                 "aggressive": {
@@ -79,6 +82,7 @@ def test_round_trip(tmp_path: Path) -> None:
     assert cfg["natural_intensity"] == "strong"
     assert cfg["close_to_tray"] is True
     assert cfg["auto_check_updates"] is False
+    assert cfg["keep_display_awake"] is False
     assert cfg["natural_preset_selected"] == "aggressive"
     assert cfg["natural_presets"]["aggressive"]["pixels_text"] == "150"
     assert cfg["natural_presets"]["aggressive"]["natural_rare_click"] is True
@@ -123,6 +127,7 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
                 "close_to_tray": "yes",
                 "ui_theme": "sepia",
                 "auto_check_updates": "sometimes",
+                "keep_display_awake": "always",
                 "schedule_window_segments_text": "09:00-12:00,11:00-13:00",
                 "schedule_include_weekends": "yes",
                 "schedule_cron_text": "bad cron expression",
@@ -142,6 +147,7 @@ def test_invalid_values_fallback(tmp_path: Path) -> None:
     assert cfg["motion_pattern"] == "horizontal"
     assert cfg["close_to_tray"] is False
     assert cfg["auto_check_updates"] is True
+    assert cfg["keep_display_awake"] is True
     assert cfg["intro_acknowledged"] is True
     assert cfg["schedule_window_segments_text"] == "09:00-18:00"
     assert cfg["schedule_include_weekends"] is False
