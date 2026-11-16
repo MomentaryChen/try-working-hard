@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import os
 import sys
 
@@ -12,17 +13,22 @@ matplotlib.use("TkAgg")
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties, fontManager
 
-# Avoid fullwidth minus when using CJK fonts
-plt.rcParams["axes.unicode_minus"] = False
+# Avoid fullwidth minus when using CJK fonts. pyplot is not imported: the app embeds
+# Figure objects directly, and pyplot alone adds noticeable startup import time.
+matplotlib.rcParams["axes.unicode_minus"] = False
 
 
+@functools.lru_cache(maxsize=4)
 def chart_font_properties(lang: str) -> FontProperties:
-    """Font that can render UI strings (CJK when ``lang`` is ``zh``). DejaVu cannot."""
+    """Font that can render UI strings (CJK when ``lang`` is ``zh``). DejaVu cannot.
+
+    Cached: the lookup scans the fonts directory / font list. Matplotlib copies the
+    returned object when applying it to text, so sharing one instance is safe.
+    """
     if lang != "zh":
         return FontProperties(family="DejaVu Sans")
 
@@ -53,7 +59,7 @@ def chart_font_properties(lang: str) -> FontProperties:
 def _apply_rcparams_for_lang(lang: str) -> None:
     """Align default sans-serif with CJK when needed so mixed renders resolve correctly."""
     if lang == "zh":
-        plt.rcParams["font.sans-serif"] = [
+        matplotlib.rcParams["font.sans-serif"] = [
             "Microsoft JhengHei",
             "Microsoft YaHei",
             "Microsoft YaHei UI",
@@ -62,7 +68,7 @@ def _apply_rcparams_for_lang(lang: str) -> None:
             "DejaVu Sans",
         ]
     else:
-        plt.rcParams["font.sans-serif"] = ["DejaVu Sans", "Segoe UI", "Arial"]
+        matplotlib.rcParams["font.sans-serif"] = ["DejaVu Sans", "Segoe UI", "Arial"]
 
 
 def prepare_chart_font(lang: str) -> FontProperties:
