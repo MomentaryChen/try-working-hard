@@ -8,7 +8,7 @@ repos:
       - id: end-of-file-fixer
       - id: trailing-whitespace
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Keep in sync with the ruff version in the dev dependency group.
+    # Keep in sync with the ruff version in uv.lock.
     rev: v0.17.5
     hooks:
       - id: ruff-check
