@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Lower idle CPU and disk I/O**: the Analytics page no longer rewrites `analytics.json` on every 5-second refresh, and it skips re-reading and redrawing its three charts when the data, language, theme, and range are unchanged (or when the window is hidden in the tray). While running, the status strip re-applies its colors only when the phase or theme changes instead of every 500 ms.
+
+### Fixed
+
+- **Analytics file safety**: `analytics.json` is now written atomically (temp file + replace), so a crash or power loss mid-write cannot leave a truncated file that resets all stats.
+- **Tests**: the analytics round-trip test no longer fails once its hard-coded date falls outside the 120-day retention window.
+
 ## [2.0.0] - 2026-04-30
 
 ### Fixed

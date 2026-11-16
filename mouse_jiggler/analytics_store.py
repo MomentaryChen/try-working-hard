@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -72,7 +73,8 @@ def _load_raw(path: Path | None = None) -> dict[str, Any]:
     return {"version": ANALYTICS_VERSION, "days": days}
 
 
-def _prune(days: dict[str, Any]) -> None:
+def _prune(days: dict[str, Any]) -> bool:
+    """Drop days older than ``_KEEP_DAYS``; return ``True`` if anything was removed."""
     cutoff = date.today() - timedelta(days=_KEEP_DAYS)
     stale = [
         k
@@ -81,15 +83,35 @@ def _prune(days: dict[str, Any]) -> None:
     ]
     for k in stale:
         del days[k]
+    return bool(stale)
 
 
 def _save(data: dict[str, Any], path: Path | None = None) -> None:
+    """Write atomically (temp file + replace) so a crash never leaves a truncated file."""
     p = path or default_analytics_path()
+    tmp = p.with_name(p.name + ".tmp")
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        os.replace(tmp, p)
     except OSError:
-        pass
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+
+def data_signature() -> tuple[int, int] | None:
+    """``(mtime_ns, size)`` of the analytics file, or ``None`` if missing.
+
+    Lets the UI skip re-reading and redrawing charts when nothing was written.
+    """
+    try:
+        st = default_analytics_path().stat()
+    except OSError:
+        return None
+    return (st.st_mtime_ns, st.st_size)
 
 
 def record_nudge(pattern: AnalyticsPatternKey, at: datetime | None = None) -> None:
@@ -138,8 +160,9 @@ def load_days_copy() -> dict[str, dict[str, Any]]:
         raw_days = doc.get("days")
         if not isinstance(raw_days, dict):
             return {}
-        _prune(raw_days)
-        _save(doc)
+        # Reads are frequent (chart refresh); rewrite the file only when pruning changed it.
+        if _prune(raw_days):
+            _save(doc)
         out: dict[str, dict[str, Any]] = {}
         for k, v in raw_days.items():
             if isinstance(v, dict):
